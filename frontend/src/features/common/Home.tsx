@@ -1,0 +1,177 @@
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { JobsIcon, CheckIcon } from '../../components/icons';
+
+export function Home() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-16">
+      {/* Hero Section */}
+      <section className="py-16 bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-2xl">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <div className="text-left">
+              <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+                {t('welcome')}
+              </h1>
+              <p className="text-2xl text-gray-700 dark:text-gray-300 mb-4 font-medium">
+                {t('heroTitle')}
+              </p>
+              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                {t('heroSubtitle')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link 
+                  to="/register" 
+                  className="px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-lg transition-colors"
+                >
+                  {t('getStarted')}
+                </Link>
+                <Link 
+                  to="/jobs" 
+                  className="px-8 py-4 border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white rounded-lg font-semibold text-lg transition-colors"
+                >
+                  {t('browseJobs')}
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Dashboard Sample Card */}
+            <div className="relative">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border dark:border-gray-700 p-6 transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h3>
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                </div>
+                
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">12</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Applications</div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">3</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Interviews</div>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Recent Activity</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Applied to Software Engineer at TechCorp</div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Interview scheduled for tomorrow</div>
+                    </div>
+                    <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">Profile 95% complete</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-6">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <span>Profile Completion</span>
+                    <span>95%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div className="bg-primary-600 h-2 rounded-full" style={{width: '95%'}}></div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating Elements */}
+              <div className="absolute -top-4 -right-4 w-8 h-8 bg-primary-500 rounded-full opacity-20 animate-pulse"></div>
+              <div className="absolute -bottom-4 -left-4 w-6 h-6 bg-green-500 rounded-full opacity-30 animate-bounce"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="grid md:grid-cols-2 gap-8">
+        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border dark:border-gray-700 hover:shadow-xl transition-shadow duration-300">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <JobsIcon className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">{t('remoteJobsTitle')}</h3>
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            {t('remoteJobsDesc')}
+          </p>
+        </div>
+
+        <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border dark:border-gray-700 hover:shadow-xl transition-shadow duration-300">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <CheckIcon className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 font-display">{t('verifiedOppsTitle')}</h3>
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            {t('verifiedOppsDesc')}
+          </p>
+        </div>
+      </section>
+
+      {/* Statistics Section */}
+      <section className="py-16 bg-white dark:bg-gray-800 rounded-3xl shadow-xl">
+        <div className="max-w-6xl mx-auto px-6">
+          <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-12 font-display">
+            {t('statsTitle')}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-primary-600 dark:text-primary-400 mb-2 font-display">5,000+</div>
+              <div className="text-gray-600 dark:text-gray-400 font-semibold">{t('activeUsers')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-primary-600 dark:text-primary-400 mb-2 font-display">1,200+</div>
+              <div className="text-gray-600 dark:text-gray-400 font-semibold">{t('jobsPosted')}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-primary-600 dark:text-primary-400 mb-2 font-display">850+</div>
+              <div className="text-gray-600 dark:text-gray-400 font-semibold">{t('successfulHires')}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="text-center py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-600/10 to-blue-600/10"></div>
+        <div className="relative max-w-3xl mx-auto px-6">
+          <h2 className="text-5xl font-bold mb-6 font-display">
+            {t('ctaTitle')}
+          </h2>
+          <p className="text-xl text-gray-300 mb-4 leading-relaxed">
+            {t('ctaSubtitle')}
+          </p>
+          <p className="text-lg text-gray-400 mb-10">
+            {t('ctaTagline')}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              to="/register" 
+              className="inline-block px-10 py-5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl"
+            >
+              {t('startJourney')}
+            </Link>
+            <Link 
+              to="/jobs" 
+              className="inline-block px-10 py-5 border-2 border-white/30 hover:border-white text-white hover:bg-white/10 rounded-xl font-semibold text-lg transition-all duration-300"
+            >
+              {t('exploreOpps')}
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

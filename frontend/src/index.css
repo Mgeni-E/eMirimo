@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
+
+:root {
+  color-scheme: light;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+}
+
+/* Light theme (default) */
+html {
+  color-scheme: light;
+  background-color: #f9fafb;
+  color: #111827;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: inherit;
+  color: inherit;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark theme */
+html.dark {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html.dark body {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* Light theme explicit */
+html.light {
+  color-scheme: light;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+html.light body {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+/* Data attribute support for additional CSS targeting */
+[data-theme="dark"] {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Ensure proper theme inheritance */
+html {
+  transition: color-scheme 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
