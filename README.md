@@ -11,6 +11,8 @@
 
 eMirimo is a Progressive Web Application (PWA) that bridges the gap between Rwandan students and graduates with verified remote job opportunities and mentorship programs. The platform provides a comprehensive ecosystem for career development and professional growth.
 
+### eMirimo UI: [Click Here](https://www.figma.com/design/rph1I9Ehqao8N7bNADo3eN/Untitled?node-id=0-1&t=ADA0dV2B3HpLShOZ-1)
+
 ## Key Features
 
 - **🔐 Secure Authentication** - JWT-based auth with role-based access control
