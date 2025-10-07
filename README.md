@@ -13,6 +13,9 @@ eMirimo is a Progressive Web Application (PWA) that bridges the gap between Rwan
 
 ### eMirimo UI: [Click Here](https://www.figma.com/design/rph1I9Ehqao8N7bNADo3eN/Untitled?node-id=0-1&t=ADA0dV2B3HpLShOZ-1)
 
+##Video Presentation 
+https://youtu.be/eMk8w8huluQ?si=yHQXlOFN2gGik8ql
+
 ## Key Features
 
 - **🔐 Secure Authentication** - JWT-based auth with role-based access control
