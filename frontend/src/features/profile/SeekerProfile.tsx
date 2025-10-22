@@ -1,0 +1,745 @@
+import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../lib/store';
+import { api } from '../../lib/api';
+import { DashboardLayout } from '../../components/DashboardLayout';
+import { 
+  UserIcon, 
+  AcademicCapIcon, 
+  BriefcaseIcon, 
+  StarIcon,
+  PlusIcon,
+  TrashIcon,
+  SaveIcon,
+} from '../../components/icons';
+
+interface Education {
+  institution: string;
+  degree: string;
+  field_of_study: string;
+  graduation_year: number;
+  gpa: string;
+  achievements: string[];
+}
+
+interface WorkExperience {
+  company: string;
+  position: string;
+  start_date: string;
+  end_date: string;
+  current: boolean;
+  description: string;
+  achievements: string[];
+  skills_used: string[];
+}
+
+interface Certification {
+  name: string;
+  issuer: string;
+  issue_date: string;
+  expiry_date: string;
+  credential_id: string;
+}
+
+interface Language {
+  language: string;
+  proficiency: 'beginner' | 'intermediate' | 'advanced' | 'native';
+}
+
+interface JobPreferences {
+  job_types: string[];
+  work_locations: string[];
+  salary_expectation: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  availability: string;
+  remote_preference: string;
+}
+
+interface SeekerProfile {
+  name: string;
+  email: string;
+  bio: string;
+  phone: string;
+  skills: string[];
+  linkedin: string;
+  address: string;
+  cv_url: string;
+  profile_image: string;
+  education: Education[];
+  work_experience: WorkExperience[];
+  certifications: Certification[];
+  languages: Language[];
+  job_preferences: JobPreferences;
+}
+
+export function SeekerProfile() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<SeekerProfile>({
+    name: user?.name || '',
+    email: user?.email || '',
+    bio: '',
+    phone: '',
+    skills: [],
+    linkedin: '',
+    address: '',
+    cv_url: '',
+    profile_image: '',
+    education: [],
+    work_experience: [],
+    certifications: [],
+    languages: [],
+    job_preferences: {
+      job_types: [],
+      work_locations: [],
+      salary_expectation: { min: 0, max: 0, currency: 'RWF' },
+      availability: 'immediate',
+      remote_preference: 'flexible'
+    }
+  });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('basic');
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get('/users/me');
+      if (response.data.user) {
+        setProfile(response.data.user);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/users/me', profile);
+      setMessage('Profile updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setMessage('Error updating profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addEducation = () => {
+    setProfile(prev => ({
+      ...prev,
+      education: [...prev.education, {
+        institution: '',
+        degree: '',
+        field_of_study: '',
+        graduation_year: new Date().getFullYear(),
+        gpa: '',
+        achievements: []
+      }]
+    }));
+  };
+
+  const updateEducation = (index: number, field: keyof Education, value: any) => {
+    setProfile(prev => ({
+      ...prev,
+      education: prev.education.map((edu, i) => 
+        i === index ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const removeEducation = (index: number) => {
+    setProfile(prev => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addWorkExperience = () => {
+    setProfile(prev => ({
+      ...prev,
+      work_experience: [...prev.work_experience, {
+        company: '',
+        position: '',
+        start_date: '',
+        end_date: '',
+        current: false,
+        description: '',
+        achievements: [],
+        skills_used: []
+      }]
+    }));
+  };
+
+  const updateWorkExperience = (index: number, field: keyof WorkExperience, value: any) => {
+    setProfile(prev => ({
+      ...prev,
+      work_experience: prev.work_experience.map((exp, i) => 
+        i === index ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const removeWorkExperience = (index: number) => {
+    setProfile(prev => ({
+      ...prev,
+      work_experience: prev.work_experience.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addSkill = (skill: string) => {
+    if (skill.trim() && !profile.skills.includes(skill.trim())) {
+      setProfile(prev => ({
+        ...prev,
+        skills: [...prev.skills, skill.trim()]
+      }));
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setProfile(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
+  };
+
+  const addLanguage = () => {
+    setProfile(prev => ({
+      ...prev,
+      languages: [...prev.languages, {
+        language: '',
+        proficiency: 'intermediate'
+      }]
+    }));
+  };
+
+  const updateLanguage = (index: number, field: keyof Language, value: any) => {
+    setProfile(prev => ({
+      ...prev,
+      languages: prev.languages.map((lang, i) => 
+        i === index ? { ...lang, [field]: value } : lang
+      )
+    }));
+  };
+
+  const removeLanguage = (index: number) => {
+    setProfile(prev => ({
+      ...prev,
+      languages: prev.languages.filter((_, i) => i !== index)
+    }));
+  };
+
+  const tabs = [
+    { id: 'basic', label: 'Basic Info', icon: UserIcon },
+    { id: 'education', label: 'Education', icon: AcademicCapIcon },
+    { id: 'experience', label: 'Experience', icon: BriefcaseIcon },
+    { id: 'skills', label: 'Skills', icon: StarIcon },
+    { id: 'preferences', label: 'Preferences', icon: StarIcon }
+  ];
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {t('profile')}
+          </h1>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700 disabled:opacity-50"
+          >
+            <SaveIcon className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save Profile'}
+          </button>
+        </div>
+
+        {message && (
+          <div className={`p-4 rounded-lg ${message.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {message}
+          </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-8">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-accent-500 text-accent-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {activeTab === 'basic' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('name')}
+                </label>
+                <input
+                  type="text"
+                  value={profile.name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('email')}
+                </label>
+                <input
+                  type="email"
+                  value={profile.email}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('phone')}
+                </label>
+                <input
+                  type="tel"
+                  value={profile.phone}
+                  onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('address')}
+                </label>
+                <input
+                  type="text"
+                  value={profile.address}
+                  onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('bio')}
+                </label>
+                <textarea
+                  value={profile.bio}
+                  onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'education' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Education</h3>
+                <button
+                  onClick={addEducation}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Add Education
+                </button>
+              </div>
+              
+              {profile.education.map((edu, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white">Education #{index + 1}</h4>
+                    <button
+                      onClick={() => removeEducation(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Institution
+                      </label>
+                      <input
+                        type="text"
+                        value={edu.institution}
+                        onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Degree
+                      </label>
+                      <input
+                        type="text"
+                        value={edu.degree}
+                        onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Field of Study
+                      </label>
+                      <input
+                        type="text"
+                        value={edu.field_of_study}
+                        onChange={(e) => updateEducation(index, 'field_of_study', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Graduation Year
+                      </label>
+                      <input
+                        type="number"
+                        value={edu.graduation_year}
+                        onChange={(e) => updateEducation(index, 'graduation_year', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        GPA
+                      </label>
+                      <input
+                        type="text"
+                        value={edu.gpa}
+                        onChange={(e) => updateEducation(index, 'gpa', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g., 3.5/4.0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'experience' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work Experience</h3>
+                <button
+                  onClick={addWorkExperience}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Add Experience
+                </button>
+              </div>
+              
+              {profile.work_experience.map((exp, index) => (
+                <div key={index} className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white">Experience #{index + 1}</h4>
+                    <button
+                      onClick={() => removeWorkExperience(index)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Company
+                      </label>
+                      <input
+                        type="text"
+                        value={exp.company}
+                        onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Position
+                      </label>
+                      <input
+                        type="text"
+                        value={exp.position}
+                        onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={exp.start_date}
+                        onChange={(e) => updateWorkExperience(index, 'start_date', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={exp.end_date}
+                        onChange={(e) => updateWorkExperience(index, 'end_date', e.target.value)}
+                        disabled={exp.current}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={exp.current}
+                          onChange={(e) => updateWorkExperience(index, 'current', e.target.checked)}
+                          className="rounded border-gray-300 text-accent-600 focus:ring-accent-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">Currently working here</span>
+                      </label>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={exp.description}
+                        onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Describe your role and responsibilities..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'skills' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Skills</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {profile.skills.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-accent-100 text-accent-800 rounded-full text-sm"
+                    >
+                      {skill}
+                      <button
+                        onClick={() => removeSkill(skill)}
+                        className="text-accent-600 hover:text-accent-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a skill..."
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        addSkill(e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const input = document.querySelector('input[placeholder="Add a skill..."]') as HTMLInputElement;
+                      if (input) {
+                        addSkill(input.value);
+                        input.value = '';
+                      }
+                    }}
+                    className="px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Languages</h3>
+                <div className="space-y-4">
+                  {profile.languages.map((lang, index) => (
+                    <div key={index} className="flex gap-4 items-center">
+                      <input
+                        type="text"
+                        value={lang.language}
+                        onChange={(e) => updateLanguage(index, 'language', e.target.value)}
+                        placeholder="Language"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                      <select
+                        value={lang.proficiency}
+                        onChange={(e) => updateLanguage(index, 'proficiency', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="native">Native</option>
+                      </select>
+                      <button
+                        onClick={() => removeLanguage(index)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addLanguage}
+                    className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    Add Language
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'preferences' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Job Preferences</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Types
+                  </label>
+                  <div className="space-y-2">
+                    {['full-time', 'part-time', 'contract', 'internship'].map((type) => (
+                      <label key={type} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={profile.job_preferences.job_types.includes(type)}
+                          onChange={(e) => {
+                            const jobTypes = e.target.checked
+                              ? [...profile.job_preferences.job_types, type]
+                              : profile.job_preferences.job_types.filter(t => t !== type);
+                            setProfile(prev => ({
+                              ...prev,
+                              job_preferences: { ...prev.job_preferences, job_types: jobTypes }
+                            }));
+                          }}
+                          className="rounded border-gray-300 text-accent-600 focus:ring-accent-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{type.replace('-', ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Remote Preference
+                  </label>
+                  <select
+                    value={profile.job_preferences.remote_preference}
+                    onChange={(e) => setProfile(prev => ({
+                      ...prev,
+                      job_preferences: { ...prev.job_preferences, remote_preference: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="flexible">Flexible</option>
+                    <option value="remote">Remote Only</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="onsite">On-site Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Availability
+                  </label>
+                  <select
+                    value={profile.job_preferences.availability}
+                    onChange={(e) => setProfile(prev => ({
+                      ...prev,
+                      job_preferences: { ...prev.job_preferences, availability: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="immediate">Immediate</option>
+                    <option value="2-weeks">2 weeks</option>
+                    <option value="1-month">1 month</option>
+                    <option value="2-months">2 months</option>
+                    <option value="3-months">3 months</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Salary Expectation (RWF)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={profile.job_preferences.salary_expectation.min}
+                      onChange={(e) => setProfile(prev => ({
+                        ...prev,
+                        job_preferences: {
+                          ...prev.job_preferences,
+                          salary_expectation: { ...prev.job_preferences.salary_expectation, min: parseInt(e.target.value) || 0 }
+                        }
+                      }))}
+                      placeholder="Min"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="number"
+                      value={profile.job_preferences.salary_expectation.max}
+                      onChange={(e) => setProfile(prev => ({
+                        ...prev,
+                        job_preferences: {
+                          ...prev.job_preferences,
+                          salary_expectation: { ...prev.job_preferences.salary_expectation, max: parseInt(e.target.value) || 0 }
+                        }
+                      }))}
+                      placeholder="Max"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}

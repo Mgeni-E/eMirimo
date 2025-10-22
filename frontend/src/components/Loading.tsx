@@ -1,16 +1,14 @@
-import React from 'react';
-
 interface LoadingProps {
   size?: 'sm' | 'md' | 'lg';
   text?: string;
   className?: string;
 }
 
-export const Loading: React.FC<LoadingProps> = ({ 
+export const Loading = ({ 
   size = 'md', 
   text = 'Loading...', 
   className = '' 
-}) => {
+}: LoadingProps) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-8 h-8',

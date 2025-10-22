@@ -4,7 +4,6 @@ import {
   JobsIcon, 
   PlusIcon, 
   SearchIcon,
-  FilterIcon,
   EyeIcon,
   EditIcon,
   TrashIcon,
@@ -12,7 +11,6 @@ import {
   XIcon,
   ClockIcon,
   UsersIcon,
-  MapPinIcon
 } from '../../components/icons';
 
 interface Job {
@@ -32,13 +30,30 @@ interface Job {
   views: number;
 }
 
-export function PostJobs() {
+export function MyJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newJob, setNewJob] = useState({
+    title: '',
+    description: '',
+    type: 'full-time',
+    skills: [] as string[],
+    location: '',
+    salary: '',
+    job_category: '',
+    experience_level: '',
+    expiry_date: '',
+    requirements: [] as string[],
+    benefits: [] as string[]
+  });
+  const [newSkill, setNewSkill] = useState('');
+  const [newRequirement, setNewRequirement] = useState('');
+  const [newBenefit, setNewBenefit] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadJobs();
@@ -47,117 +62,110 @@ export function PostJobs() {
   const loadJobs = async () => {
     setLoading(true);
     try {
-      // Mock data - in real app, this would fetch from employer API
-      const mockJobs: Job[] = [
-        {
-          id: '1',
-          title: 'Senior Software Engineer',
-          company: 'TechCorp Rwanda',
-          location: 'Kigali, Rwanda',
-          type: 'full-time',
-          status: 'published',
-          salary: '2,500,000 - 3,500,000 RWF',
-          description: 'We are looking for an experienced software engineer to join our growing team...',
-          requirements: [
-            '5+ years of software development experience',
-            'Proficiency in React.js and Node.js',
-            'Experience with cloud platforms (AWS, Azure)',
-            'Strong problem-solving skills'
-          ],
-          benefits: [
-            'Competitive salary',
-            'Health insurance',
-            'Flexible working hours',
-            'Professional development budget'
-          ],
-          postedDate: '2024-01-20',
-          applicationDeadline: '2024-02-20',
-          applicationsCount: 23,
-          views: 156
-        },
-        {
-          id: '2',
-          title: 'Frontend Developer Intern',
-          company: 'TechCorp Rwanda',
-          location: 'Remote',
-          type: 'internship',
-          status: 'published',
-          salary: '500,000 - 800,000 RWF',
-          description: 'Join our team as a frontend developer intern and gain hands-on experience...',
-          requirements: [
-            'Basic knowledge of HTML, CSS, JavaScript',
-            'Familiarity with React.js preferred',
-            'Strong communication skills',
-            'Eagerness to learn'
-          ],
-          benefits: [
-            'Mentorship program',
-            'Certificate of completion',
-            'Potential full-time offer',
-            'Learning resources'
-          ],
-          postedDate: '2024-01-18',
-          applicationDeadline: '2024-02-15',
-          applicationsCount: 45,
-          views: 234
-        },
-        {
-          id: '3',
-          title: 'DevOps Engineer',
-          company: 'TechCorp Rwanda',
-          location: 'Kigali, Rwanda',
-          type: 'contract',
-          status: 'draft',
-          salary: '3,000,000 - 4,000,000 RWF',
-          description: 'We need a DevOps engineer to help us scale our infrastructure...',
-          requirements: [
-            '3+ years of DevOps experience',
-            'Experience with Docker and Kubernetes',
-            'CI/CD pipeline setup',
-            'AWS or Azure certification preferred'
-          ],
-          benefits: [
-            'Competitive contract rate',
-            'Flexible schedule',
-            'Remote work options'
-          ],
-          postedDate: '2024-01-22',
-          applicationsCount: 0,
-          views: 0
-        },
-        {
-          id: '4',
-          title: 'Marketing Manager',
-          company: 'TechCorp Rwanda',
-          location: 'Kigali, Rwanda',
-          type: 'full-time',
-          status: 'closed',
-          salary: '2,000,000 - 2,800,000 RWF',
-          description: 'Lead our marketing efforts and drive brand awareness...',
-          requirements: [
-            'Bachelor\'s degree in Marketing or related field',
-            '3+ years of marketing experience',
-            'Digital marketing expertise',
-            'Team leadership skills'
-          ],
-          benefits: [
-            'Performance bonuses',
-            'Health insurance',
-            'Annual leave',
-            'Professional development'
-          ],
-          postedDate: '2024-01-10',
-          applicationDeadline: '2024-01-25',
-          applicationsCount: 67,
-          views: 345
-        }
-      ];
-      setJobs(mockJobs);
+      const response = await api.get('/jobs/my/jobs');
+      const data = response.data || [];
+      
+      // Transform backend data to match frontend interface
+      const transformedJobs: Job[] = data.map((job: any) => ({
+        id: job._id,
+        title: job.title,
+        company: job.employer_id?.name || 'Your Company',
+        location: job.location,
+        type: job.type,
+        status: job.is_active ? 'published' : 'draft',
+        salary: job.salary,
+        description: job.description,
+        requirements: job.requirements || [],
+        benefits: job.benefits || [],
+        postedDate: job.createdAt,
+        applicationDeadline: job.expiry_date,
+        applicationsCount: job.applicationsCount || 0,
+        views: job.views || 0
+      }));
+      
+      setJobs(transformedJobs);
     } catch (error) {
       console.error('Failed to load jobs:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreateJob = async () => {
+    setSubmitting(true);
+    try {
+      await api.post('/jobs', newJob);
+      setShowCreateModal(false);
+      setNewJob({
+        title: '',
+        description: '',
+        type: 'full-time',
+        skills: [],
+        location: '',
+        salary: '',
+        job_category: '',
+        experience_level: '',
+        expiry_date: '',
+        requirements: [],
+        benefits: []
+      });
+      loadJobs(); // Refresh jobs list
+    } catch (error) {
+      console.error('Failed to create job:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim() && !newJob.skills.includes(newSkill.trim())) {
+      setNewJob(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()]
+      }));
+      setNewSkill('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setNewJob(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
+  };
+
+  const addRequirement = () => {
+    if (newRequirement.trim() && !newJob.requirements.includes(newRequirement.trim())) {
+      setNewJob(prev => ({
+        ...prev,
+        requirements: [...prev.requirements, newRequirement.trim()]
+      }));
+      setNewRequirement('');
+    }
+  };
+
+  const removeRequirement = (requirement: string) => {
+    setNewJob(prev => ({
+      ...prev,
+      requirements: prev.requirements.filter(r => r !== requirement)
+    }));
+  };
+
+  const addBenefit = () => {
+    if (newBenefit.trim() && !newJob.benefits.includes(newBenefit.trim())) {
+      setNewJob(prev => ({
+        ...prev,
+        benefits: [...prev.benefits, newBenefit.trim()]
+      }));
+      setNewBenefit('');
+    }
+  };
+
+  const removeBenefit = (benefit: string) => {
+    setNewJob(prev => ({
+      ...prev,
+      benefits: prev.benefits.filter(b => b !== benefit)
+    }));
   };
 
   const getStatusColor = (status: string) => {
@@ -189,7 +197,6 @@ export function PostJobs() {
   });
 
   const publishedJobs = jobs.filter(job => job.status === 'published');
-  const draftJobs = jobs.filter(job => job.status === 'draft');
   const totalApplications = jobs.reduce((sum, job) => sum + job.applicationsCount, 0);
   const totalViews = jobs.reduce((sum, job) => sum + job.views, 0);
 
@@ -209,8 +216,8 @@ export function PostJobs() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Post Jobs</h1>
-            <p className="text-gray-600 dark:text-gray-400">Create and manage job postings to attract top talent</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">My Jobs</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your job postings and track their performance</p>
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -412,24 +419,269 @@ export function PostJobs() {
         ))}
       </div>
 
-      {/* Create Job Modal Placeholder */}
+      {/* Create Job Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Post New Job</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">Job creation form would go here...</p>
-            <div className="flex justify-end space-x-3">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Post New Job</h3>
+              <p className="text-gray-600 dark:text-gray-400">Create a compelling job posting to attract top talent</p>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newJob.title}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Senior Software Engineer"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Type *
+                  </label>
+                  <select
+                    value={newJob.type}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    value={newJob.location}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Kigali, Rwanda"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Salary Range
+                  </label>
+                  <input
+                    type="text"
+                    value={newJob.salary}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, salary: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 2,500,000 - 3,500,000 RWF"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Category *
+                  </label>
+                  <select
+                    value={newJob.job_category}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, job_category: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select category</option>
+                    <option value="technology">Technology</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                    <option value="finance">Finance</option>
+                    <option value="hr">Human Resources</option>
+                    <option value="operations">Operations</option>
+                    <option value="design">Design</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Experience Level *
+                  </label>
+                  <select
+                    value={newJob.experience_level}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, experience_level: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select level</option>
+                    <option value="entry">Entry Level (0-2 years)</option>
+                    <option value="mid">Mid Level (3-5 years)</option>
+                    <option value="senior">Senior Level (6-10 years)</option>
+                    <option value="lead">Lead/Principal (10+ years)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Application Deadline
+                  </label>
+                  <input
+                    type="date"
+                    value={newJob.expiry_date}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, expiry_date: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+              
+              {/* Job Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Job Description *
+                </label>
+                <textarea
+                  value={newJob.description}
+                  onChange={(e) => setNewJob(prev => ({ ...prev, description: e.target.value }))}
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
+                />
+              </div>
+              
+              {/* Skills */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Required Skills
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Add a skill (e.g., React, Python, Leadership)"
+                  />
+                  <button
+                    type="button"
+                    onClick={addSkill}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {newJob.skills.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded-full text-sm"
+                    >
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(skill)}
+                        className="ml-2 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Requirements */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Job Requirements
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newRequirement}
+                    onChange={(e) => setNewRequirement(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Add a requirement (e.g., Bachelor's degree in Computer Science)"
+                  />
+                  <button
+                    type="button"
+                    onClick={addRequirement}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {newJob.requirements.map((requirement, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-gray-900 dark:text-white">{requirement}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeRequirement(requirement)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                      >
+                        <XIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Benefits */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Benefits & Perks
+                </label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newBenefit}
+                    onChange={(e) => setNewBenefit(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addBenefit()}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Add a benefit (e.g., Health insurance, Flexible hours)"
+                  />
+                  <button
+                    type="button"
+                    onClick={addBenefit}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {newJob.benefits.map((benefit, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-gray-900 dark:text-white">{benefit}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeBenefit(benefit)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                      >
+                        <XIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
               <button 
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button 
-                onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg"
+                onClick={handleCreateJob}
+                disabled={submitting || !newJob.title || !newJob.description || !newJob.location || !newJob.job_category || !newJob.experience_level}
+                className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Post Job
+                {submitting ? 'Creating...' : 'Post Job'}
               </button>
             </div>
           </div>

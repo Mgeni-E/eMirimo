@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/store';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { NotificationBell } from './NotificationBell';
+import { NotificationContainer } from './Notification';
+import { useNotification } from '../contexts/NotificationContext';
+import { socketService } from '../lib/socket';
 import { 
   HomeIcon, 
   ApplicationsIcon, 
@@ -19,6 +23,7 @@ import { useState, useEffect } from 'react';
 export const Layout = ({children}:{children:React.ReactNode}) => {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { notifications, hideNotification } = useNotification();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -32,47 +37,53 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Initialize socket connection when user logs in
+  useEffect(() => {
+    if (user && user.token) {
+      socketService.connect(user.token);
+    } else {
+      socketService.disconnect();
+    }
+
+    return () => {
+      socketService.disconnect();
+    };
+  }, [user]);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Don't apply standard layout for dashboard routes - they have their own layout
   const dashboardRoutes = [
-    '/dashboard', '/applications', '/profile', '/jobs', '/mentors', '/resources', '/events', '/blog',
-    '/admin/users', '/admin/jobs', '/admin/analytics',
-    '/mentor/mentees', '/mentor/sessions', '/mentor/resources', '/mentor/events',
-    '/employer/jobs', '/employer/applications', '/employer/interviews', '/employer/pipeline'
+    '/dashboard', '/applications', '/profile',
+    '/admin', '/employer/jobs'
   ];
   if (dashboardRoutes.includes(location.pathname)) {
     return <>{children}</>;
   }
 
   // Pages that should show footer
-  const footerPages = ['/', '/login', '/register'];
+  const footerPages = ['/', '/login', '/register', '/privacy-policy', '/terms-and-conditions'];
   const shouldShowFooter = footerPages.includes(location.pathname);
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navigationItems = [
-    { path: '/jobs', label: t('jobs') },
-    { path: '/resources', label: t('resources') },
-    { path: '/events', label: t('events') },
-    { path: '/blog', label: t('blog') },
-  ];
+  const navigationItems: { path: string; label: string }[] = [];
 
   const userNavigationItems = user ? [
-    { path: '/dashboard', label: t('dashboard'), icon: HomeIcon },
-    { path: '/applications', label: t('applications'), icon: ApplicationsIcon },
-    { path: '/profile', label: t('profile'), icon: ProfileIcon },
+    { path: '/dashboard', label: 'Dashboard', icon: HomeIcon },
+    { path: '/applications', label: 'Applications', icon: ApplicationsIcon },
+    { path: '/profile', label: 'Profile', icon: ProfileIcon },
   ] : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 flex flex-col">
-      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-lg sticky top-0 z-50">
-        <nav className="mx-auto max-w-7xl px-4 py-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
+      <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
+        <nav className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="text-3xl font-bold text-primary-600 hover:text-primary-700 transition-colors font-display">
+            <Link to="/" className="text-2xl font-semibold text-gray-900 dark:text-white hover:text-accent-600 dark:hover:text-accent-400 transition-colors">
               eMirimo
             </Link>
 
@@ -83,12 +94,12 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-semibold transition-colors relative group capitalize ${
-                      isActive(item.path) ? 'text-primary-600 dark:text-primary-400' : ''
+                    className={`text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors relative group capitalize ${
+                      isActive(item.path) ? 'text-gray-900 dark:text-white' : ''
                     }`}
                   >
                     {item.label}
-                    <span className={`absolute -bottom-1 left-0 h-0.5 bg-primary-600 dark:bg-primary-400 transition-all ${
+                    <span className={`absolute -bottom-1 left-0 h-0.5 bg-accent-600 dark:bg-accent-400 transition-all ${
                       isActive(item.path) ? 'w-full' : 'w-0 group-hover:w-full'
                     }`}></span>
                   </Link>
@@ -123,6 +134,7 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                     })}
                   </div>
                   <div className="flex items-center gap-2">
+                    <NotificationBell />
                     <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                       {t('welcome')}, {user.name}
                     </span>
@@ -138,14 +150,14 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                 <div className="flex items-center gap-4">
                   <Link
                     to="/login"
-                    className="flex items-center gap-2 px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-semibold transition-colors capitalize"
+                    className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
                   >
                     <LoginIcon className="w-4 h-4" />
                     {t('login')}
                   </Link>
                   <Link
                     to="/register"
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-bold transition-all duration-300 transform hover:scale-105 shadow-lg capitalize"
+                    className="flex items-center gap-2 px-6 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-lg font-medium transition-colors"
                   >
                     <RegisterIcon className="w-4 h-4" />
                     {t('register')}
@@ -268,7 +280,7 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
             <div className="col-span-1">
               <h3 className="text-2xl font-bold text-primary-400 dark:text-primary-300 font-display mb-4">eMirimo</h3>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Empowering Rwandan youth and graduates with global remote opportunities and expert mentorship.
+                Empowering Rwandan youth and graduates with global remote opportunities.
               </p>
             </div>
             
@@ -276,19 +288,15 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
               <h4 className="font-semibold text-white mb-4 capitalize">{t('resources')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><Link to="/jobs" className="hover:text-primary-400 transition-colors capitalize">{t('jobs')}</Link></li>
-                <li><Link to="/events" className="hover:text-primary-400 transition-colors capitalize">{t('events')}</Link></li>
-                <li><Link to="/resources" className="hover:text-primary-400 transition-colors capitalize">{t('resources')}</Link></li>
-                <li><Link to="/blog" className="hover:text-primary-400 transition-colors capitalize">{t('blog')}</Link></li>
+                <li><Link to="/learning" className="hover:text-primary-400 transition-colors capitalize">{t('learning')}</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold text-white mb-4 capitalize">{t('help')}</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link to="/about" className="hover:text-primary-400 transition-colors capitalize">{t('about')}</Link></li>
-                <li><Link to="/contact" className="hover:text-primary-400 transition-colors capitalize">{t('contact')}</Link></li>
                 <li><Link to="/help" className="hover:text-primary-400 transition-colors capitalize">{t('help')}</Link></li>
-                <li><Link to="/blog" className="hover:text-primary-400 transition-colors capitalize">{t('blog')}</Link></li>
+                <li><Link to="/contact" className="hover:text-primary-400 transition-colors capitalize">{t('contact')}</Link></li>
               </ul>
             </div>
             
@@ -335,6 +343,14 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
           <ArrowUpIcon className="w-5 h-5" />
         </button>
       )}
+
+      {/* Notification Container */}
+      <NotificationContainer 
+        notifications={notifications} 
+        onClose={hideNotification} 
+      />
+
+      {/* PWA Components removed - will be added later */}
     </div>
   );
 };

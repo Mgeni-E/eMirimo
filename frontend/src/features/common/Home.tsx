@@ -6,32 +6,32 @@ export function Home() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-20">
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-2xl">
+      <section className="py-20 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left Content */}
             <div className="text-left">
-              <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-6 font-display">
+              <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
                 {t('welcome')}
               </h1>
-              <p className="text-2xl text-gray-700 dark:text-gray-300 mb-4 font-medium">
+              <p className="text-xl text-gray-600 dark:text-gray-400 mb-6 font-medium">
                 {t('heroTitle')}
               </p>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+              <p className="text-lg text-gray-500 dark:text-gray-500 mb-10 leading-relaxed">
                 {t('heroSubtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link 
                   to="/register" 
-                  className="px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-lg transition-colors"
+                  className="px-8 py-3 bg-accent-600 hover:bg-accent-700 text-white rounded-lg font-medium text-base transition-colors"
                 >
                   {t('getStarted')}
                 </Link>
                 <Link 
                   to="/jobs" 
-                  className="px-8 py-4 border-2 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white rounded-lg font-semibold text-lg transition-colors"
+                  className="px-8 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg font-medium text-base transition-colors"
                 >
                   {t('browseJobs')}
                 </Link>
@@ -40,10 +40,10 @@ export function Home() {
 
             {/* Right Dashboard Sample Card */}
             <div className="relative">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border dark:border-gray-700 p-6 transform rotate-2 hover:rotate-0 transition-transform duration-300">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h3>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h3>
+                  <div className="w-2 h-2 bg-accent-500 rounded-full"></div>
                 </div>
                 
                 {/* Stats Grid */}

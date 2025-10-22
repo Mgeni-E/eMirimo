@@ -1,7 +1,6 @@
 import { useAuth } from '../../lib/store';
-import { AdminDashboard } from '../dashboards/AdminDashboard';
+import { AdminDashboard } from '../admin/AdminDashboard';
 import { SeekerDashboard } from '../dashboards/SeekerDashboard';
-import { MentorDashboard } from '../dashboards/MentorDashboard';
 import { EmployerDashboard } from '../dashboards/EmployerDashboard';
 
 export function Dashboard() {
@@ -23,15 +22,13 @@ export function Dashboard() {
       return <AdminDashboard />;
     case 'seeker':
       return <SeekerDashboard />;
-    case 'mentor':
-      return <MentorDashboard />;
     case 'employer':
       return <EmployerDashboard />;
     default:
       return (
         <div className="text-center py-16">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 font-display">
-            Unknown User Role
+            Unknown User Role: {user.role}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             Please contact support for assistance.

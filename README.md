@@ -1,196 +1,275 @@
-# eMirimo
-# Link To the Github Repo
+# eMirimo - Job Platform for Rwandan Youth
 
-https://github.com/Mgeni-E/eMirimo.git
+eMirimo is a comprehensive job management platform that connects Rwandan youth and graduates with employment opportunities, helping to fight unemployment in Rwanda and planning to scale to East Africa.
 
+## 🔗 Links
+- **GitHub Repository**: https://github.com/Mgeni-E/eMirimo.git
+- **UI Design**: [Figma Design](https://www.figma.com/design/rph1I9Ehqao8N7bNADo3eN/Untitled?node-id=0-1&t=ADA0dV2B3HpLShOZ-1)
+- **Video Presentation**: https://youtu.be/eMk8w8huluQ?si=yHQXlOFN2gGik8ql
 
-> Empowering Rwandan youth and graduates with global remote opportunities and expert mentorship.
+## 🚀 Features
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
+### Core Functionality
+- **User Authentication & Authorization**: JWT-based auth with role-based access control
+- **Job Management**: Full CRUD operations for job postings with AI matching
+- **Real-time Notifications**: Socket.io powered notifications
+- **Admin Panel**: Comprehensive analytics and user management
+- **Multilingual Support**: English and Kinyarwanda
+- **Progressive Web App**: Works seamlessly across all devices
 
-## Overview
-
-eMirimo is a Progressive Web Application (PWA) that bridges the gap between Rwandan students and graduates with verified remote job opportunities and mentorship programs. The platform provides a comprehensive ecosystem for career development and professional growth.
-
-### eMirimo UI: [Click Here](https://www.figma.com/design/rph1I9Ehqao8N7bNADo3eN/Untitled?node-id=0-1&t=ADA0dV2B3HpLShOZ-1)
-
-##Video Presentation 
-
-https://youtu.be/eMk8w8huluQ?si=yHQXlOFN2gGik8ql
-
-
-
-## Key Features
-
+### Key Features
 - **🔐 Secure Authentication** - JWT-based auth with role-based access control
 - **💼 Job Marketplace** - Browse and apply for verified remote positions
 - **👥 Mentorship Network** - Connect with industry experts and mentors
 - **📱 Progressive Web App** - Works seamlessly across all devices
 - **🌍 Multilingual** - English and Kinyarwanda language support
 - **📊 Dashboard Analytics** - Track applications and career progress
+- **🤖 AI-Powered Matching** - Smart job recommendations based on skills and preferences
 
-## Tech Stack
+## 🛠 Tech Stack
 
 ### Frontend
-- **React 18** + **TypeScript** + **Vite**
+- **React 18** with TypeScript
+- **Vite** for build tooling
 - **Tailwind CSS** for styling
-- **React Router DOM** for navigation
+- **React Router** for navigation
 - **Zustand** for state management
+- **Socket.io Client** for real-time features
 - **React i18next** for internationalization
 
 ### Backend
-- **Node.js** + **Express.js** + **TypeScript**
-- **MongoDB** with **Mongoose** ODM
+- **Node.js** with Express
+- **TypeScript** for type safety
+- **MongoDB** with Mongoose ODM
 - **JWT** for authentication
-- **Nodemailer** for email services
-- **Bcryptjs** for password hashing
+- **Socket.io** for real-time communication
+- **Bcrypt** for password hashing
+- **Helmet** for security headers
 
-## Quick Start
+### DevOps
+- **Docker** for containerization
+- **Nginx** for reverse proxy
+- **GitHub Actions** for CI/CD
+- **Jest & Vitest** for testing
+- **ESLint & Prettier** for code quality
+
+## 📦 Installation
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB (local or Atlas)
-- npm or yarn
+- Node.js 18+
+- MongoDB 5.0+
+- Redis (optional, for caching)
 
-### Installation
+### Development Setup
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/eMirimo.git
+   git clone https://github.com/Mgeni-E/eMirimo.git
    cd eMirimo
    ```
 
-2. **Backend Setup**
+2. **Install dependencies**
    ```bash
+   # Backend
    cd backend
    npm install
-   cp .env.example .env  # Configure your environment variables
-   npm run dev
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd frontend
+   
+   # Frontend
+   cd ../frontend
    npm install
+   ```
+
+3. **Environment Setup**
+   ```bash
+   # Backend
+   cd backend
+   cp .env.example .env
+   # Edit .env with your configuration
+   
+   # Frontend
+   cd ../frontend
+   cp .env.example .env.local
+   # Edit .env.local with your configuration
+   ```
+
+4. **Start the development servers**
+   ```bash
+   # Backend (Terminal 1)
+   cd backend
+   npm run dev
+   
+   # Frontend (Terminal 2)
+   cd frontend
    npm run dev
    ```
 
-4. **Access the application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3000
+### Docker Setup
 
-## Environment Configuration
+1. **Using Docker Compose**
+   ```bash
+   docker-compose up -d
+   ```
 
-### Backend (.env)
+2. **Build and run individual containers**
+   ```bash
+   # Build the application
+   docker build -t emirimo .
+   
+   # Run with MongoDB
+   docker run -d --name emirimo-mongodb -p 27017:27017 mongo:latest
+   docker run -d --name emirimo-app -p 5000:5000 --link emirimo-mongodb emirimo
+   ```
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+cd backend
+npm test
+npm run test:coverage
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npm test
+npm run test:coverage
+```
+
+### E2E Tests
+```bash
+npm run test:e2e
+```
+
+## 🚀 Deployment
+
+### Production Build
+```bash
+# Backend
+cd backend
+npm run build
+
+# Frontend
+cd frontend
+npm run build
+```
+
+### Docker Deployment
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Environment Variables
+
+#### Backend (.env)
 ```env
-PORT=3000
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/emirimo
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/emirimo
 JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES=7d
-CORS_ORIGIN=http://localhost:5173
-FRONTEND_URL=http://localhost:5173
-EMAIL_USER=your-email@example.com
-EMAIL_PASS=your-app-password
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-NODE_ENV=development
+JWT_EXPIRES=15m
+CORS_ORIGIN=https://yourdomain.com
+REDIS_URL=redis://localhost:6379
 ```
 
-### Frontend (.env)
+#### Frontend (.env.local)
 ```env
-VITE_API_URL=http://localhost:3000/api
+VITE_API_BASE_URL=https://api.yourdomain.com
+VITE_APP_NAME=eMirimo
 ```
 
-## User Roles
+## 📁 Project Structure
 
-- **👨‍🎓 Job Seeker** - Browse jobs, apply for positions, track applications
-- **🏢 Employer** - Post jobs, manage applications, conduct interviews
-- **🎯 Mentor** - Share expertise, guide mentees, host sessions
-- **⚙️ Admin** - System management, user moderation, analytics
-
-## API Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/auth/register` | User registration | ❌ |
-| POST | `/api/auth/login` | User authentication | ❌ |
-| GET | `/api/jobs` | List available jobs | ❌ |
-| POST | `/api/jobs` | Create new job posting | ✅ (Employer) |
-| GET | `/api/applications/me` | Get user applications | ✅ |
-| POST | `/api/applications` | Submit job application | ✅ (Seeker) |
-| GET | `/api/mentors` | List available mentors | ❌ |
-| PUT | `/api/mentors/me` | Update mentor profile | ✅ (Mentor) |
-
-## Development
-
-### Available Scripts
-
-**Backend**
-```bash
-npm run dev      # Development server with hot reload
-npm run build    # Build for production
-npm start        # Start production server
-npm run lint     # Run ESLint
 ```
-
-**Frontend**
-```bash
-npm run dev      # Development server
-npm run build    # Build for production
-npm run preview  # Preview production build
-npm run lint     # Run ESLint
-```
-
-### Project Structure
-```
-eMirimo/
-├── backend/                 # Express.js API server
+emirimo/
+├── backend/
 │   ├── src/
 │   │   ├── controllers/     # Route controllers
-│   │   ├── models/          # Database models
-│   │   ├── routes/          # API routes
-│   │   ├── middleware/      # Custom middleware
-│   │   └── services/        # Business logic
-│   └── package.json
-├── frontend/                # React application
+│   │   ├── models/         # Database models
+│   │   ├── routes/         # API routes
+│   │   ├── services/       # Business logic
+│   │   ├── middleware/     # Custom middleware
+│   │   └── __tests__/      # Backend tests
+│   ├── package.json
+│   └── jest.config.js
+├── frontend/
 │   ├── src/
-│   │   ├── components/      # Reusable components
-│   │   ├── features/        # Feature-based modules
-│   │   ├── contexts/        # React contexts
-│   │   ├── lib/             # Utilities and API
-│   │   └── i18n/            # Internationalization
-│   └── package.json
+│   │   ├── components/     # Reusable components
+│   │   ├── features/       # Feature-specific components
+│   │   ├── lib/           # Utilities and services
+│   │   ├── contexts/      # React contexts
+│   │   └── __tests__/     # Frontend tests
+│   ├── package.json
+│   └── vitest.config.ts
+├── .github/
+│   └── workflows/         # CI/CD pipelines
+├── docker-compose.yml
+├── Dockerfile
 └── README.md
 ```
 
-## Security
+## 🔧 API Documentation
 
-- ✅ Environment variables for sensitive data
-- ✅ JWT token authentication
-- ✅ Password hashing with bcrypt
-- ✅ CORS configuration
-- ✅ Input validation and sanitization
-- ✅ Rate limiting (recommended for production)
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/refresh` - Refresh access token
+- `POST /api/auth/logout` - User logout
 
-## Deployment
+### Jobs
+- `GET /api/jobs` - List jobs with filters
+- `POST /api/jobs` - Create job (employers only)
+- `GET /api/jobs/recommendations` - Get job recommendations
+- `PUT /api/jobs/:id` - Update job
+- `DELETE /api/jobs/:id` - Delete job
 
-### Backend (Recommended: Railway/Render)
-1. Connect your GitHub repository
-2. Set environment variables
-3. Deploy automatically on push
+### Learning
+- `GET /api/learning/resources` - Get learning content
+- `GET /api/learning/recommendations` - Get personalized learning recommendations
+- `POST /api/learning/resources` - Add content (admins only)
 
-### Frontend (Recommended: Vercel/Netlify)
-1. Connect your GitHub repository
-2. Set build command: `npm run build`
-3. Set environment variables
-4. Deploy automatically on push
+### Privacy
+- `GET /api/privacy/my-data` - Download user data
+- `POST /api/privacy/delete-account` - Delete account
+- `PUT /api/privacy/consent` - Update consent preferences
 
-## Contributing
+## 🔒 Security Features
 
-We welcome contributions! Please follow these steps:
+- **JWT Authentication** with refresh tokens
+- **Rate Limiting** on API endpoints
+- **CORS Protection** with configurable origins
+- **Helmet Security Headers**
+- **Input Validation** and sanitization
+- **SQL Injection Protection** (NoSQL injection)
+- **XSS Protection** with Content Security Policy
+- **HTTPS Enforcement** in production
+
+## 🌍 Internationalization
+
+The platform supports multiple languages:
+- **English** (default)
+- **Kinyarwanda** (Ikinyarwanda)
+
+Language detection is automatic based on browser settings, with manual switching available.
+
+## ♿ Accessibility
+
+- **WCAG 2.1 AA Compliance**
+- **Keyboard Navigation** support
+- **Screen Reader** compatibility
+- **High Contrast** mode
+- **Focus Indicators** for all interactive elements
+- **Alt Text** for all images
+
+## 📊 Analytics & Monitoring
+
+- **Request Logging** with structured data
+- **Error Tracking** and alerting
+- **Performance Metrics** collection
+- **User Analytics** (with consent)
+- **Admin Dashboard** with real-time metrics
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -198,16 +277,54 @@ We welcome contributions! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+### Development Guidelines
 
-This project is licensed under the [MIT License](LICENSE).
+- Follow the existing code style
+- Write tests for new features
+- Update documentation as needed
+- Ensure all tests pass
+- Follow the commit message convention
 
-## Support
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Rwandan Tech Community** for inspiration and feedback
+- **Open Source Contributors** for the amazing tools we use
+- **Mentors and Advisors** for guidance and support
+
+## 📞 Support
 
 For support and questions:
-- 📧 Email: support@emirimo.com
-- 💬 Discord: [Join our community](https://discord.gg/emirimo)
-- 📖 Documentation: [docs.emirimo.com](https://docs.emirimo.com)
+- **Email**: support@emirimo.com
+- **GitHub Issues**: [Create an issue](https://github.com/Mgeni-E/eMirimo/issues)
+- **Documentation**: [Wiki](https://github.com/Mgeni-E/eMirimo/wiki)
+
+## 🗺 Roadmap
+
+### Phase 1 (Completed)
+- ✅ Core authentication and user management
+- ✅ Job posting and application system
+- ✅ Learning hub with content management
+- ✅ Admin panel with analytics
+- ✅ PWA features and offline support
+- ✅ Real-time notifications
+- ✅ AI-powered job matching
+
+### Phase 2 (In Progress)
+- 🔄 Advanced AI matching algorithms
+- 🔄 Video interview scheduling
+- 🔄 Skills assessment and certification
+- 🔄 Mobile app (React Native)
+- 🔄 Payment integration for premium features
+
+### Phase 3 (Future)
+- 🔄 Blockchain-based credential verification
+- 🔄 Advanced analytics and insights
+- 🔄 Integration with external job boards
+- 🔄 Multi-tenant architecture for organizations
 
 ---
 

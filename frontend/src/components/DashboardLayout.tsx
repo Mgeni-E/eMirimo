@@ -35,26 +35,26 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {
         title: 'Dashboard',
         path: '/dashboard'
-      },
-      {
-        title: 'Profile',
-        path: '/profile'
       }
     ];
 
     const roleSpecificItems = {
       admin: [
         {
-          title: 'User Management',
+          title: 'Users',
           path: '/admin/users'
         },
         {
-          title: 'Job Moderation',
+          title: 'Jobs',
           path: '/admin/jobs'
         },
         {
-          title: 'System Analytics',
-          path: '/admin/analytics'
+          title: 'Notifications',
+          path: '/admin/notifications'
+        },
+        {
+          title: 'Profile',
+          path: '/admin/profile'
         }
       ],
       seeker: [
@@ -67,35 +67,17 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           path: '/applications'
         },
         {
-          title: 'Mentors',
-          path: '/mentors'
+          title: 'Learning',
+          path: '/learning'
         },
         {
-          title: 'Resources',
-          path: '/resources'
-        }
-      ],
-      mentor: [
-        {
-          title: 'My Mentees',
-          path: '/mentor/mentees'
-        },
-        {
-          title: 'Schedule Sessions',
-          path: '/mentor/sessions'
-        },
-        {
-          title: 'Share Resources',
-          path: '/mentor/resources'
-        },
-        {
-          title: 'Host Events',
-          path: '/mentor/events'
+          title: 'Profile',
+          path: '/profile'
         }
       ],
       employer: [
         {
-          title: 'Post Jobs',
+          title: 'My Jobs',
           path: '/employer/jobs'
         },
         {
@@ -109,6 +91,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {
           title: 'Hiring Pipeline',
           path: '/employer/pipeline'
+        },
+        {
+          title: 'Profile',
+          path: '/profile'
         }
       ]
     };
@@ -118,9 +104,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const menuItems = getMenuItems(user.role);
 
-  const filteredMenuItems = menuItems.filter(item => 
-    !item.roles || item.roles.includes(user.role)
-  );
+  const filteredMenuItems = menuItems;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -200,12 +184,17 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {user.name}!
-              </h1>
-              <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">
-                Here's what's happening with your account today.
-              </p>
+              {/* Only show welcome banner on main dashboard pages, not on admin sub-pages */}
+              {(location.pathname === '/dashboard' || location.pathname === '/admin') && (
+                <>
+                  <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                    Welcome back, {user.name}!
+                  </h1>
+                  <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">
+                    Here's what's happening with your account today.
+                  </p>
+                </>
+              )}
             </div>
             {/* Mobile Menu Button */}
             <button
@@ -219,7 +208,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Dashboard Content */}
         <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             {children}
           </div>
         </div>

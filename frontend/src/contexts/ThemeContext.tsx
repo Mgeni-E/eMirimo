@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -22,12 +22,18 @@ interface ThemeProviderProps {
   children: React.ReactNode;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Always default to light theme, only use saved theme if it's explicitly set
+export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+  const [theme, setTheme] = useState<Theme>('light');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize theme from localStorage after component mounts
+  useEffect(() => {
     const saved = localStorage.getItem('theme');
-    return (saved as Theme) || 'light';
-  });
+    if (saved && (saved === 'light' || saved === 'dark')) {
+      setTheme(saved as Theme);
+    }
+    setIsInitialized(true);
+  }, []);
 
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(theme);
 
@@ -74,6 +80,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setTheme,
     actualTheme,
   };
+
+  // Don't render until initialized to prevent hydration issues
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={value}>

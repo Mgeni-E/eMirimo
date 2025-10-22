@@ -1,11 +1,23 @@
 import { Router } from 'express';
 import { router as auth } from './auth.routes.js';
+import { router as users } from './user.routes.js';
 import { router as jobs } from './job.routes.js';
 import { router as apps } from './application.routes.js';
-import { router as mentors } from './mentor.routes.js';
+import { router as notifications } from './notification.routes.js';
+import { router as admin } from './admin.routes.js';
+import { router as privacy } from './privacy.routes.js';
+import { router as employer } from './employer.routes.js';
+import jobRecommendations from './jobRecommendation.routes.js';
+import learning from './learning.routes.js';
 
 export const router = Router();
 router.use('/auth', auth);
+router.use('/users', users);
 router.use('/jobs', jobs);
 router.use('/applications', apps);
-router.use('/mentors', mentors);
+router.use('/notifications', notifications);
+router.use('/admin', admin);
+router.use('/privacy', privacy);
+router.use('/employer', employer);
+router.use('/recommendations', jobRecommendations);
+router.use('/learning', learning);

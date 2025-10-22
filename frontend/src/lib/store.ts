@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type User = { id:string; name:string; role:'seeker'|'employer'|'mentor'|'admin'}|null
+type User = { id:string; name:string; email:string; role:'seeker'|'employer'|'admin'; token?:string}|null
 
 type S = { 
   user:User; 

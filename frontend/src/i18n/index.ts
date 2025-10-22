@@ -9,7 +9,7 @@ const resources = {
       login: 'Login',
       register: 'Register',
       jobs: 'Jobs',
-      mentors: 'Mentors',
+      learning: 'Learning',
       applications: 'Applications',
       dashboard: 'Dashboard',
       home: 'Home',
@@ -19,11 +19,6 @@ const resources = {
       notifications: 'Notifications',
       messages: 'Messages',
       resources: 'Resources',
-      events: 'Events',
-      courses: 'Courses',
-      blog: 'Blog',
-      about: 'About',
-      contact: 'Contact',
       help: 'Help',
       
       // Auth
@@ -36,7 +31,6 @@ const resources = {
       role: 'Role',
       seeker: 'Job Seeker',
       employer: 'Employer',
-      mentor: 'Mentor',
       forgotPassword: 'Forgot Password?',
       resetPassword: 'Reset Password',
       sendResetLink: 'Send Reset Link',
@@ -85,20 +79,6 @@ const resources = {
       portfolio: 'Portfolio',
       applicationNotes: 'Application Notes',
       
-      // Mentors
-      expertise: 'Expertise',
-      availability: 'Availability',
-      requestMentorship: 'Request Mentorship',
-      mentorProfile: 'Mentor Profile',
-      achievements: 'Achievements',
-      specialties: 'Specialties',
-      languages: 'Languages',
-      rating: 'Rating',
-      reviews: 'Reviews',
-      scheduleSession: 'Schedule Session',
-      sendMessage: 'Send Message',
-      follow: 'Follow',
-      
       // Profile
       personalInfo: 'Personal Information',
       professionalInfo: 'Professional Information',
@@ -119,56 +99,25 @@ const resources = {
       recommendations: 'Recommendations',
       savedJobs: 'Saved Jobs',
       upcomingInterviews: 'Upcoming Interviews',
-      mentorSessions: 'Mentor Sessions',
       
       // Home Page
-      heroTitle: 'Empowering Rwandan Youth & Graduates With Global Remote Opportunities',
-      heroSubtitle: 'Connect with verified remote jobs and industry mentors across Africa and beyond. Build your career with opportunities that matter to your future.',
+      heroTitle: 'Empowering Rwandan Youth & Graduates With Employment Opportunities',
+      heroSubtitle: 'Connect with verified job opportunities and build your career with opportunities that matter to your future.',
       getStarted: 'Get Started',
       browseJobs: 'Browse Jobs',
-      findMentor: 'Find a Mentor',
-      remoteJobsTitle: 'Remote Jobs',
-      remoteJobsDesc: 'Discover high-paying remote opportunities from top companies across Africa, Europe, and North America. Perfect for fresh graduates and young professionals in Rwanda.',
-      expertMentorsTitle: 'Expert Mentors',
-      expertMentorsDesc: 'Get guidance from successful Rwandan professionals and international experts. Learn from those who\'ve built careers in tech, business, and innovation.',
+      remoteJobsTitle: 'Job Opportunities',
+      remoteJobsDesc: 'Discover employment opportunities from top companies across Rwanda and East Africa. Perfect for fresh graduates and young professionals.',
       verifiedOppsTitle: 'Verified Opportunities',
-      verifiedOppsDesc: 'Every job posting and mentor profile is thoroughly verified. Join thousands of successful Rwandan professionals who trust eMirimo.',
+      verifiedOppsDesc: 'Every job posting is thoroughly verified. Join thousands of successful Rwandan professionals who trust eMirimo.',
       statsTitle: 'Trusted By Rwandan Professionals',
       activeUsers: 'Active Users',
       jobsPosted: 'Jobs Posted',
       successfulHires: 'Successful Hires',
-      expertMentors: 'Expert Mentors',
       ctaTitle: 'Ready to Transform Your Future?',
-      ctaSubtitle: 'Join over 5,000+ Rwandan graduates and young professionals who have launched their global careers through eMirimo.',
+      ctaSubtitle: 'Join over 5,000+ Rwandan graduates and young professionals who have launched their careers through eMirimo.',
       ctaTagline: 'From Kigali to the world - your next opportunity awaits.',
       startJourney: 'Start Your Journey Today',
       exploreOpps: 'Explore Opportunities',
-      
-      // Resources
-      careerResources: 'Career Resources',
-      resumeTips: 'Resume Tips',
-      interviewPrep: 'Interview Preparation',
-      networkingTips: 'Networking Tips',
-      skillDevelopment: 'Skill Development',
-      industryInsights: 'Industry Insights',
-      successStories: 'Success Stories',
-      webinars: 'Webinars',
-      workshops: 'Workshops',
-      
-      // Events
-      upcomingEvents: 'Upcoming Events',
-      pastEvents: 'Past Events',
-      eventDetails: 'Event Details',
-      registerEvent: 'Register for Event',
-      eventCalendar: 'Event Calendar',
-      
-      // Courses
-      availableCourses: 'Available Courses',
-      myCourses: 'My Courses',
-      courseDetails: 'Course Details',
-      enrollCourse: 'Enroll in Course',
-      courseProgress: 'Course Progress',
-      certificates: 'Certificates',
       
       // Common
       loading: 'Loading...',
@@ -209,7 +158,6 @@ const resources = {
       share: 'Share',
       like: 'Like',
       comment: 'Comment',
-      unfollow: 'Unfollow',
       
       // Theme
       theme: 'Theme',
@@ -227,7 +175,7 @@ const resources = {
       login: 'Injira',
       register: 'Kwiyandikisha',
       jobs: 'Akazi',
-      mentors: 'Abayobozi',
+      learning: 'Kwiga',
       applications: 'Gusaba',
       dashboard: 'Urufunguzo',
       home: 'Urugo',
@@ -237,11 +185,6 @@ const resources = {
       notifications: 'Amakuru',
       messages: 'Ubutumwa',
       resources: 'Ibikoresho',
-      events: 'Ibirori',
-      courses: 'Amasomo',
-      blog: 'Urupapuro',
-      about: 'Ibyerekeye',
-      contact: 'Twandikire',
       help: 'Ubufasha',
 
       // Auth
@@ -254,7 +197,6 @@ const resources = {
       role: 'Uruhare',
       seeker: 'Ushakisha akazi',
       employer: 'Umutunzi w\'akazi',
-      mentor: 'Umucyo',
       forgotPassword: 'Wibagiwe ijambo ry\'ibanga?',
       resetPassword: 'Gusubira ijambo ry\'ibanga',
       sendResetLink: 'Ohereza umurongo wo gusubira',
@@ -303,20 +245,6 @@ const resources = {
       portfolio: 'Umwanya w\'akazi',
       applicationNotes: 'Ibyandikwa by\'akazi',
 
-      // Mentors
-      expertise: 'Ubuhanga',
-      availability: 'Kuboneka',
-      requestMentorship: 'Gusaba ubuyobozi',
-      mentorProfile: 'Umwirondoro w\'umuyobozi',
-      achievements: 'Intsinzi',
-      specialties: 'Ubuhanga bwihariye',
-      languages: 'Indimi',
-      rating: 'Urwego',
-      reviews: 'Ibyandikwa',
-      scheduleSession: 'Gena isaha',
-      sendMessage: 'Ohereza ubutumwa',
-      follow: 'Kurikira',
-
       // Profile
       personalInfo: 'Amakuru y\'umuntu',
       professionalInfo: 'Amakuru y\'akazi',
@@ -337,56 +265,25 @@ const resources = {
       recommendations: 'Ibyemeranywe',
       savedJobs: 'Akazi byabikijwe',
       upcomingInterviews: 'Icyiyumviro gikurikira',
-      mentorSessions: 'Amasaha y\'abayobozi',
 
       // Home Page
-      heroTitle: 'Gufasha abakiri bato n\'abanyeshuri bo muri Rwanda guhabwa amahirwe yo gukora mu kure',
-      heroSubtitle: 'Hangana n\'akazi k\'ukure kwemewe n\'abayobozi b\'ubucuruzi muri Afurika n\'ibindi. Ubaka umurimo wawe n\'amahirwe ahagije.',
+      heroTitle: 'Gufasha abakiri bato n\'abanyeshuri bo muri Rwanda guhabwa amahirwe yo gukora',
+      heroSubtitle: 'Hangana n\'akazi kwemewe n\'amahirwe y\'akazi. Ubaka umurimo wawe n\'amahirwe ahagije.',
       getStarted: 'Tangira',
       browseJobs: 'Reba akazi',
-      findMentor: 'Shakisha umuyobozi',
-      remoteJobsTitle: 'Akazi k\'ukure',
-      remoteJobsDesc: 'Menya amahirwe y\'akazi k\'ukure y\'amafaranga menshi avuye mu makampani meza muri Afurika, Uburayi na Amerika y\'Amajyaruguru. Byiza cyane ku banyeshuri bashya n\'abantu b\'ubucuruzi bo muri Rwanda.',
-      expertMentorsTitle: 'Abayobozi b\'ubuhanga',
-      expertMentorsDesc: 'Bona ubuyobozi bavuye ku bantu b\'ubucuruzi bo muri Rwanda b\'intsinzi n\'abahanga b\'amahanga. Menya ku bantu bahaye ubuzima bwabo mu buhanga, ubucuruzi n\'ubwiyeme.',
+      remoteJobsTitle: 'Amahirwe y\'akazi',
+      remoteJobsDesc: 'Menya amahirwe y\'akazi avuye mu makampani meza muri Rwanda na Afurika y\'iburasirazuba. Byiza cyane ku banyeshuri bashya n\'abantu b\'ubucuruzi.',
       verifiedOppsTitle: 'Amahirwe yemewe',
-      verifiedOppsDesc: 'Buriyo gahunda y\'akazi n\'umwirondoro w\'umuyobozi yemewe neza. Jya ku bantu b\'ubucuruzi bo muri Rwanda barenga ibihumbi batizera eMirimo.',
+      verifiedOppsDesc: 'Buriyo gahunda y\'akazi yemewe neza. Jya ku bantu b\'ubucuruzi bo muri Rwanda barenga ibihumbi batizera eMirimo.',
       statsTitle: 'Byizewe n\'abantu b\'ubucuruzi bo muri Rwanda',
       activeUsers: 'Abakoresha b\'akazi',
       jobsPosted: 'Akazi gashyizwe',
       successfulHires: 'Byakozwe neza',
-      expertMentors: 'Abayobozi b\'ubuhanga',
       ctaTitle: 'Witeguye gusubira ubuzima bwawe?',
-      ctaSubtitle: 'Jya ku banyeshuri bo muri Rwanda barenga 5,000+ n\'abantu b\'ubucuruzi bato bahaye ubuzima bwabo bwo mu kure binyuze muri eMirimo.',
+      ctaSubtitle: 'Jya ku banyeshuri bo muri Rwanda barenga 5,000+ n\'abantu b\'ubucuruzi bato bahaye ubuzima bwabo binyuze muri eMirimo.',
       ctaTagline: 'Kuva i Kigali ku isi - amahirwe yawe akaba ari hafi.',
       startJourney: 'Tangira urugendo rwawe uyu munsi',
       exploreOpps: 'Reba amahirwe',
-
-      // Resources
-      careerResources: 'Ibikoresho by\'akazi',
-      resumeTips: 'Ibyo wifuza kumenya ku myirondoro',
-      interviewPrep: 'Kwitegura icyiyumviro',
-      networkingTips: 'Ibyo wifuza kumenya ku kurangurana',
-      skillDevelopment: 'Gukura ubuhanga',
-      industryInsights: 'Ibyerekeye ubucuruzi',
-      successStories: 'Inkuru z\'intsinzi',
-      webinars: 'Amasomo yo mu kure',
-      workshops: 'Amasomo',
-
-      // Events
-      upcomingEvents: 'Ibirori bikurikira',
-      pastEvents: 'Ibirori byashize',
-      eventDetails: 'Ibisobanuro by\'ikirori',
-      registerEvent: 'Kwiyandikisha ku kirori',
-      eventCalendar: 'Kalendari y\'ibirori',
-
-      // Courses
-      availableCourses: 'Amasomo aboneka',
-      myCourses: 'Amasomo yanjye',
-      courseDetails: 'Ibisobanuro by\'isomo',
-      enrollCourse: 'Kwiyandikisha ku isomo',
-      courseProgress: 'Imbere ry\'isomo',
-      certificates: 'Icyemezo',
 
       // Common
       loading: 'Birakoresha...',
@@ -427,7 +324,6 @@ const resources = {
       share: 'Sangira',
       like: 'Kunda',
       comment: 'Vuga',
-      unfollow: 'Kuraho kurikira',
 
       // Theme
       theme: 'Imiterere',

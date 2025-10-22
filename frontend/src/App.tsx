@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthGuard } from './components/AuthGuard';
+import { AdminAuthGuard } from './components/AdminAuthGuard';
 import { Home } from './features/common/Home';
 import { Login } from './features/auth/Login';
 import { Register } from './features/auth/Register';
@@ -10,61 +12,63 @@ import { ForgotPassword } from './features/auth/ForgotPassword';
 import { ResetPassword } from './features/auth/ResetPassword';
 import { Dashboard } from './features/common/Dashboard';
 import { Jobs } from './features/jobs/Jobs';
+import { JobDetail } from './features/jobs/JobDetail';
 import { Applications } from './features/applications/Applications';
 import { Profile } from './features/profile/Profile';
-import { Resources } from './features/resources/Resources';
-import { Events } from './features/events/Events';
-import { Blog } from './features/blog/Blog';
-import { Mentors } from './features/mentors/Mentors';
-import { About } from './features/about/About';
-import { Contact } from './features/contact/Contact';
-import { UserManagement } from './features/admin/UserManagement';
-import { JobModeration } from './features/admin/JobModeration';
-import { SystemAnalytics } from './features/admin/SystemAnalytics';
-import { MyMentees } from './features/mentor/MyMentees';
-import { ScheduleSessions } from './features/mentor/ScheduleSessions';
-import { ShareResources } from './features/mentor/ShareResources';
-import { HostEvents } from './features/mentor/HostEvents';
-import { PostJobs } from './features/employer/PostJobs';
+import { AdminDashboard } from './features/admin/AdminDashboard';
+import { AdminUsers } from './features/admin/AdminUsers';
+import { AdminJobs } from './features/admin/AdminJobs';
+import { AdminJobDetail } from './features/admin/AdminJobDetail';
+import { AdminNotifications } from './features/admin/AdminNotifications';
+import { AdminProfile } from './features/admin/AdminProfile';
+import { MyJobs } from './features/employer/PostJobs';
 import { EmployerApplications } from './features/employer/EmployerApplications';
-import { Interviews } from './features/employer/Interviews';
-import { HiringPipeline } from './features/employer/HiringPipeline';
+import { EmployerInterviews } from './features/employer/EmployerInterviews';
+import { EmployerHiringPipeline } from './features/employer/EmployerHiringPipeline';
+import { LearningResources } from './features/learning/LearningResources';
+import { LearningDetail } from './features/learning/LearningDetail';
+import { PrivacyPolicy } from './features/legal/PrivacyPolicy';
+import { TermsAndConditions } from './features/legal/TermsAndConditions';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <Layout>
+        <NotificationProvider>
           <Routes>
-            <Route path="/" element={<Home/>} />
-            <Route path="/login" element={<AuthGuard requireAuth={false}><Login/></AuthGuard>} />
-            <Route path="/register" element={<AuthGuard requireAuth={false}><Register/></AuthGuard>} />
-            <Route path="/forgot-password" element={<AuthGuard requireAuth={false}><ForgotPassword/></AuthGuard>} />
-            <Route path="/reset-password/:token" element={<AuthGuard requireAuth={false}><ResetPassword/></AuthGuard>} />
-            <Route path="/dashboard" element={<AuthGuard><Dashboard/></AuthGuard>} />
-            <Route path="/jobs" element={<Jobs/>} />
-            <Route path="/applications" element={<AuthGuard><Applications/></AuthGuard>} />
-            <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
-            <Route path="/resources" element={<Resources/>} />
-            <Route path="/events" element={<Events/>} />
-            <Route path="/blog" element={<Blog/>} />
-            <Route path="/mentors" element={<Mentors/>} />
-            <Route path="/about" element={<About/>} />
-            <Route path="/contact" element={<Contact/>} />
-            <Route path="/admin/users" element={<AuthGuard><UserManagement/></AuthGuard>} />
-            <Route path="/admin/jobs" element={<AuthGuard><JobModeration/></AuthGuard>} />
-            <Route path="/admin/analytics" element={<AuthGuard><SystemAnalytics/></AuthGuard>} />
-            <Route path="/mentor/mentees" element={<AuthGuard><MyMentees/></AuthGuard>} />
-            <Route path="/mentor/sessions" element={<AuthGuard><ScheduleSessions/></AuthGuard>} />
-            <Route path="/mentor/resources" element={<AuthGuard><ShareResources/></AuthGuard>} />
-            <Route path="/mentor/events" element={<AuthGuard><HostEvents/></AuthGuard>} />
-            <Route path="/employer/jobs" element={<AuthGuard><PostJobs/></AuthGuard>} />
-            <Route path="/employer/applications" element={<AuthGuard><EmployerApplications/></AuthGuard>} />
-            <Route path="/employer/interviews" element={<AuthGuard><Interviews/></AuthGuard>} />
-            <Route path="/employer/pipeline" element={<AuthGuard><HiringPipeline/></AuthGuard>} />
-            <Route path="*" element={<Navigate to="/" />} />
+          {/* Public routes with Layout */}
+          <Route path="/" element={<Layout><Home/></Layout>} />
+          <Route path="/login" element={<Layout><AuthGuard requireAuth={false}><Login/></AuthGuard></Layout>} />
+          <Route path="/register" element={<Layout><AuthGuard requireAuth={false}><Register/></AuthGuard></Layout>} />
+          <Route path="/forgot-password" element={<Layout><AuthGuard requireAuth={false}><ForgotPassword/></AuthGuard></Layout>} />
+          <Route path="/reset-password/:token" element={<Layout><AuthGuard requireAuth={false}><ResetPassword/></AuthGuard></Layout>} />
+          <Route path="/privacy-policy" element={<Layout><PrivacyPolicy/></Layout>} />
+          <Route path="/terms-and-conditions" element={<Layout><TermsAndConditions/></Layout>} />
+          
+          {/* Dashboard routes without Layout (use DashboardLayout internally) */}
+          <Route path="/dashboard" element={<AuthGuard><Dashboard/></AuthGuard>} />
+          <Route path="/jobs" element={<AuthGuard><Jobs/></AuthGuard>} />
+          <Route path="/jobs/:id" element={<AuthGuard><JobDetail/></AuthGuard>} />
+          <Route path="/learning" element={<AuthGuard><LearningResources/></AuthGuard>} />
+          <Route path="/learning/:id" element={<AuthGuard><LearningDetail/></AuthGuard>} />
+          <Route path="/applications" element={<AuthGuard><Applications/></AuthGuard>} />
+          <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
+          <Route path="/employer/jobs" element={<AuthGuard><MyJobs/></AuthGuard>} />
+          <Route path="/employer/applications" element={<AuthGuard><EmployerApplications/></AuthGuard>} />
+          <Route path="/employer/interviews" element={<AuthGuard><EmployerInterviews/></AuthGuard>} />
+          <Route path="/employer/pipeline" element={<AuthGuard><EmployerHiringPipeline/></AuthGuard>} />
+          
+          {/* Admin routes without Layout (use DashboardLayout internally) */}
+          <Route path="/admin" element={<AdminAuthGuard><AdminDashboard/></AdminAuthGuard>} />
+          <Route path="/admin/users" element={<AdminAuthGuard><AdminUsers/></AdminAuthGuard>} />
+          <Route path="/admin/jobs" element={<AdminAuthGuard><AdminJobs/></AdminAuthGuard>} />
+          <Route path="/admin/jobs/:id" element={<AdminAuthGuard><AdminJobDetail/></AdminAuthGuard>} />
+          <Route path="/admin/notifications" element={<AdminAuthGuard><AdminNotifications/></AdminAuthGuard>} />
+          <Route path="/admin/profile" element={<AdminAuthGuard><AdminProfile/></AdminAuthGuard>} />
+          
+          <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-        </Layout>
+        </NotificationProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

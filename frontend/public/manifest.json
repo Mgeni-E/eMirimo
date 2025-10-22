@@ -1,27 +1,16 @@
 {
-  "name": "eMirimo - Remote Jobs & Mentorship",
+  "name": "eMirimo - Remote Jobs & Mentors",
   "short_name": "eMirimo",
-  "description": "Connect with verified remote jobs and mentors across Africa",
+  "description": "Empowering Rwandan Youth & Graduates With Global Remote Opportunities",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0ea5e9",
-  "orientation": "portrait-primary",
+  "theme_color": "#3b82f6",
   "icons": [
     {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
-  ],
-  "categories": ["business", "productivity", "education"],
-  "lang": "en",
-  "dir": "ltr"
+  ]
 }

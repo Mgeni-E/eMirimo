@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/store';
 import { Loading } from './Loading';
@@ -9,14 +9,14 @@ interface AuthGuardProps {
   redirectTo?: string;
 }
 
-export const AuthGuard: React.FC<AuthGuardProps> = ({ 
+export const AuthGuard = ({ 
   children, 
   requireAuth = true, 
   redirectTo = '/login' 
-}) => {
+}: AuthGuardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
