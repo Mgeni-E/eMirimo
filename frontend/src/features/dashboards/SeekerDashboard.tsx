@@ -9,7 +9,9 @@ import {
   CheckIcon, 
   StarIcon,
   ArrowRightIcon,
-  DocumentIcon
+  DocumentIcon,
+  LightBulbIcon,
+  BookOpenIcon
 } from '../../components/icons';
 import { JobRecommendations } from '../jobs/JobRecommendations';
 
@@ -292,6 +294,66 @@ export function SeekerDashboard() {
             className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
           >
             Explore Learning Resources
+            <ArrowRightIcon className="w-4 h-4 ml-2" />
+          </Link>
+        </div>
+      </div>
+
+      {/* AI Recommendations */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg shadow-sm border border-purple-200 dark:border-purple-700 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+              <LightBulbIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Recommendations</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Personalized for your profile</p>
+            </div>
+          </div>
+          <Link to="/recommendations" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
+            View All
+          </Link>
+        </div>
+        <div className="text-center py-6">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Get Personalized Recommendations</h4>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">AI-powered job and course recommendations based on your skills, education, and experience</p>
+          <Link 
+            to="/recommendations" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+          >
+            <LightBulbIcon className="w-5 h-5 mr-2" />
+            View AI Recommendations
+            <ArrowRightIcon className="w-4 h-4 ml-2" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Learning & Development */}
+      <div className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-lg shadow-sm border border-green-200 dark:border-green-700 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg flex items-center justify-center">
+              <BookOpenIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Learning & Development</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Enhance your skills with curated content</p>
+            </div>
+          </div>
+          <Link to="/learning" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
+            View All
+          </Link>
+        </div>
+        <div className="text-center py-6">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Upskill for Success</h4>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Access courses, tutorials, and resources to bridge skill gaps and advance your career</p>
+          <Link 
+            to="/learning" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+          >
+            <BookOpenIcon className="w-5 h-5 mr-2" />
+            Start Learning
             <ArrowRightIcon className="w-4 h-4 ml-2" />
           </Link>
         </div>

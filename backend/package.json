@@ -12,13 +12,19 @@
     "clean-start": "./scripts/start-server.sh",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "seed": "node scripts/seedDatabase.js",
+    "seed-users": "node scripts/seedUsersOnly.js",
+    "seed-learning": "node scripts/seedLearningResources.js",
+    "seed-rwanda-jobs": "node scripts/seedRwandaJobs.js",
+    "seed-rwanda-learning": "node scripts/seedRwandaLearning.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@types/nodemailer": "^7.0.2",
+    "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

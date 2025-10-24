@@ -195,6 +195,131 @@ export const updateUserStatus = async (req: any, res: Response) => {
   }
 };
 
+export const getUserDetail = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id).select('-password_hash -refreshToken');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Get user detail error:', error);
+    res.status(500).json({ error: 'Failed to fetch user details' });
+  }
+};
+
+export const deleteUser = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prevent deletion of admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ error: 'Cannot delete admin users' });
+    }
+
+    // Log the action before deletion
+    await Log.create({
+      level: 'info',
+      message: `User deleted by admin`,
+      userId: req.user.uid,
+      action: 'user_delete',
+      metadata: {
+        target_user_id: id,
+        target_user_name: user.name,
+        target_user_email: user.email
+      },
+      timestamp: new Date()
+    });
+
+    // Delete user and related data
+    await User.findByIdAndDelete(id);
+    await Job.deleteMany({ employer_id: id });
+    await Application.deleteMany({ user_id: id });
+    await Notification.deleteMany({ user_id: id });
+    await Log.deleteMany({ userId: id });
+
+    // Broadcast real-time update to admin dashboard
+    try {
+      const socketService = (global as any).socketService;
+      if (socketService) {
+        socketService.broadcastUserDeleted(id);
+      }
+    } catch (socketError) {
+      console.error('Socket broadcast error:', socketError);
+    }
+    
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+};
+
+export const getUserApplications = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const applications = await Application.find({ user_id: id })
+      .populate('job_id', 'title employer_id')
+      .populate('employer_id', 'name company_name')
+      .sort({ created_at: -1 })
+      .lean();
+    
+    res.json({
+      success: true,
+      applications
+    });
+  } catch (error) {
+    console.error('Get user applications error:', error);
+    res.status(500).json({ error: 'Failed to fetch user applications' });
+  }
+};
+
+export const getUserJobs = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const jobs = await Job.find({ employer_id: id })
+      .select('title status created_at')
+      .sort({ created_at: -1 })
+      .lean();
+    
+    // Get application counts for each job
+    const jobsWithCounts = await Promise.all(
+      jobs.map(async (job) => {
+        const count = await Application.countDocuments({ job_id: job._id });
+        return {
+          ...job,
+          applications_count: count
+        };
+      })
+    );
+    
+    res.json({
+      success: true,
+      jobs: jobsWithCounts
+    });
+  } catch (error) {
+    console.error('Get user jobs error:', error);
+    res.status(500).json({ error: 'Failed to fetch user jobs' });
+  }
+};
+
 export const updateJobStatus = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
@@ -274,8 +399,7 @@ export const getUserStats = async (req: any, res: Response) => {
     
     const roleStats = {
       seekers: byRole.find(r => r._id === 'seeker')?.count || 0,
-      employers: byRole.find(r => r._id === 'employer')?.count || 0,
-      mentors: byRole.find(r => r._id === 'mentor')?.count || 0
+      employers: byRole.find(r => r._id === 'employer')?.count || 0
     };
     
     res.json({

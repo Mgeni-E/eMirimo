@@ -19,8 +19,10 @@ export function Applications(){
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const {data} = await api.get('/applications/me');
-      setApps(data);
+      const response = await api.get('/applications/me');
+      if (response.data.success) {
+        setApps(response.data.applications || []);
+      }
     } catch (err) {
       console.error('Failed to load applications:', err);
     } finally {

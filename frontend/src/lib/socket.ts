@@ -1,49 +1,58 @@
 import { io, Socket } from 'socket.io-client';
+import { useAuth } from './store';
 
 class SocketService {
   private socket: Socket | null = null;
+  private isConnected = false;
 
-  connect(_token: string) {
-    if (this.socket?.connected) {
-      return;
+  connect(token: string) {
+    if (this.socket && this.isConnected) {
+      return this.socket;
     }
 
-    // Extract base URL from API URL (remove /api suffix)
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    const baseUrl = apiUrl.replace('/api', '');
-    
-    this.socket = io(baseUrl, {
+    this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
       auth: {
-        token: _token
+        token: token
       },
-      autoConnect: true
+      transports: ['websocket', 'polling']
     });
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected to server');
+      console.log('Connected to server');
+      this.isConnected = true;
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected from server');
+      console.log('Disconnected from server');
+      this.isConnected = false;
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
+      console.error('Socket connection error:', error);
     });
+
+    return this.socket;
   }
 
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.isConnected = false;
     }
   }
 
-
-  // Listen for new messages
-  onNewMessage(callback: (message: any) => void) {
+  // Join notifications room
+  joinNotifications() {
     if (this.socket) {
-      this.socket.on('new-message', callback);
+      this.socket.emit('join_notifications');
+    }
+  }
+
+  // Leave notifications room
+  leaveNotifications() {
+    if (this.socket) {
+      this.socket.emit('leave_notifications');
     }
   }
 
@@ -54,56 +63,85 @@ class SocketService {
     }
   }
 
-  // Join admin dashboard
-  joinAdminDashboard() {
-    if (this.socket) {
-      this.socket.emit('join-admin-dashboard');
-    }
-  }
-
-  // Leave admin dashboard
-  leaveAdminDashboard() {
-    if (this.socket) {
-      this.socket.emit('leave-admin-dashboard');
-    }
-  }
-
-  // Listen for admin updates
-  onAdminUpdate(callback: (data: any) => void) {
-    if (this.socket) {
-      this.socket.on('admin-update', callback);
-    }
-  }
-
-  // Remove admin update listener
-  offAdminUpdate() {
-    if (this.socket) {
-      this.socket.off('admin-update');
-    }
-  }
-
-  // Remove listeners
-  offNewMessage() {
-    if (this.socket) {
-      this.socket.off('new-message');
-    }
-  }
-
+  // Remove notification listener
   offNotification() {
     if (this.socket) {
       this.socket.off('notification');
     }
   }
 
-  // Check if connected
-  isConnected(): boolean {
-    return this.socket?.connected || false;
+  // Listen for application status updates
+  onApplicationStatusUpdate(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('application_status_update', callback);
+    }
   }
 
-  // Get socket instance
-  getSocket(): Socket | null {
+  // Listen for job recommendations
+  onJobRecommendation(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('job_recommendation', callback);
+    }
+  }
+
+  // Listen for course recommendations
+  onCourseRecommendation(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('course_recommendation', callback);
+    }
+  }
+
+  // Send typing indicator
+  sendTypingStart(room: string) {
+    if (this.socket) {
+      this.socket.emit('typing_start', { room });
+    }
+  }
+
+  // Stop typing indicator
+  sendTypingStop(room: string) {
+    if (this.socket) {
+      this.socket.emit('typing_stop', { room });
+    }
+  }
+
+  getSocket() {
     return this.socket;
+  }
+
+  isSocketConnected() {
+    return this.isConnected;
   }
 }
 
+// Create singleton instance
 export const socketService = new SocketService();
+
+// Hook for using socket in React components
+export const useSocket = () => {
+  const { user, token } = useAuth();
+
+  const connectSocket = () => {
+    if (user && token) {
+      socketService.connect(token);
+      socketService.joinNotifications();
+    }
+  };
+
+  const disconnectSocket = () => {
+    socketService.leaveNotifications();
+    socketService.disconnect();
+  };
+
+  return {
+    socket: socketService.getSocket(),
+    isConnected: socketService.isSocketConnected(),
+    connectSocket,
+    disconnectSocket,
+    onNotification: socketService.onNotification.bind(socketService),
+    offNotification: socketService.offNotification.bind(socketService),
+    onApplicationStatusUpdate: socketService.onApplicationStatusUpdate.bind(socketService),
+    onJobRecommendation: socketService.onJobRecommendation.bind(socketService),
+    onCourseRecommendation: socketService.onCourseRecommendation.bind(socketService)
+  };
+};

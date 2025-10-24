@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   UserIcon,
   FilterIcon,
   SearchIcon,
   EyeIcon,
-  EditIcon,
+  TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
@@ -18,7 +19,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'seeker' | 'employer' | 'mentor' | 'admin';
+  role: 'seeker' | 'employer' | 'admin';
   status: 'active' | 'inactive' | 'pending';
   createdAt: string;
   lastLogin?: string;
@@ -26,6 +27,7 @@ interface User {
 }
 
 export function AdminUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +126,8 @@ export function AdminUsers() {
         console.log('First user structure:', usersData[0]);
         console.log('First user status:', usersData[0].status);
         console.log('First user role:', usersData[0].role);
+        console.log('First user ID:', usersData[0].id || usersData[0]._id);
+        console.log('All user IDs:', usersData.map(u => u.id || u._id));
       }
       
       setUsers(usersData);
@@ -165,11 +169,31 @@ export function AdminUsers() {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/admin/users/${userId}`);
+      
+      if (response.data.success) {
+        // Remove the user from the local state
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        
+        setLastUpdated(new Date().toISOString());
+        console.log('User deleted successfully');
+      }
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      setError('Failed to delete user. Please try again.');
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
       case 'employer': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'mentor': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
       case 'seeker': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
@@ -233,7 +257,7 @@ export function AdminUsers() {
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {isConnected ? 'Live' : 'Offline'}
+                Live
               </span>
             </div>
             
@@ -280,7 +304,6 @@ export function AdminUsers() {
               <option value="all">All Roles</option>
               <option value="seeker">Job Seekers</option>
               <option value="employer">Employers</option>
-              <option value="mentor">Mentors</option>
               <option value="admin">Admins</option>
             </select>
           </div>
@@ -341,7 +364,11 @@ export function AdminUsers() {
                 }
                 
                 return (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr 
+                  key={user.id || user._id} 
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                  onClick={() => navigate(`/admin/users/${user.id || user._id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
@@ -359,7 +386,7 @@ export function AdminUsers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role || 'seeker')}`}>
-                      {(user.role || 'seeker').charAt(0).toUpperCase() + (user.role || 'seeker').slice(1)}
+                      {user.role === 'seeker' ? 'Job Seeker' : (user.role || 'seeker').charAt(0).toUpperCase() + (user.role || 'seeker').slice(1)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -382,22 +409,40 @@ export function AdminUsers() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/users/${user.id || user._id}`);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      >
                         <EyeIcon className="w-4 h-4" />
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">
-                        <EditIcon className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteUser(user.id || user._id);
+                        }}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <TrashIcon className="w-4 h-4" />
                       </button>
                       {(user.status || 'pending') === 'active' ? (
                         <button 
-                          onClick={() => updateUserStatus(user.id, 'inactive')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateUserStatus(user.id || user._id, 'inactive');
+                          }}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                         >
                           <XCircleIcon className="w-4 h-4" />
                         </button>
                       ) : (
                         <button 
-                          onClick={() => updateUserStatus(user.id, 'active')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateUserStatus(user.id || user._id, 'active');
+                          }}
                           className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                         >
                           <CheckCircleIcon className="w-4 h-4" />

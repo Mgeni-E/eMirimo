@@ -17,6 +17,7 @@ import { Applications } from './features/applications/Applications';
 import { Profile } from './features/profile/Profile';
 import { AdminDashboard } from './features/admin/AdminDashboard';
 import { AdminUsers } from './features/admin/AdminUsers';
+import { AdminUserDetail } from './features/admin/AdminUserDetail';
 import { AdminJobs } from './features/admin/AdminJobs';
 import { AdminJobDetail } from './features/admin/AdminJobDetail';
 import { AdminNotifications } from './features/admin/AdminNotifications';
@@ -25,8 +26,9 @@ import { MyJobs } from './features/employer/PostJobs';
 import { EmployerApplications } from './features/employer/EmployerApplications';
 import { EmployerInterviews } from './features/employer/EmployerInterviews';
 import { EmployerHiringPipeline } from './features/employer/EmployerHiringPipeline';
-import { LearningResources } from './features/learning/LearningResources';
+import { Learning } from './features/learning/Learning';
 import { LearningDetail } from './features/learning/LearningDetail';
+import { Recommendations } from './features/recommendations/Recommendations';
 import { PrivacyPolicy } from './features/legal/PrivacyPolicy';
 import { TermsAndConditions } from './features/legal/TermsAndConditions';
 
@@ -49,8 +51,9 @@ export default function App() {
           <Route path="/dashboard" element={<AuthGuard><Dashboard/></AuthGuard>} />
           <Route path="/jobs" element={<AuthGuard><Jobs/></AuthGuard>} />
           <Route path="/jobs/:id" element={<AuthGuard><JobDetail/></AuthGuard>} />
-          <Route path="/learning" element={<AuthGuard><LearningResources/></AuthGuard>} />
+          <Route path="/learning" element={<AuthGuard><Learning/></AuthGuard>} />
           <Route path="/learning/:id" element={<AuthGuard><LearningDetail/></AuthGuard>} />
+          <Route path="/recommendations" element={<AuthGuard><Recommendations/></AuthGuard>} />
           <Route path="/applications" element={<AuthGuard><Applications/></AuthGuard>} />
           <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
           <Route path="/employer/jobs" element={<AuthGuard><MyJobs/></AuthGuard>} />
@@ -61,6 +64,7 @@ export default function App() {
           {/* Admin routes without Layout (use DashboardLayout internally) */}
           <Route path="/admin" element={<AdminAuthGuard><AdminDashboard/></AdminAuthGuard>} />
           <Route path="/admin/users" element={<AdminAuthGuard><AdminUsers/></AdminAuthGuard>} />
+          <Route path="/admin/users/:id" element={<AdminAuthGuard><AdminUserDetail/></AdminAuthGuard>} />
           <Route path="/admin/jobs" element={<AdminAuthGuard><AdminJobs/></AdminAuthGuard>} />
           <Route path="/admin/jobs/:id" element={<AdminAuthGuard><AdminJobDetail/></AdminAuthGuard>} />
           <Route path="/admin/notifications" element={<AdminAuthGuard><AdminNotifications/></AdminAuthGuard>} />

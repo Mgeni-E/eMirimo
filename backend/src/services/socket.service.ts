@@ -1,168 +1,177 @@
-import { Server } from 'socket.io';
+import { Server as SocketIOServer, Socket } from 'socket.io';
+import { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
 import config from '../config/env.js';
-import { createNotification } from '../controllers/notification.controller.js';
 
-// Extend Socket interface to include userId
-declare module 'socket.io' {
-  interface Socket {
-    userId?: string;
-  }
-}
-
-export class SocketService {
-  private io: Server;
+class SocketService {
+  private io: SocketIOServer;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
 
-  constructor(io: Server) {
-    this.io = io;
+  constructor(server: HTTPServer) {
+    this.io = new SocketIOServer(server, {
+      cors: {
+        origin: config.CORS_ORIGIN,
+        methods: ['GET', 'POST'],
+        credentials: true
+      }
+    });
+
     this.setupMiddleware();
     this.setupEventHandlers();
   }
 
   private setupMiddleware() {
-    this.io.use((socket, next) => {
+    // Authentication middleware
+    this.io.use((socket: Socket, next) => {
       try {
-        const token = socket.handshake.auth.token;
+        const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+        
         if (!token) {
-          return next(new Error('Authentication error'));
+          return next(new Error('Authentication error: No token provided'));
         }
 
         const decoded = jwt.verify(token, config.JWT_SECRET) as any;
-        socket.userId = decoded.uid;
+        (socket as any).userId = decoded.uid;
+        (socket as any).userRole = decoded.role;
+        
         next();
-      } catch (err) {
-        next(new Error('Authentication error'));
+      } catch (error) {
+        next(new Error('Authentication error: Invalid token'));
       }
     });
   }
 
   private setupEventHandlers() {
-    this.io.on('connection', (socket) => {
-      const userId = socket.userId;
+    this.io.on('connection', (socket: Socket) => {
+      const userId = (socket as any).userId;
+      console.log(`User ${userId} connected with socket ${socket.id}`);
+
+      // Store user connection
       if (userId) {
         this.connectedUsers.set(userId, socket.id);
       }
 
-      console.log(`User ${userId} connected`);
-
-      // Join user to their personal room
-      socket.join(`user:${userId}`);
-
-      // Handle admin dashboard subscriptions
-      socket.on('join-admin-dashboard', () => {
-        socket.join('admin-dashboard');
-        console.log(`User ${userId} joined admin dashboard`);
+      // Handle user joining notification room
+      socket.on('join_notifications', () => {
+        socket.join(`notifications_${userId}`);
+        console.log(`User ${userId} joined notifications room`);
       });
 
-      socket.on('leave-admin-dashboard', () => {
-        socket.leave('admin-dashboard');
-        console.log(`User ${userId} left admin dashboard`);
+      // Handle user leaving notification room
+      socket.on('leave_notifications', () => {
+        socket.leave(`notifications_${userId}`);
+        console.log(`User ${userId} left notifications room`);
       });
 
-      // Handle mentorship chat
-      socket.on('join-mentorship', (mentorshipId: string) => {
-        socket.join(`mentorship:${mentorshipId}`);
-        console.log(`User ${userId} joined mentorship ${mentorshipId}`);
-      });
-
-      socket.on('leave-mentorship', (mentorshipId: string) => {
-        socket.leave(`mentorship:${mentorshipId}`);
-        console.log(`User ${userId} left mentorship ${mentorshipId}`);
-      });
-
-      socket.on('send-message', async (data: {
-        mentorshipId: string;
-        message: string;
-        senderId: string;
-        senderName: string;
-      }) => {
-        // Broadcast message to mentorship room
-        this.io.to(`mentorship:${data.mentorshipId}`).emit('new-message', {
-          id: Date.now().toString(),
-          mentorshipId: data.mentorshipId,
-          message: data.message,
-          senderId: data.senderId,
-          senderName: data.senderName,
-          timestamp: new Date().toISOString()
-        });
-
-        // Note: Mentorship functionality removed
-      });
-
+      // Handle disconnect
       socket.on('disconnect', () => {
+        console.log(`User ${userId} disconnected`);
         if (userId) {
           this.connectedUsers.delete(userId);
         }
-        console.log(`User ${userId} disconnected`);
+      });
+
+      // Handle typing indicators (for future chat features)
+      socket.on('typing_start', (data: any) => {
+        socket.broadcast.to(data.room).emit('user_typing', {
+          userId: userId,
+          isTyping: true
+        });
+      });
+
+      socket.on('typing_stop', (data: any) => {
+        socket.broadcast.to(data.room).emit('user_typing', {
+          userId: userId,
+          isTyping: false
+        });
       });
     });
   }
 
   // Send notification to specific user
-  public sendNotificationToUser(userId: string, notification: any) {
+  sendNotification(userId: string, notification: any) {
     const socketId = this.connectedUsers.get(userId);
     if (socketId) {
       this.io.to(socketId).emit('notification', notification);
+      console.log(`Notification sent to user ${userId}`);
+    } else {
+      console.log(`User ${userId} is not connected`);
     }
   }
 
-  // Send notification to all users in a room
-  public sendNotificationToRoom(room: string, notification: any) {
-    this.io.to(room).emit('notification', notification);
+  // Send notification to user's notification room
+  sendNotificationToRoom(userId: string, notification: any) {
+    this.io.to(`notifications_${userId}`).emit('notification', notification);
+    console.log(`Notification sent to room notifications_${userId}`);
   }
 
-  // Send message to mentorship chat
-  public sendMessageToMentorship(mentorshipId: string, message: any) {
-    this.io.to(`mentorship:${mentorshipId}`).emit('new-message', message);
+  // Broadcast to all connected users
+  broadcastToAll(event: string, data: any) {
+    this.io.emit(event, data);
+  }
+
+  // Broadcast to users by role
+  broadcastToRole(role: string, event: string, data: any) {
+    this.io.emit(event, { ...data, targetRole: role });
+  }
+
+  // Send application status update
+  sendApplicationStatusUpdate(userId: string, application: any) {
+    this.sendNotification(userId, {
+      type: 'application_status_change',
+      data: application,
+      message: `Your application status has been updated`
+    });
+  }
+
+  // Send job recommendation
+  sendJobRecommendation(userId: string, job: any, matchScore: number) {
+    this.sendNotification(userId, {
+      type: 'job_recommendation',
+      data: { job, matchScore },
+      message: `New job recommendation: ${job.title} (${Math.round(matchScore * 100)}% match)`
+    });
+  }
+
+  // Send course recommendation
+  sendCourseRecommendation(userId: string, course: any, skillsGap: string[]) {
+    this.sendNotification(userId, {
+      type: 'course_recommendation',
+      data: { course, skillsGap },
+      message: `New course recommendation: ${course.title}`
+    });
   }
 
   // Get connected users count
-  public getConnectedUsersCount(): number {
+  getConnectedUsersCount(): number {
     return this.connectedUsers.size;
   }
 
-  // Check if user is online
-  public isUserOnline(userId: string): boolean {
+  // Check if user is connected
+  isUserConnected(userId: string): boolean {
     return this.connectedUsers.has(userId);
   }
 
-  // Broadcast admin dashboard updates
-  public broadcastAdminUpdate(type: string, data: any) {
-    this.io.to('admin-dashboard').emit('admin-update', {
-      type,
-      data,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Broadcast user status change
-  public broadcastUserStatusChange(userId: string, status: string, reason?: string) {
-    this.broadcastAdminUpdate('user-status-change', {
-      userId,
-      status,
-      reason,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Broadcast job status change
-  public broadcastJobStatusChange(jobId: string, isActive: boolean, reason?: string) {
-    this.broadcastAdminUpdate('job-status-change', {
-      jobId,
-      isActive,
-      reason,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Broadcast new activity
-  public broadcastNewActivity(activity: any) {
-    this.broadcastAdminUpdate('new-activity', activity);
-  }
-
-  // Broadcast stats update
-  public broadcastStatsUpdate(stats: any) {
-    this.broadcastAdminUpdate('stats-update', stats);
+  // Get all connected users
+  getConnectedUsers(): string[] {
+    return Array.from(this.connectedUsers.keys());
   }
 }
+
+// Global instance
+let socketService: SocketService | null = null;
+
+export const initializeSocketService = (server: HTTPServer) => {
+  socketService = new SocketService(server);
+  (global as any).socketService = socketService;
+  return socketService;
+};
+
+export const getSocketService = () => {
+  if (!socketService) {
+    throw new Error('Socket service not initialized');
+  }
+  return socketService;
+};
+
+export { SocketService };

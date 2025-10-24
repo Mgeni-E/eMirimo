@@ -1,9 +1,8 @@
 import mongoose from 'mongoose';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import app from './app.js';
 import config, { validateEnv } from './config/env.js';
-import { SocketService } from './services/socket.service.js';
+import { initializeSocketService } from './services/socket.service.js';
 
 // Display startup banner
 console.log('\n eMirimo Backend API Server starting...\n');
@@ -17,21 +16,8 @@ mongoose.connect(config.MONGO_URI).then(()=>{
   // Create HTTP server
   const server = createServer(app);
   
-  // Initialize Socket.io
-  const io = new Server(server, {
-    cors: {
-      origin: config.CORS_ORIGIN,
-      methods: ['GET', 'POST'],
-      credentials: true
-    }
-  });
-  
   // Initialize Socket service
-  const socketService = new SocketService(io);
-  
-  // Make socket service globally available
-  (global as any).io = io;
-  (global as any).socketService = socketService;
+  const socketService = initializeSocketService(server);
   
   server.listen(config.PORT, ()=>{
     console.log(`✅ Server running on http://localhost:${config.PORT}`);

@@ -8,7 +8,8 @@ import { router as admin } from './admin.routes.js';
 import { router as privacy } from './privacy.routes.js';
 import { router as employer } from './employer.routes.js';
 import jobRecommendations from './jobRecommendation.routes.js';
-import learning from './learning.routes.js';
+import { router as recommendations } from './recommendation.routes.js';
+import { router as learning } from './learning.routes.js';
 
 export const router = Router();
 router.use('/auth', auth);
@@ -20,4 +21,5 @@ router.use('/admin', admin);
 router.use('/privacy', privacy);
 router.use('/employer', employer);
 router.use('/recommendations', jobRecommendations);
+router.use('/ai-recommendations', recommendations);
 router.use('/learning', learning);

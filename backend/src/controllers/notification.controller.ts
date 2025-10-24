@@ -92,18 +92,69 @@ export const createNotification = async (
   userId: string, 
   message: string, 
   type: string, 
-  data?: any
+  data?: any,
+  title?: string,
+  priority: 'low' | 'medium' | 'high' = 'medium',
+  action_url?: string
 ) => {
   try {
     const notification = await Notification.create({
       user_id: userId,
       message,
+      title,
       type,
-      data
+      priority,
+      data,
+      action_url
     });
+
+    // Emit real-time notification via WebSocket
+    const socketService = (global as any).socketService;
+    if (socketService) {
+      socketService.sendNotification(userId, notification);
+    }
+
     return notification;
   } catch (error) {
     console.error('Failed to create notification:', error);
     return null;
   }
+};
+
+// Create job recommendation notifications
+export const createJobRecommendationNotification = async (
+  userId: string,
+  jobTitle: string,
+  jobId: string,
+  matchScore: number
+) => {
+  const message = `New job recommendation: ${jobTitle} (${Math.round(matchScore * 100)}% match)`;
+  return await createNotification(
+    userId,
+    message,
+    'job_recommendation',
+    { job_id: jobId, match_score: matchScore },
+    'Job Recommendation',
+    'medium',
+    `/jobs/${jobId}`
+  );
+};
+
+// Create course recommendation notifications
+export const createCourseRecommendationNotification = async (
+  userId: string,
+  courseTitle: string,
+  courseId: string,
+  skillsGap: string[]
+) => {
+  const message = `New course recommendation: ${courseTitle} to improve your ${skillsGap.slice(0, 3).join(', ')} skills`;
+  return await createNotification(
+    userId,
+    message,
+    'course_recommendation',
+    { course_id: courseId, skills_gap: skillsGap },
+    'Course Recommendation',
+    'low',
+    `/courses/${courseId}`
+  );
 };

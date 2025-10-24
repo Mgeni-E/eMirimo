@@ -13,7 +13,11 @@ import {
   getAdminProfile,
   updateAdminProfile,
   uploadAdminProfilePicture,
-  getAdminNotifications
+  getAdminNotifications,
+  getUserDetail,
+  deleteUser,
+  getUserApplications,
+  getUserJobs
 } from '../controllers/admin.controller.js';
 import { markAsRead, markAllAsRead, deleteNotification } from '../controllers/notification.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
@@ -39,6 +43,12 @@ router.patch('/profile', updateAdminProfile);
 router.post('/profile/picture', uploadAdminProfilePicture);
 
 router.get('/users', getUsers);
+router.get('/users/:id', getUserDetail);
+router.get('/users/:id/applications', getUserApplications);
+router.get('/users/:id/jobs', getUserJobs);
+router.patch('/users/:id', updateUserStatus);
+router.delete('/users/:id', deleteUser);
+
 router.get('/jobs', getJobs);
 router.get('/analytics', getAnalytics);
 router.get('/users/stats', getUserStats);
@@ -50,5 +60,4 @@ router.get('/notifications', getAdminNotifications);
 router.patch('/notifications/:id/read', markAsRead);
 router.patch('/notifications/read-all', markAllAsRead);
 router.delete('/notifications/:id', deleteNotification);
-router.patch('/users/:id', updateUserStatus);
 router.patch('/jobs/:id', updateJobStatus);

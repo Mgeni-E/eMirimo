@@ -1,80 +1,55 @@
-import mongoose from 'mongoose';
-import { config } from '../dist/config/env.js';
+import fetch from 'node-fetch';
+
+const API_BASE = 'http://localhost:3000/api';
 
 async function testAPI() {
   try {
-    console.log('🧪 Testing API Endpoints...\n');
+    console.log('Testing API endpoints...\n');
     
-    // Test database connection
-    console.log('1. Testing database connection...');
-    await mongoose.connect(config.MONGO_URI);
-    console.log('✅ Database connected successfully');
+    // Test admin health
+    console.log('1. Testing admin health endpoint...');
+    const healthResponse = await fetch(`${API_BASE}/admin/health`);
+    const healthData = await healthResponse.json();
+    console.log('Health check:', healthData);
+    console.log('Status:', healthResponse.status);
+    console.log('');
     
-    // Test collections
-    console.log('\n2. Testing collections...');
-    const db = mongoose.connection.db;
-    const collections = await db.listCollections().toArray();
-    console.log('📊 Available collections:');
-    collections.forEach(collection => {
-      console.log(`   - ${collection.name}`);
-    });
+    // Test users endpoint
+    console.log('2. Testing users endpoint...');
+    const usersResponse = await fetch(`${API_BASE}/admin/users`);
+    const usersData = await usersResponse.json();
+    console.log('Users count:', usersData.users?.length || 0);
+    console.log('Status:', usersResponse.status);
     
-    // Test user collection
-    console.log('\n3. Testing users collection...');
-    const User = mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-    const userCount = await User.countDocuments();
-    console.log(`📈 Total users: ${userCount}`);
-    
-    // Test admin user
-    console.log('\n4. Testing admin user...');
-    const adminUser = await User.findOne({ email: 'admin@emirimo.com' });
-    if (adminUser) {
-      console.log('✅ Admin user found:', {
-        id: adminUser._id,
-        email: adminUser.email,
-        role: adminUser.role,
-        name: adminUser.name
-      });
+    if (usersData.users && usersData.users.length > 0) {
+      const firstUser = usersData.users[0];
+      console.log('First user ID:', firstUser._id || firstUser.id);
+      console.log('First user name:', firstUser.name);
+      console.log('First user role:', firstUser.role);
+      console.log('');
+      
+      // Test individual user endpoint
+      const userId = firstUser._id || firstUser.id;
+      console.log(`3. Testing individual user endpoint for ID: ${userId}...`);
+      const userResponse = await fetch(`${API_BASE}/admin/users/${userId}`);
+      const userData = await userResponse.json();
+      console.log('User detail status:', userResponse.status);
+      console.log('User detail success:', userData.success);
+      
+      if (userData.user) {
+        console.log('User found:', userData.user.name);
+        console.log('User role:', userData.user.role);
+      } else {
+        console.log('User not found or error:', userData);
+      }
     } else {
-      console.log('❌ Admin user not found');
+      console.log('No users found. Please run the seeding script first.');
     }
     
-    // Test jobs collection
-    console.log('\n5. Testing jobs collection...');
-    const Job = mongoose.model('Job', new mongoose.Schema({}, { strict: false }));
-    const jobCount = await Job.countDocuments();
-    console.log(`📈 Total jobs: ${jobCount}`);
-    
-    // Test applications collection
-    console.log('\n6. Testing applications collection...');
-    const Application = mongoose.model('Application', new mongoose.Schema({}, { strict: false }));
-    const applicationCount = await Application.countDocuments();
-    console.log(`📈 Total applications: ${applicationCount}`);
-    
-    // Test notifications collection
-    console.log('\n7. Testing notifications collection...');
-    const Notification = mongoose.model('Notification', new mongoose.Schema({}, { strict: false }));
-    const notificationCount = await Notification.countDocuments();
-    console.log(`📈 Total notifications: ${notificationCount}`);
-    
-    // Test learning resources collection
-    console.log('\n8. Testing learning resources collection...');
-    const LearningResource = mongoose.model('LearningResource', new mongoose.Schema({}, { strict: false }));
-    const learningResourceCount = await LearningResource.countDocuments();
-    console.log(`📈 Total learning resources: ${learningResourceCount}`);
-    
-    console.log('\n✅ All database tests passed!');
-    console.log('\n📋 Database Status Summary:');
-    console.log(`   Users: ${userCount}`);
-    console.log(`   Jobs: ${jobCount}`);
-    console.log(`   Applications: ${applicationCount}`);
-    console.log(`   Notifications: ${notificationCount}`);
-    console.log(`   Learning Resources: ${learningResourceCount}`);
-    
-    process.exit(0);
   } catch (error) {
-    console.error('❌ Test failed:', error.message);
-    process.exit(1);
+    console.error('API test error:', error.message);
+    console.log('\nMake sure the backend server is running on port 3000');
+    console.log('You can start it with: npm run dev');
   }
 }
 

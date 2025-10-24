@@ -15,25 +15,34 @@ import {
 } from '../../components/icons';
 
 interface Application {
-  id: string;
-  candidate: {
-    id: string;
+  _id: string;
+  id?: string;
+  seeker_id: {
+    _id: string;
     name: string;
     email: string;
     avatar?: string;
-    experience: string;
     skills: string[];
+    work_experience: any[];
   };
-  job: {
-    id: string;
+  job_id: {
+    _id: string;
     title: string;
-    department: string;
+    company: string;
+    location: string;
   };
-  status: 'pending' | 'reviewed' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected';
-  appliedAt: string;
-  resume: string;
-  coverLetter?: string;
+  status: 'applied' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected';
+  applied_at: string;
+  cover_letter?: string;
+  resume_url?: string;
   notes?: string;
+  interview_date?: string;
+  interview_location?: string;
+  salary_offered?: {
+    amount: number;
+    currency: string;
+  };
+  rejection_reason?: string;
 }
 
 interface ApplicationStats {
@@ -71,28 +80,47 @@ export function EmployerApplications() {
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/employer/applications');
-      const data = response.data || [];
-      
-      setApplications(data);
-      
-      // Calculate stats
-      const stats = {
-        total: data.length,
-        pending: data.filter((app: Application) => app.status === 'pending').length,
-        reviewed: data.filter((app: Application) => app.status === 'reviewed').length,
-        shortlisted: data.filter((app: Application) => app.status === 'shortlisted').length,
-        interviews: data.filter((app: Application) => app.status === 'interview').length,
-        offers: data.filter((app: Application) => app.status === 'offer').length,
-        hired: data.filter((app: Application) => app.status === 'hired').length,
-        rejected: data.filter((app: Application) => app.status === 'rejected').length
-      };
-      
-      setStats(stats);
+      const response = await api.get('/applications/employer');
+      if (response.data.success) {
+        const data = response.data.applications || [];
+        setApplications(data);
+        
+        // Calculate stats
+        const stats = {
+          total: data.length,
+          pending: data.filter((app: Application) => app.status === 'applied').length,
+          reviewed: data.filter((app: Application) => app.status === 'applied').length,
+          shortlisted: data.filter((app: Application) => app.status === 'shortlisted').length,
+          interviews: data.filter((app: Application) => app.status === 'interview').length,
+          offers: data.filter((app: Application) => app.status === 'offer').length,
+          hired: data.filter((app: Application) => app.status === 'hired').length,
+          rejected: data.filter((app: Application) => app.status === 'rejected').length
+        };
+        
+        setStats(stats);
+      }
     } catch (error) {
       console.error('Failed to load applications:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateApplicationStatus = async (applicationId: string, status: string, notes?: string) => {
+    try {
+      const response = await api.patch(`/applications/${applicationId}/status`, {
+        status,
+        notes
+      });
+      
+      if (response.data.success) {
+        // Reload applications to get updated data
+        loadApplications();
+        alert('Application status updated successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to update application status:', error);
+      alert('Failed to update application status');
     }
   };
 
@@ -132,29 +160,17 @@ export function EmployerApplications() {
   const sortedApplications = [...filteredApplications].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+        return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
       case 'oldest':
-        return new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime();
+        return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
       case 'name':
-        return a.candidate.name.localeCompare(b.candidate.name);
+        return a.seeker_id.name.localeCompare(b.seeker_id.name);
       case 'status':
         return a.status.localeCompare(b.status);
       default:
         return 0;
     }
   });
-
-  const updateApplicationStatus = async (applicationId: string, newStatus: string) => {
-    try {
-      await api.put(`/employer/applications/${applicationId}/status`, { status: newStatus });
-      setApplications(prev => prev.map(app => 
-        app.id === applicationId ? { ...app, status: newStatus as any } : app
-      ));
-      loadApplications(); // Refresh stats
-    } catch (error) {
-      console.error('Failed to update application status:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -305,19 +321,19 @@ export function EmployerApplications() {
             </div>
           ) : (
             sortedApplications.map((application) => (
-              <div key={application.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <div key={application._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Candidate Avatar */}
                     <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {application.candidate.avatar ? (
+                      {application.seeker_id.avatar ? (
                         <img 
-                          src={application.candidate.avatar} 
-                          alt={application.candidate.name}
+                          src={application.seeker_id.avatar} 
+                          alt={application.seeker_id.name}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
-                        application.candidate.name.charAt(0).toUpperCase()
+                        application.seeker_id.name.charAt(0).toUpperCase()
                       )}
                     </div>
                     
@@ -325,7 +341,7 @@ export function EmployerApplications() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
                         <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {application.candidate.name}
+                          {application.seeker_id.name}
                         </h4>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
                           {getStatusIcon(application.status)}
@@ -334,18 +350,18 @@ export function EmployerApplications() {
                       </div>
                       
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Applied for <span className="font-medium">{application.job.title}</span> in {application.job.department}
+                        Applied for <span className="font-medium">{application.job_id.title}</span> at {application.job_id.company}
                       </p>
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{application.candidate.experience} experience</span>
+                        <span>{application.seeker_id.work_experience?.length || 0} years experience</span>
                         <span>•</span>
-                        <span>Applied {new Date(application.appliedAt).toLocaleDateString()}</span>
+                        <span>Applied {new Date(application.applied_at).toLocaleDateString()}</span>
                       </div>
                       
                       {/* Skills */}
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {application.candidate.skills.slice(0, 5).map((skill, index) => (
+                        {application.seeker_id.skills.slice(0, 5).map((skill, index) => (
                           <span 
                             key={index}
                             className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-md"
@@ -353,9 +369,9 @@ export function EmployerApplications() {
                             {skill}
                           </span>
                         ))}
-                        {application.candidate.skills.length > 5 && (
+                        {application.seeker_id.skills.length > 5 && (
                           <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-md">
-                            +{application.candidate.skills.length - 5} more
+                            +{application.seeker_id.skills.length - 5} more
                           </span>
                         )}
                       </div>
@@ -368,25 +384,16 @@ export function EmployerApplications() {
                       View Resume
                     </button>
                     
-                    {application.status === 'pending' && (
-                      <button 
-                        onClick={() => updateApplicationStatus(application.id, 'reviewed')}
-                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Mark Reviewed
-                      </button>
-                    )}
-                    
-                    {application.status === 'reviewed' && (
+                    {application.status === 'applied' && (
                       <div className="flex space-x-2">
                         <button 
-                          onClick={() => updateApplicationStatus(application.id, 'shortlisted')}
+                          onClick={() => updateApplicationStatus(application._id, 'shortlisted')}
                           className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                         >
                           Shortlist
                         </button>
                         <button 
-                          onClick={() => updateApplicationStatus(application.id, 'rejected')}
+                          onClick={() => updateApplicationStatus(application._id, 'rejected')}
                           className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                         >
                           Reject
@@ -396,7 +403,7 @@ export function EmployerApplications() {
                     
                     {application.status === 'shortlisted' && (
                       <button 
-                        onClick={() => updateApplicationStatus(application.id, 'interview')}
+                        onClick={() => updateApplicationStatus(application._id, 'interview')}
                         className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                       >
                         Schedule Interview

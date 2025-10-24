@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/store';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { ApplicationModal } from '../../components/ApplicationModal';
 import { 
   MapPinIcon, 
   ClockIcon, 
@@ -26,6 +27,8 @@ export function Jobs(){
     type: '',
     experience: ''
   });
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
 
   const load = async ()=>{
     setLoading(true);
@@ -67,6 +70,32 @@ export function Jobs(){
   useEffect(() => {
     load();
   }, [filters]);
+
+  const handleApplyClick = (job: any) => {
+    if (!user) {
+      // Redirect to login
+      return;
+    }
+    setSelectedJob(job);
+    setShowApplicationModal(true);
+  };
+
+  const handleApplicationSubmit = async (applicationData: any) => {
+    try {
+      const response = await api.post('/applications', applicationData);
+      
+      if (response.data.success) {
+        // Success is handled by the modal
+        return Promise.resolve();
+      } else {
+        throw new Error(response.data.error || 'Application failed');
+      }
+    } catch (err: any) {
+      console.error('Failed to apply:', err);
+      const errorMessage = err.response?.data?.error || 'Failed to submit application';
+      throw new Error(errorMessage);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -182,10 +211,9 @@ export function Jobs(){
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(activeTab === 'all' ? jobs : recommendations).map(job=>(
-            <Link
+            <div
               key={job._id}
-              to={`/jobs/${job._id}`}
-              className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 overflow-hidden block"
+              className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 overflow-hidden"
             >
               {/* Card Header */}
               <div className="p-6 pb-4">
@@ -263,14 +291,55 @@ export function Jobs(){
               
               {/* Card Footer */}
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
-                <div className="flex items-center justify-center gap-2 text-primary-600 dark:text-primary-400 font-medium">
-                  <span>View Details</span>
-                  <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between gap-3">
+                  <Link 
+                    to={`/jobs/${job._id}`}
+                    className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-medium hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+                  >
+                    <span>View Details</span>
+                    <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                  
+                  {user && user.role === 'seeker' && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleApplyClick(job);
+                      }}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
+                    >
+                      Apply Now
+                    </button>
+                  )}
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Application Modal */}
+      {selectedJob && user && (
+        <ApplicationModal
+          isOpen={showApplicationModal}
+          onClose={() => setShowApplicationModal(false)}
+          job={{
+            _id: selectedJob._id,
+            title: selectedJob.title,
+            company: selectedJob.employer_id?.name || 'Company',
+            location: selectedJob.location,
+            salary: selectedJob.salary
+          }}
+          user={{
+            name: user.name,
+            email: user.email,
+            cv_url: (user as any).cv_url,
+            skills: (user as any).skills || [],
+            work_experience: (user as any).work_experience || []
+          }}
+          onApply={handleApplicationSubmit}
+        />
       )}
     </DashboardLayout>
   );

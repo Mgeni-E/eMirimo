@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/store';
+import { ApplicationModal } from '../../components/ApplicationModal';
 import { 
   MapPinIcon, 
   ClockIcon, 
@@ -47,6 +48,7 @@ export function JobDetail() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -67,19 +69,29 @@ export function JobDetail() {
     }
   };
 
-  const applyToJob = async () => {
+  const handleApplyClick = () => {
     if (!user) {
       navigate('/login');
       return;
     }
+    setShowApplicationModal(true);
+  };
 
+  const handleApplicationSubmit = async (applicationData: any) => {
     setApplying(true);
     try {
-      await api.post('/applications', { jobId: id });
-      alert('Application submitted successfully!');
-    } catch (err) {
+      const response = await api.post('/applications', applicationData);
+      
+      if (response.data.success) {
+        // Success is handled by the modal
+        return Promise.resolve();
+      } else {
+        throw new Error(response.data.error || 'Application failed');
+      }
+    } catch (err: any) {
       console.error('Failed to apply:', err);
-      alert('Failed to submit application');
+      const errorMessage = err.response?.data?.error || 'Failed to submit application';
+      throw new Error(errorMessage);
     } finally {
       setApplying(false);
     }
@@ -186,7 +198,7 @@ export function JobDetail() {
             <div className="mb-8">
               {user ? (
                 <button
-                  onClick={applyToJob}
+                  onClick={handleApplyClick}
                   disabled={applying}
                   className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
                 >
@@ -305,6 +317,29 @@ export function JobDetail() {
           </div>
         </div>
       </div>
+
+      {/* Application Modal */}
+      {job && user && (
+        <ApplicationModal
+          isOpen={showApplicationModal}
+          onClose={() => setShowApplicationModal(false)}
+          job={{
+            _id: job._id,
+            title: job.title,
+            company: job.employer_id?.name || 'Company',
+            location: job.location,
+            salary: job.salary
+          }}
+          user={{
+            name: user.name,
+            email: user.email,
+            cv_url: (user as any).cv_url,
+            skills: (user as any).skills || [],
+            work_experience: (user as any).work_experience || []
+          }}
+          onApply={handleApplicationSubmit}
+        />
+      )}
     </div>
   );
 }
