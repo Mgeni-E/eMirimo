@@ -91,6 +91,34 @@ class SocketService {
     }
   }
 
+  // Listen for admin updates
+  onAdminUpdate(callback: (data: any) => void) {
+    if (this.socket) {
+      this.socket.on('admin_update', callback);
+    }
+  }
+
+  // Remove admin update listener
+  offAdminUpdate() {
+    if (this.socket) {
+      this.socket.off('admin_update');
+    }
+  }
+
+  // Join admin dashboard room
+  joinAdminDashboard() {
+    if (this.socket) {
+      this.socket.emit('join-admin-dashboard');
+    }
+  }
+
+  // Leave admin dashboard room
+  leaveAdminDashboard() {
+    if (this.socket) {
+      this.socket.emit('leave-admin-dashboard');
+    }
+  }
+
   // Send typing indicator
   sendTypingStart(room: string) {
     if (this.socket) {
@@ -142,6 +170,10 @@ export const useSocket = () => {
     offNotification: socketService.offNotification.bind(socketService),
     onApplicationStatusUpdate: socketService.onApplicationStatusUpdate.bind(socketService),
     onJobRecommendation: socketService.onJobRecommendation.bind(socketService),
-    onCourseRecommendation: socketService.onCourseRecommendation.bind(socketService)
+    onCourseRecommendation: socketService.onCourseRecommendation.bind(socketService),
+    onAdminUpdate: socketService.onAdminUpdate.bind(socketService),
+    offAdminUpdate: socketService.offAdminUpdate.bind(socketService),
+    joinAdminDashboard: socketService.joinAdminDashboard.bind(socketService),
+    leaveAdminDashboard: socketService.leaveAdminDashboard.bind(socketService)
   };
 };

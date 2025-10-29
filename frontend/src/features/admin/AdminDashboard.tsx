@@ -65,7 +65,8 @@ export function AdminDashboard() {
     
     return () => {
       if (socketService.isConnected()) {
-        socketService.getSocket()?.emit('leave-admin-dashboard');
+        socketService.leaveAdminDashboard();
+        socketService.offAdminUpdate();
       }
     };
   }, []);
@@ -78,7 +79,7 @@ export function AdminDashboard() {
       // Listen for connection status
       socketService.getSocket()?.on('connect', () => {
         setIsConnected(true);
-        socketService.getSocket()?.emit('join-admin-dashboard');
+        socketService.joinAdminDashboard();
       });
 
       socketService.getSocket()?.on('disconnect', () => {
@@ -112,15 +113,15 @@ export function AdminDashboard() {
         break;
     }
     setLastUpdated(new Date().toISOString());
-  }, []);
+  }, [loadDashboardData]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
       // Fetch comprehensive dashboard data
-      const dashboardResponse = await api.get('/admin/dashboard');
+      const dashboardResponse = await api.get('/dashboard/admin');
       const activityResponse = await api.get('/admin/activity?limit=10');
 
       if (dashboardResponse.data) {
@@ -192,7 +193,7 @@ export function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleRefresh = async () => {
     await loadDashboardData();
