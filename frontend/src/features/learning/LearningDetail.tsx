@@ -64,7 +64,7 @@ export function LearningDetail() {
   const loadResource = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get(`/learning/resources/${id}`);
+      const { data } = await api.get(`/learning/${id}`);
       setResource(data);
     } catch (error) {
       console.error('Failed to load resource:', error);

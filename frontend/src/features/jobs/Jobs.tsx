@@ -88,11 +88,11 @@ export function Jobs(){
         // Success is handled by the modal
         return Promise.resolve();
       } else {
-        throw new Error(response.data.error || 'Application failed');
+        throw new Error(response.data.error || t('applicationFailed'));
       }
     } catch (err: any) {
       console.error('Failed to apply:', err);
-      const errorMessage = err.response?.data?.error || 'Failed to submit application';
+      const errorMessage = err.response?.data?.error || t('failedSubmitApplication');
       throw new Error(errorMessage);
     }
   };

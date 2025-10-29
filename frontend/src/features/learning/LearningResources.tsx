@@ -86,7 +86,7 @@ export function LearningResources() {
       if (filters.type) params.append('type', filters.type);
       if (filters.difficulty) params.append('difficulty', filters.difficulty);
       
-      const resResponse = await api.get(`/learning/resources?${params.toString()}`);
+      const resResponse = await api.get(`/learning?${params.toString()}`);
       setResources(resResponse.data.resources || []);
     } catch (error) {
       console.error('Error loading learning data:', error);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { useAuth } from '../../lib/store';
 import { 
@@ -36,6 +37,7 @@ interface RecentActivity {
 }
 
 export function AdminDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
@@ -48,6 +50,10 @@ export function AdminDashboard() {
     applicationGrowth: 0
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [recentApplications, setRecentApplications] = useState<any[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -221,10 +227,10 @@ export function AdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Admin Dashboard
+              {t('adminDashboard')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Welcome back, {user?.name || 'Admin'}. Here's your platform overview.
+              {t('platformOverview', { name: user?.name || 'Admin' })}
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -232,7 +238,7 @@ export function AdminDashboard() {
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Live
+                {t('live')}
               </span>
             </div>
             
@@ -243,7 +249,7 @@ export function AdminDashboard() {
               className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+              <span>{t('refresh')}</span>
             </button>
           </div>
         </div>
@@ -251,7 +257,7 @@ export function AdminDashboard() {
         {/* Last Updated */}
         {lastUpdated && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            Last updated: {new Date(lastUpdated).toLocaleString()}
+            {t('lastUpdated', { date: new Date(lastUpdated).toLocaleString() })}
           </p>
         )}
       </div>
@@ -263,15 +269,15 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* Key Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Key Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 py-4">
         <div 
           onClick={() => navigate('/admin/users')}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Users</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('totalUsers')}</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalUsers.toLocaleString()}</p>
               <div className="flex items-center mt-2">
                 {stats.userGrowth >= 0 ? (
@@ -284,19 +290,19 @@ export function AdminDashboard() {
                 </span>
               </div>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-              <UsersIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+              <UsersIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
 
         <div 
           onClick={() => navigate('/admin/jobs')}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border border-green-200 dark:border-green-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Jobs</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('totalJobs')}</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalJobs.toLocaleString()}</p>
               <div className="flex items-center mt-2">
                 {stats.jobGrowth >= 0 ? (
@@ -309,19 +315,19 @@ export function AdminDashboard() {
                 </span>
               </div>
             </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-              <JobsIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+              <JobsIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
 
         <div 
           onClick={() => navigate('/admin/jobs')}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Applications</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('totalApplications')}</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalApplications.toLocaleString()}</p>
               <div className="flex items-center mt-2">
                 {stats.applicationGrowth >= 0 ? (
@@ -334,24 +340,24 @@ export function AdminDashboard() {
                 </span>
               </div>
             </div>
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-              <ApplicationsIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg flex items-center justify-center">
+              <ApplicationsIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
 
         <div 
           onClick={() => navigate('/admin/notifications')}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl p-6 border border-orange-200 dark:border-orange-700 hover:shadow-lg transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Notifications</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('totalNotifications')}</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalNotifications.toLocaleString()}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Pending review</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('pendingReview')}</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-              <BellIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
+              <BellIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>

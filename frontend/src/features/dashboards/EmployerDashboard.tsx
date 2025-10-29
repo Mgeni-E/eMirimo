@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
@@ -27,6 +28,7 @@ interface RecentActivity {
 }
 
 export function EmployerDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [stats, setStats] = useState<EmployerStats>({
     activeJobs: 0,
@@ -35,6 +37,9 @@ export function EmployerDashboard() {
     hiredCandidates: 0
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [topJobs, setTopJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,6 +48,43 @@ export function EmployerDashboard() {
 
   const loadEmployerData = async () => {
     setLoading(true);
+    try {
+      // Try to load comprehensive dashboard data first
+      try {
+        const dashboardResponse = await api.get('/dashboard/employer');
+        
+        if (dashboardResponse.data.success) {
+          const { stats, jobs, applications, recentActivity, topJobs } = dashboardResponse.data.data;
+          
+          setStats({
+            activeJobs: stats.activeJobs,
+            totalApplications: stats.totalApplications,
+            interviewsScheduled: stats.interviewsScheduled,
+            hiredCandidates: stats.hiredCandidates
+          });
+
+          setJobs(jobs || []);
+          setApplications(applications || []);
+          setTopJobs(topJobs || []);
+          setActivities(recentActivity || []);
+          
+          return; // Success, exit early
+        }
+      } catch (dashboardError) {
+        console.log('Dashboard endpoint not available, using fallback');
+      }
+      
+      // Fallback to individual API calls
+      await loadFallbackData();
+    } catch (error) {
+      console.error('Failed to load employer data:', error);
+      await loadFallbackData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFallbackData = async () => {
     try {
       // Load employer statistics
       const [jobsResponse, applicationsResponse] = await Promise.all([
@@ -62,32 +104,30 @@ export function EmployerDashboard() {
         {
           id: '1',
           type: 'application',
-          title: 'New application for Software Engineer position',
-          description: 'Application from Sarah Johnson',
-          timestamp: '30 minutes ago',
+          title: t('newApplicationSoftwareEngineer'),
+          description: t('applicationFromSarahJohnson'),
+          timestamp: t('minutesAgo', { count: 30 }),
           status: 'pending'
         },
         {
           id: '2',
           type: 'interview',
-          title: 'Interview scheduled with Mike Chen',
-          description: 'Frontend Developer position',
-          timestamp: '2 hours ago',
+          title: t('interviewScheduledMikeChen'),
+          description: t('frontendDeveloperPosition'),
+          timestamp: t('hoursAgo', { count: 2 }),
           status: 'success'
         },
         {
           id: '3',
           type: 'job',
-          title: 'Job posting "Product Manager" published',
-          description: 'Job is now live and accepting applications',
-          timestamp: '1 day ago',
+          title: t('jobPostingProductManager'),
+          description: t('jobNowLiveAccepting'),
+          timestamp: t('daysAgo', { count: 1 }),
           status: 'success'
         }
       ]);
     } catch (error) {
-      console.error('Failed to load employer data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load fallback data:', error);
     }
   };
 
@@ -122,64 +162,86 @@ export function EmployerDashboard() {
 
   return (
     <DashboardLayout>
-      {/* Employer Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {t('employerDashboard')}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              {t('manageJobPostings')}
+            </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/employer/jobs"
+              className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+            >
+              {t('postNewJob')}
+            </Link>
+          </div>
+        </div>
+      </div>
+
+            {/* Employer Overview Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 py-4">
         <div 
           onClick={() => navigate('/employer/jobs')}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-soft border border-blue-200 dark:border-blue-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.activeJobs}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('activeJobs')}</div>
             </div>
-            <div className="w-12 h-12 bg-accent-50 dark:bg-accent-900/20 rounded-lg flex items-center justify-center">
-              <JobsIcon className="w-6 h-6 text-accent-600 dark:text-accent-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+              <JobsIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/employer/applications')}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl shadow-soft border border-green-200 dark:border-green-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.totalApplications}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Total Applications</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('totalApplications')}</div>
             </div>
-            <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-              <ApplicationsIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+              <ApplicationsIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/employer/interviews')}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl shadow-soft border border-purple-200 dark:border-purple-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.interviewsScheduled}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Interviews Scheduled</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('interviewsScheduled')}</div>
             </div>
-            <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-              <UsersIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg flex items-center justify-center">
+              <UsersIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/employer/pipeline')}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl shadow-soft border border-orange-200 dark:border-orange-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.hiredCandidates}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Hired Candidates</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{t('hiredCandidates')}</div>
             </div>
-            <div className="w-12 h-12 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-              <UserIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
+              <UserIcon className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>

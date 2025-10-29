@@ -31,34 +31,34 @@ export function Login(){
       
       showNotification({
         type: 'success',
-        title: 'Login Successful',
-        message: `Welcome back, ${data.user.name}!`,
+        title: t('loginSuccessful'),
+        message: t('welcomeBack', { name: data.user.name }),
         duration: 4000
       });
       
       nav('/dashboard');
     } catch (err: any) {
       const errorData = err.response?.data;
-      let errorTitle = 'Login Failed';
-      let errorMessage = 'An unexpected error occurred';
+      let errorTitle = t('loginFailed');
+      let errorMessage = t('unexpectedError');
       
       if (errorData) {
         if (errorData.error === 'Invalid credentials') {
-          errorTitle = 'Invalid Credentials';
-          errorMessage = 'Please check your email and password and try again.';
+          errorTitle = t('invalidCredentials');
+          errorMessage = t('checkEmailPassword');
         } else if (errorData.error === 'User not found') {
-          errorTitle = 'Account Not Found';
-          errorMessage = 'No account found with this email address. Please check your email or create a new account.';
+          errorTitle = t('accountNotFound');
+          errorMessage = t('noAccountFound');
         } else if (errorData.error === 'Account not verified') {
-          errorTitle = 'Account Not Verified';
-          errorMessage = 'Please check your email and verify your account before logging in.';
+          errorTitle = t('accountNotVerified');
+          errorMessage = t('verifyAccount');
         } else {
-          errorTitle = errorData.error || 'Login Failed';
-          errorMessage = errorData.message || 'An unexpected error occurred';
+          errorTitle = errorData.error || t('loginFailed');
+          errorMessage = errorData.message || t('unexpectedError');
         }
       } else {
-        errorTitle = 'Connection Failed';
-        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        errorTitle = t('connectionFailed');
+        errorMessage = t('unableToConnect');
       }
       
       setError(errorTitle);

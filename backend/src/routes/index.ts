@@ -10,6 +10,7 @@ import { router as employer } from './employer.routes.js';
 import jobRecommendations from './jobRecommendation.routes.js';
 import { router as recommendations } from './recommendation.routes.js';
 import { router as learning } from './learning.routes.js';
+import { router as dashboard } from './dashboard.routes.js';
 
 export const router = Router();
 router.use('/auth', auth);
@@ -23,3 +24,4 @@ router.use('/employer', employer);
 router.use('/recommendations', jobRecommendations);
 router.use('/ai-recommendations', recommendations);
 router.use('/learning', learning);
+router.use('/dashboard', dashboard);

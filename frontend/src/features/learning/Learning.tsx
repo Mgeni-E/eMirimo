@@ -52,7 +52,7 @@ export function Learning() {
   const loadResources = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/learning-resources');
+      const response = await api.get('/learning');
       if (response.data.success) {
         setResources(response.data.resources || []);
       }

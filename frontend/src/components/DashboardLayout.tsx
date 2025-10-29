@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { MenuIcon, CloseIcon } from './icons';
+import { ThemeSwitcher } from './ThemeSwitcher';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { NotificationBell } from './NotificationBell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,7 +36,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const getMenuItems = (role: string) => {
     const baseItems = [
       {
-        title: 'Dashboard',
+        title: t('dashboard'),
         path: '/dashboard'
       }
     ];
@@ -41,59 +44,59 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const roleSpecificItems = {
       admin: [
         {
-          title: 'Users',
+          title: t('users'),
           path: '/admin/users'
         },
         {
-          title: 'Jobs',
+          title: t('jobs'),
           path: '/admin/jobs'
         },
         {
-          title: 'Notifications',
+          title: t('notifications'),
           path: '/admin/notifications'
         },
         {
-          title: 'Profile',
+          title: t('profile'),
           path: '/admin/profile'
         }
       ],
       seeker: [
         {
-          title: 'Jobs',
+          title: t('jobs'),
           path: '/jobs'
         },
         {
-          title: 'Applications',
+          title: t('applications'),
           path: '/applications'
         },
         {
-          title: 'Learning',
+          title: t('learning'),
           path: '/learning'
         },
         {
-          title: 'Profile',
+          title: t('profile'),
           path: '/profile'
         }
       ],
       employer: [
         {
-          title: 'My Jobs',
+          title: t('myJobs'),
           path: '/employer/jobs'
         },
         {
-          title: 'Applications',
+          title: t('applications'),
           path: '/employer/applications'
         },
         {
-          title: 'Interviews',
+          title: t('interviews'),
           path: '/employer/interviews'
         },
         {
-          title: 'Hiring Pipeline',
+          title: t('hiringPipeline'),
           path: '/employer/pipeline'
         },
         {
-          title: 'Profile',
+          title: t('profile'),
           path: '/profile'
         }
       ]
@@ -167,13 +170,22 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           })}
         </nav>
 
+        {/* Theme and Language Switchers - Mobile */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <LanguageSwitcher />
+            <ThemeSwitcher />
+          </div>
+          <NotificationBell />
+        </div>
+
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={logout}
             className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 font-medium"
           >
-            Logout
+            {t('logout')}
           </button>
         </div>
       </div>
@@ -188,21 +200,32 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {(location.pathname === '/dashboard' || location.pathname === '/admin') && (
                 <>
                   <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                    Welcome back, {user.name}!
+                    {t('welcomeBack')}, {user.name}!
                   </h1>
                   <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">
-                    Here's what's happening with your account today.
+                    {t('recentActivity')}
                   </p>
                 </>
               )}
             </div>
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
+            
+            {/* Right side controls */}
+            <div className="flex items-center space-x-4">
+              {/* Theme and Language Switchers - Desktop */}
+              <div className="hidden lg:flex items-center space-x-2">
+                <LanguageSwitcher />
+                <ThemeSwitcher />
+                <NotificationBell />
+              </div>
+              
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+              >
+                <MenuIcon className="w-6 h-6" />
+              </button>
+            </div>
           </div>
         </div>
 
