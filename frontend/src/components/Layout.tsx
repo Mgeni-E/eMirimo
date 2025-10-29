@@ -108,13 +108,13 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
             </div>
 
             {/* User Actions */}
-            <div className="hidden lg:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-6">
               <LanguageSwitcher />
               <ThemeSwitcher />
 
               {user ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
                     {userNavigationItems.map((item) => {
                       const IconComponent = item.icon;
                       return (
@@ -133,7 +133,7 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                       );
                     })}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-4">
                     <NotificationBell />
                     <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                       {t('welcome')}, {user.name}

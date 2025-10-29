@@ -29,6 +29,9 @@ import { EmployerHiringPipeline } from './features/employer/EmployerHiringPipeli
 import { Learning } from './features/learning/Learning';
 import { LearningDetail } from './features/learning/LearningDetail';
 import { Recommendations } from './features/recommendations/Recommendations';
+import { CompanyProfile } from './features/company/CompanyProfile';
+import { Messaging } from './features/messaging/Messaging';
+import { SkillsAssessment } from './features/skills/SkillsAssessment';
 import { PrivacyPolicy } from './features/legal/PrivacyPolicy';
 import { TermsAndConditions } from './features/legal/TermsAndConditions';
 
@@ -56,6 +59,9 @@ export default function App() {
           <Route path="/recommendations" element={<AuthGuard><Recommendations/></AuthGuard>} />
           <Route path="/applications" element={<AuthGuard><Applications/></AuthGuard>} />
           <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
+          <Route path="/company/:slug" element={<AuthGuard><CompanyProfile/></AuthGuard>} />
+          <Route path="/messaging" element={<AuthGuard><Messaging/></AuthGuard>} />
+          <Route path="/skills" element={<AuthGuard><SkillsAssessment/></AuthGuard>} />
           <Route path="/employer/jobs" element={<AuthGuard><MyJobs/></AuthGuard>} />
           <Route path="/employer/applications" element={<AuthGuard><EmployerApplications/></AuthGuard>} />
           <Route path="/employer/interviews" element={<AuthGuard><EmployerInterviews/></AuthGuard>} />

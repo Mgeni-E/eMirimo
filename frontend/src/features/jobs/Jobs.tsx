@@ -25,7 +25,13 @@ export function Jobs(){
   const [filters, setFilters] = useState({
     category: '',
     type: '',
-    experience: ''
+    experience: '',
+    salary_min: '',
+    salary_max: '',
+    company_size: '',
+    location: '',
+    date_posted: '',
+    remote_only: false
   });
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
@@ -148,43 +154,136 @@ export function Jobs(){
             </button>
           </div>
           
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-              className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Categories</option>
-              <option value="technology">Technology</option>
-              <option value="marketing">Marketing</option>
-              <option value="design">Design</option>
-              <option value="sales">Sales</option>
-              <option value="finance">Finance</option>
-            </select>
-            
-            <select
-              value={filters.type}
-              onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-              className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Types</option>
-              <option value="remote">Remote</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="onsite">On-site</option>
-            </select>
-            
-            <select
-              value={filters.experience}
-              onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value }))}
-              className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">All Experience Levels</option>
-              <option value="entry">Entry Level</option>
-              <option value="mid">Mid Level</option>
-              <option value="senior">Senior Level</option>
-              <option value="lead">Lead Level</option>
-            </select>
+          {/* Advanced Filters */}
+          <div className="space-y-4">
+            {/* Primary Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">All Categories</option>
+                <option value="technology">Technology</option>
+                <option value="marketing">Marketing</option>
+                <option value="design">Design</option>
+                <option value="sales">Sales</option>
+                <option value="finance">Finance</option>
+                <option value="healthcare">Healthcare</option>
+                <option value="education">Education</option>
+                <option value="consulting">Consulting</option>
+              </select>
+              
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">All Types</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">On-site</option>
+              </select>
+              
+              <select
+                value={filters.experience}
+                onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">All Experience Levels</option>
+                <option value="entry">Entry Level (0-2 years)</option>
+                <option value="mid">Mid Level (3-5 years)</option>
+                <option value="senior">Senior Level (6-10 years)</option>
+                <option value="lead">Lead Level (10+ years)</option>
+              </select>
+
+              <select
+                value={filters.date_posted}
+                onChange={(e) => setFilters(prev => ({ ...prev, date_posted: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">Any Time</option>
+                <option value="today">Today</option>
+                <option value="week">Past Week</option>
+                <option value="month">Past Month</option>
+                <option value="3months">Past 3 Months</option>
+              </select>
+            </div>
+
+            {/* Secondary Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min Salary"
+                  value={filters.salary_min}
+                  onChange={(e) => setFilters(prev => ({ ...prev, salary_min: e.target.value }))}
+                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Salary"
+                  value={filters.salary_max}
+                  onChange={(e) => setFilters(prev => ({ ...prev, salary_max: e.target.value }))}
+                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <select
+                value={filters.company_size}
+                onChange={(e) => setFilters(prev => ({ ...prev, company_size: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">All Company Sizes</option>
+                <option value="startup">Startup (1-50)</option>
+                <option value="small">Small (51-200)</option>
+                <option value="medium">Medium (201-1000)</option>
+                <option value="large">Large (1000+)</option>
+              </select>
+
+              <input
+                type="text"
+                placeholder="Location"
+                value={filters.location}
+                onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+
+              <div className="flex items-center">
+                <label className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.remote_only}
+                    onChange={(e) => setFilters(prev => ({ ...prev, remote_only: e.target.checked }))}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <span className="text-sm">Remote Only</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Filter Actions */}
+            <div className="flex justify-between items-center">
+              <button
+                onClick={() => setFilters({
+                  category: '',
+                  type: '',
+                  experience: '',
+                  salary_min: '',
+                  salary_max: '',
+                  company_size: '',
+                  location: '',
+                  date_posted: '',
+                  remote_only: false
+                })}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+              >
+                Clear All Filters
+              </button>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {jobs.length} jobs found
+              </div>
+            </div>
           </div>
         </div>
       </div>

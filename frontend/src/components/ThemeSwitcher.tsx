@@ -9,10 +9,10 @@ export const ThemeSwitcher = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-10">
       <button
         onClick={toggleTheme}
-        className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-all duration-300 transform hover:scale-110 shadow-lg"
+        className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
         title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
       >

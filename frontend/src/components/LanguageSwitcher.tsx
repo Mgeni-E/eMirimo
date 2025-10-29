@@ -19,10 +19,10 @@ export const LanguageSwitcher = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-10">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+        className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <span>{currentLanguage.flag}</span>
         <span>{currentLanguage.name}</span>

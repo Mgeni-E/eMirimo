@@ -202,9 +202,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </div>
             
             {/* Right side controls */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {/* Theme and Language Switchers - Desktop */}
-              <div className="hidden lg:flex items-center space-x-2">
+              <div className="hidden lg:flex items-center space-x-4">
                 <LanguageSwitcher />
                 <ThemeSwitcher />
                 <NotificationBell />
