@@ -6,6 +6,9 @@ const resources = {
     translation: { 
       // Navigation
       welcome: 'Welcome To eMirimo',
+      heroTitle: 'Find Your Dream Remote Job in Rwanda',
+      heroSubtitle: 'Connect with global opportunities while staying close to home. Join thousands of Rwandan professionals building their careers remotely.',
+      getStarted: 'Get Started',
       login: 'Login',
       register: 'Register',
       jobs: 'Jobs',
@@ -23,7 +26,11 @@ const resources = {
       
       // Auth
       signIn: 'Sign In',
+      signingIn: 'Signing In...',
       createAccount: 'Create Account',
+      creatingAccount: 'Creating Account...',
+      alreadyHaveAccount: 'Already have an account?',
+      dontHaveAccount: 'Don\'t have an account?',
       email: 'Email',
       password: 'Password',
       confirmPassword: 'Confirm Password',
@@ -37,8 +44,6 @@ const resources = {
       backToLogin: 'Back to Login',
       rememberMe: 'Remember Me',
       agreeTerms: 'I agree to the Terms and Conditions',
-      alreadyHaveAccount: 'Already have an account?',
-      dontHaveAccount: "Don't have an account?",
       
       // Jobs
       searchJobs: 'Search Jobs...',
@@ -96,7 +101,23 @@ const resources = {
       
       // Learning
       
+      // Home Page Content
+      remoteJobsTitle: 'Verified Remote Jobs',
+      remoteJobsDesc: 'Access curated remote job opportunities from global companies that value Rwandan talent and offer competitive packages.',
+      verifiedOppsTitle: 'Verified Opportunities',
+      verifiedOppsDesc: 'All job postings are verified by our team to ensure legitimacy and quality opportunities for our community.',
+      statsTitle: 'Join Our Growing Community',
+      activeUsers: 'Active Users',
+      jobsPosted: 'Jobs Posted',
+      successfulHires: 'Successful Hires',
+      ctaTitle: 'Ready to Start Your Remote Career Journey?',
+      ctaSubtitle: 'Join thousands of Rwandan professionals who have found their dream remote jobs through eMirimo.',
+      ctaTagline: 'Your next opportunity is just one click away.',
+      startJourney: 'Start Your Journey',
+      exploreOpps: 'Explore Opportunities',
+      
       // Common Actions
+      salaryNotSpecified: 'Salary not specified',
       
       // Form Labels
       
@@ -261,6 +282,9 @@ const resources = {
     translation: { 
       // Navigation
       welcome: 'Murakaza neza kuri eMirimo',
+      heroTitle: 'Shakisha akazi kawe ka kure mu Rwanda',
+      heroSubtitle: 'Huza n\'amahirwe y\'isi yose mugihe ukomeza mu Rwanda. Jya hamwe n\'abantu benshi bo mu Rwanda bakora akazi ka kure.',
+      getStarted: 'Tangira',
       login: 'Injira',
       register: 'Iyandikishe',
       jobs: 'Akazi',
@@ -278,7 +302,11 @@ const resources = {
 
       // Auth
       signIn: 'Injira',
+      signingIn: 'Birakoresha...',
       createAccount: 'Kora Konti',
+      creatingAccount: 'Birakora Konti...',
+      alreadyHaveAccount: 'Ufite konti?',
+      dontHaveAccount: 'Nta konti ufite?',
       email: 'Imeli',
       password: 'Ijambo ry\'ibanga',
       confirmPassword: 'Emeza ijambo ry\'ibanga',
@@ -292,8 +320,6 @@ const resources = {
       backToLogin: 'Subira kwinjira',
       rememberMe: 'Ntibagire',
       agreeTerms: 'Nemeranya n\'amabwiriza n\'amabwiriza',
-      alreadyHaveAccount: 'Ufite konti?',
-      dontHaveAccount: 'Nta konti ufite?',
 
       // Jobs
       searchJobs: 'Shakisha akazi...',
@@ -351,7 +377,23 @@ const resources = {
       
       // Learning
       
+      // Home Page Content
+      remoteJobsTitle: 'Akazi ka kure byemejwe',
+      remoteJobsDesc: 'Fata amahirwe y\'akazi ka kure yemeranywe kuva ku masosiyete y\'isi yose yifatanya ubuhanga bwo mu Rwanda.',
+      verifiedOppsTitle: 'Amahirwe yemejwe',
+      verifiedOppsDesc: 'Akazi byose byashyizwe byemejwe n\'itsinda ryacu kugira ngo bikore neza kandi bikire amahirwe meza ku bantu bacu.',
+      statsTitle: 'Jya hamwe n\'itsinda ryacu rikura',
+      activeUsers: 'Abakoresha bikora',
+      jobsPosted: 'Akazi byashyizwe',
+      successfulHires: 'Abantu bakorewe neza',
+      ctaTitle: 'Witeguye gutangira urugendo rwawe rw\'akazi ka kure?',
+      ctaSubtitle: 'Jya hamwe n\'abantu benshi bo mu Rwanda bishakishije akazi kawe ka kure binyuze kuri eMirimo.',
+      ctaTagline: 'Amahirwe yawe akurikira ari hafi gusa.',
+      startJourney: 'Tangira urugendo rwawe',
+      exploreOpps: 'Shakisha amahirwe',
+      
       // Common Actions
+      salaryNotSpecified: 'Umushahara ntawushyizwe',
       
       // Form Labels
       phone: 'Numero ya telefone',

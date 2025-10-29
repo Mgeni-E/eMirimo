@@ -222,7 +222,7 @@ export function Jobs(){
                     <div className="flex items-center gap-2 mb-2">
                       <BuildingOfficeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                       <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        {job.employer_id?.name || 'Company'}
+                        {job.employer_id?.name || t('company')}
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2">
@@ -257,7 +257,7 @@ export function Jobs(){
                       <span>
                         {job.salary.min && job.salary.max 
                           ? `${job.salary.currency} ${job.salary.min.toLocaleString()} - ${job.salary.max.toLocaleString()}`
-                          : 'Salary not specified'
+                          : t('salaryNotSpecified')
                         }
                       </span>
                     </div>
@@ -327,7 +327,7 @@ export function Jobs(){
           job={{
             _id: selectedJob._id,
             title: selectedJob.title,
-            company: selectedJob.employer_id?.name || 'Company',
+            company: selectedJob.employer_id?.name || t('company'),
             location: selectedJob.location,
             salary: selectedJob.salary
           }}

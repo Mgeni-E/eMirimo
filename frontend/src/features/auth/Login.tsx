@@ -151,7 +151,7 @@ export function Login(){
             type="submit"
             disabled={loading}
           >
-            {loading ? 'Signing In...' : t('signIn')}
+            {loading ? t('signingIn') : t('signIn')}
           </button>
         </form>
         
@@ -162,7 +162,7 @@ export function Login(){
             </Link>
           </div>
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{' '}
+            {t('dontHaveAccount')}{' '}
             <Link to="/register" className="text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 font-medium">
               {t('createAccount')}
             </Link>

@@ -215,12 +215,12 @@ export function Register(){
             type="submit"
             disabled={loading || !agreedToTerms}
           >
-            {loading ? 'Creating Account...' : t('createAccount')}
+            {loading ? t('creatingAccount') : t('createAccount')}
           </button>
         </form>
         
         <p className="mt-6 text-center text-sm text-gray-600">
-          Already have an account?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
             {t('login')}
           </Link>
