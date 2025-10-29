@@ -98,23 +98,6 @@ export function AdminDashboard() {
     }
   }, []);
 
-  const handleAdminUpdate = useCallback((data: any) => {
-    switch (data.type) {
-      case 'stats-update':
-        setStats(prev => ({ ...prev, ...data.data }));
-        break;
-      case 'new-activity':
-        setActivities(prev => [data.data, ...prev.slice(0, 9)]);
-        break;
-      case 'user-status-change':
-      case 'job-status-change':
-        // Refresh data when status changes
-        loadDashboardData();
-        break;
-    }
-    setLastUpdated(new Date().toISOString());
-  }, [loadDashboardData]);
-
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -194,6 +177,23 @@ export function AdminDashboard() {
       setLoading(false);
     }
   }, []);
+
+  const handleAdminUpdate = useCallback((data: any) => {
+    switch (data.type) {
+      case 'stats-update':
+        setStats(prev => ({ ...prev, ...data.data }));
+        break;
+      case 'new-activity':
+        setActivities(prev => [data.data, ...prev.slice(0, 9)]);
+        break;
+      case 'user-status-change':
+      case 'job-status-change':
+        // Refresh data when status changes
+        loadDashboardData();
+        break;
+    }
+    setLastUpdated(new Date().toISOString());
+  }, [loadDashboardData]);
 
   const handleRefresh = async () => {
     await loadDashboardData();
