@@ -14,13 +14,13 @@ const generateTokens = (userId: string, role: string) => {
     { expiresIn: '15m' }
   );
   
-  const refreshToken = jwt.sign(
+  const refresh_token = jwt.sign(
     { uid: userId, type: 'refresh' }, 
     config.JWT_SECRET as string, 
     { expiresIn: '7d' }
   );
   
-  return { accessToken, refreshToken };
+  return { accessToken, refresh_token };
 };
 
 export const register = async (req:Request,res:Response)=>{
@@ -78,11 +78,11 @@ export const register = async (req:Request,res:Response)=>{
   const password_hash = await bcrypt.hash(password, 12);
   const user = await User.create({ email, password_hash, name, role });
   
-  const { accessToken, refreshToken } = generateTokens(user.id, user.role);
+  const { accessToken, refresh_token } = generateTokens(user.id, user.role);
   
   // Store refresh token in database
-  user.refreshToken = refreshToken;
-  user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  user.refresh_token = refresh_token;
+  user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   user.last_login = new Date();
   await user.save();
   
@@ -90,7 +90,7 @@ export const register = async (req:Request,res:Response)=>{
   sendWelcomeEmail(email, name).catch(console.error);
   
   // Set refresh token as httpOnly cookie
-  res.cookie('refreshToken', refreshToken, {
+  res.cookie('refresh_token', refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -159,16 +159,16 @@ export const login = async (req:Request,res:Response)=>{
     });
   }
   
-  const { accessToken, refreshToken } = generateTokens(user.id, user.role);
+  const { accessToken, refresh_token } = generateTokens(user.id, user.role);
   
   // Store refresh token in database
-  user.refreshToken = refreshToken;
-  user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  user.refresh_token = refresh_token;
+  user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   user.last_login = new Date();
   await user.save();
   
   // Set refresh token as httpOnly cookie
-  res.cookie('refreshToken', refreshToken, {
+  res.cookie('refresh_token', refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
@@ -187,16 +187,16 @@ export const forgotPassword = async (req:Request,res:Response)=>{
   if(!user) return res.status(404).json({error:'User not found'});
 
   // Generate reset token
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
+  const password_reset_token = crypto.randomBytes(32).toString('hex');
+  const password_reset_expires = new Date(Date.now() + 3600000); // 1 hour
 
   // Save reset token to user (you might want to add these fields to your User model)
-  user.resetToken = resetToken;
-  user.resetTokenExpiry = resetTokenExpiry;
+  user.password_reset_token = password_reset_token;
+  user.password_reset_expires = password_reset_expires;
   await user.save();
 
   try {
-    await sendPasswordResetEmail(email, resetToken);
+    await sendPasswordResetEmail(email, password_reset_token);
     res.json({ message: 'Password reset email sent' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to send password reset email' });
@@ -206,8 +206,8 @@ export const forgotPassword = async (req:Request,res:Response)=>{
 export const resetPassword = async (req:Request,res:Response)=>{
   const { token, password } = req.body;
   const user = await User.findOne({ 
-    resetToken: token, 
-    resetTokenExpiry: { $gt: new Date() } 
+    password_reset_token: token, 
+    password_reset_expires: { $gt: new Date() } 
   });
 
   if(!user) return res.status(400).json({error:'Invalid or expired token'});
@@ -215,45 +215,45 @@ export const resetPassword = async (req:Request,res:Response)=>{
   // Update password
   const password_hash = await bcrypt.hash(password, 12);
   user.password_hash = password_hash;
-  user.resetToken = undefined;
-  user.resetTokenExpiry = undefined;
+  user.password_reset_token = undefined;
+  user.password_reset_expires = undefined;
   await user.save();
 
   res.json({ message: 'Password reset successfully' });
 };
 
-export const refreshToken = async (req:Request,res:Response)=>{
-  const { refreshToken } = req.cookies;
+export const refresh_token = async (req:Request,res:Response)=>{
+  const { refresh_token } = req.cookies;
   
-  if (!refreshToken) {
+  if (!refresh_token) {
     return res.status(401).json({ error: 'No refresh token provided' });
   }
   
   try {
-    const decoded = jwt.verify(refreshToken, config.JWT_SECRET) as any;
+    const decoded = jwt.verify(refresh_token, config.JWT_SECRET) as any;
     if (decoded.type !== 'refresh') {
       return res.status(401).json({ error: 'Invalid token type' });
     }
     
     const user = await User.findOne({ 
       _id: decoded.uid, 
-      refreshToken,
-      refreshTokenExpiry: { $gt: new Date() }
+      refresh_token,
+      refresh_token_expires: { $gt: new Date() }
     });
     
     if (!user) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
     
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user.id, user.role);
+    const { accessToken, refresh_token: newRefreshToken } = generateTokens(user.id, user.role);
     
     // Update refresh token in database
-    user.refreshToken = newRefreshToken;
-    user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    user.refresh_token = newRefreshToken;
+    user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await user.save();
     
     // Set new refresh token as httpOnly cookie
-    res.cookie('refreshToken', newRefreshToken, {
+    res.cookie('refresh_token', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
@@ -267,20 +267,20 @@ export const refreshToken = async (req:Request,res:Response)=>{
 };
 
 export const logout = async (req:Request,res:Response)=>{
-  const { refreshToken } = req.cookies;
+  const { refresh_token } = req.cookies;
   
-  if (refreshToken) {
+  if (refresh_token) {
     // Invalidate refresh token in database
     await User.findOneAndUpdate(
-      { refreshToken },
+      { refresh_token },
       { 
-        refreshToken: null, 
-        refreshTokenExpiry: null 
+        refresh_token: null, 
+        refresh_token_expires: null 
       }
     );
   }
   
   // Clear refresh token cookie
-  res.clearCookie('refreshToken');
+  res.clearCookie('refresh_token');
   res.json({ message: 'Logged out successfully' });
 };

@@ -22,7 +22,7 @@ export const getUsers = async (req: any, res: Response) => {
     
     const users = await User.find(filter)
       .select('-password_hash -refreshToken')
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(parseInt(limit as string))
       .skip(parseInt(offset as string))
       .lean();
@@ -58,7 +58,7 @@ export const getJobs = async (req: any, res: Response) => {
     
     const jobs = await Job.find(filter)
       .populate('employer_id', 'name email')
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(parseInt(limit as string))
       .skip(parseInt(offset as string))
       .lean();
@@ -98,16 +98,16 @@ export const getAnalytics = async (req: any, res: Response) => {
     
     // Recent activity
     const recentUsers = await User.find()
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(10)
-      .select('name email role created_at')
+      .select('name email role createdAt')
       .lean();
     
     const recentJobs = await Job.find()
       .populate('employer_id', 'name')
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(10)
-      .select('title employer_id created_at')
+      .select('title employer_id createdAt')
       .lean();
     
     res.json({
@@ -277,7 +277,7 @@ export const getUserApplications = async (req: any, res: Response) => {
     const applications = await Application.find({ user_id: id })
       .populate('job_id', 'title employer_id')
       .populate('employer_id', 'name company_name')
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .lean();
     
     res.json({
@@ -295,8 +295,8 @@ export const getUserJobs = async (req: any, res: Response) => {
     const { id } = req.params;
     
     const jobs = await Job.find({ employer_id: id })
-      .select('title status created_at')
-      .sort({ created_at: -1 })
+      .select('title status createdAt')
+      .sort({ createdAt: -1 })
       .lean();
     
     // Get application counts for each job
@@ -489,16 +489,16 @@ export const getDashboardData = async (req: any, res: Response) => {
       Job.countDocuments(),
       Application.countDocuments(),
       Notification.countDocuments(),
-      User.countDocuments({ created_at: { $gte: last24Hours } }),
-      Job.countDocuments({ created_at: { $gte: last24Hours } }),
-      Application.countDocuments({ created_at: { $gte: last24Hours } }),
-      User.countDocuments({ created_at: { $gte: last7Days } }),
-      Job.countDocuments({ created_at: { $gte: last7Days } }),
-      Application.countDocuments({ created_at: { $gte: last7Days } }),
-      User.find().sort({ created_at: -1 }).limit(5).select('name email role created_at').lean(),
-      Job.find().populate('employer_id', 'name').sort({ created_at: -1 }).limit(5).select('title employer_id created_at').lean(),
-      Application.find().populate('user_id', 'name').populate('job_id', 'title').sort({ created_at: -1 }).limit(5).select('user_id job_id status created_at').lean(),
-      Notification.find().sort({ created_at: -1 }).limit(10).select('title message type created_at').lean()
+      User.countDocuments({ createdAt: { $gte: last24Hours } }),
+      Job.countDocuments({ createdAt: { $gte: last24Hours } }),
+      Application.countDocuments({ createdAt: { $gte: last24Hours } }),
+      User.countDocuments({ createdAt: { $gte: last7Days } }),
+      Job.countDocuments({ createdAt: { $gte: last7Days } }),
+      Application.countDocuments({ createdAt: { $gte: last7Days } }),
+      User.find().sort({ createdAt: -1 }).limit(5).select('name email role createdAt').lean(),
+      Job.find().populate('employer_id', 'name').sort({ createdAt: -1 }).limit(5).select('title employer_id createdAt').lean(),
+      Application.find().populate('user_id', 'name').populate('job_id', 'title').sort({ createdAt: -1 }).limit(5).select('user_id job_id status createdAt').lean(),
+      Notification.find().sort({ createdAt: -1 }).limit(10).select('title message type createdAt').lean()
     ]);
 
     // Calculate growth percentages
@@ -538,15 +538,15 @@ export const getActivityFeed = async (req: any, res: Response) => {
     // Get recent activities from multiple sources
     const [userActivities, jobActivities, applicationActivities] = await Promise.all([
       User.find()
-        .sort({ created_at: -1 })
+        .sort({ createdAt: -1 })
         .limit(parseInt(limit as string))
-        .select('name email role created_at')
+        .select('name email role createdAt')
         .lean(),
       Job.find()
         .populate('employer_id', 'name')
-        .sort({ created_at: -1 })
+        .sort({ createdAt: -1 })
         .limit(parseInt(limit as string))
-        .select('title employer_id created_at is_active')
+        .select('title employer_id createdAt is_active')
         .lean(),
       Application.find()
         .populate('seeker_id', 'name')
@@ -564,7 +564,7 @@ export const getActivityFeed = async (req: any, res: Response) => {
         type: 'user',
         title: 'New User Registration',
         description: `${user.name} registered as ${user.role}`,
-        timestamp: user.created_at,
+        timestamp: user.createdAt,
         user: user.name,
         data: user
       })),
@@ -573,7 +573,7 @@ export const getActivityFeed = async (req: any, res: Response) => {
         type: 'job',
         title: job.is_active ? 'New Job Posted' : 'Job Updated',
         description: `${job.title} by ${job.employer_id?.name || 'Unknown'}`,
-        timestamp: job.created_at,
+        timestamp: job.createdAt,
         user: job.employer_id?.name || 'Unknown',
         data: job
       })),
@@ -627,7 +627,7 @@ export const getAdminProfile = async (req: any, res: Response) => {
       email: admin.email,
       role: admin.role,
       status: admin.status,
-      createdAt: admin.created_at,
+      createdAt: admin.createdAt,
       lastLogin: admin.last_login,
       profilePicture: admin.profile_image,
       phone: admin.phone,
@@ -785,7 +785,7 @@ export const getAdminNotifications = async (req: any, res: Response) => {
     }
     
     const notifications = await Notification.find(filter)
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .limit(parseInt(limit as string))
       .skip(parseInt(offset as string))
       .lean();
