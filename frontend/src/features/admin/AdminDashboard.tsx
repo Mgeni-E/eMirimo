@@ -64,7 +64,7 @@ export function AdminDashboard() {
     setupSocketConnection();
     
     return () => {
-      if (socketService.isConnected()) {
+      if (socketService.isSocketConnected()) {
         socketService.leaveAdminDashboard();
         socketService.offAdminUpdate();
       }

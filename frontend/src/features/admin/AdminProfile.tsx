@@ -152,7 +152,7 @@ export function AdminProfile() {
     setupSocketConnection();
     
     return () => {
-      if (socketService.isConnected()) {
+      if (socketService.isSocketConnected()) {
         socketService.getSocket()?.emit('leave-admin-dashboard');
       }
     };
@@ -189,7 +189,7 @@ export function AdminProfile() {
         setEditing(false);
         
         // Broadcast profile update to other admins
-        if (socketService.isConnected()) {
+        if (socketService.isSocketConnected()) {
           socketService.getSocket()?.emit('admin-update', {
             type: 'profile-update',
             data: formData

@@ -42,7 +42,7 @@ export function AdminUsers() {
     setupSocketConnection();
     
     return () => {
-      if (socketService.isConnected()) {
+      if (socketService.isSocketConnected()) {
         socketService.getSocket()?.emit('leave-admin-dashboard');
       }
     };

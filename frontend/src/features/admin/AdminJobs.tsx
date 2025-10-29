@@ -47,7 +47,7 @@ export function AdminJobs() {
     setupSocketConnection();
     
     return () => {
-      if (socketService.isConnected()) {
+      if (socketService.isSocketConnected()) {
         socketService.getSocket()?.emit('leave-admin-dashboard');
       }
     };

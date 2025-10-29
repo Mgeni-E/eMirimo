@@ -549,11 +549,11 @@ export const getActivityFeed = async (req: any, res: Response) => {
         .select('title employer_id created_at is_active')
         .lean(),
       Application.find()
-        .populate('user_id', 'name')
+        .populate('seeker_id', 'name')
         .populate('job_id', 'title')
-        .sort({ created_at: -1 })
+        .sort({ applied_at: -1 })
         .limit(parseInt(limit as string))
-        .select('user_id job_id status created_at')
+        .select('seeker_id job_id status applied_at')
         .lean()
     ]);
 
@@ -581,9 +581,9 @@ export const getActivityFeed = async (req: any, res: Response) => {
         id: app._id.toString(),
         type: 'application',
         title: 'New Application',
-        description: `${app.user_id?.name || 'Unknown'} applied for ${app.job_id?.title || 'Unknown'}`,
-        timestamp: app.created_at,
-        user: app.user_id?.name || 'Unknown',
+        description: `${app.seeker_id?.name || 'Unknown'} applied for ${app.job_id?.title || 'Unknown'}`,
+        timestamp: app.applied_at,
+        user: app.seeker_id?.name || 'Unknown',
         data: app
       }))
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
