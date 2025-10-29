@@ -170,12 +170,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           })}
         </nav>
 
-        {/* Theme and Language Switchers - Mobile */}
+        {/* Notification Bell - Mobile */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <LanguageSwitcher />
-            <ThemeSwitcher />
-          </div>
           <NotificationBell />
         </div>
 

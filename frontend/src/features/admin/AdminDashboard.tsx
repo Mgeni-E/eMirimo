@@ -107,8 +107,8 @@ export function AdminDashboard() {
       const dashboardResponse = await api.get('/dashboard/admin');
       const activityResponse = await api.get('/admin/activity?limit=10');
 
-      if (dashboardResponse.data) {
-        const { stats: dashboardStats, recentActivity } = dashboardResponse.data;
+      if (dashboardResponse.data && dashboardResponse.data.success) {
+        const { stats: dashboardStats, recentActivity } = dashboardResponse.data.data;
         
         setStats({
           totalUsers: dashboardStats.totalUsers || 0,
@@ -143,9 +143,9 @@ export function AdminDashboard() {
               id: app._id,
               type: 'application' as const,
               title: 'New Application',
-              description: `${app.user_id?.name || 'Unknown'} applied for ${app.job_id?.title || 'Unknown'}`,
-              timestamp: app.created_at,
-              user: app.user_id?.name || 'Unknown'
+              description: `${app.seeker_id?.name || 'Unknown'} applied for ${app.job_id?.title || 'Unknown'}`,
+              timestamp: app.applied_at,
+              user: app.seeker_id?.name || 'Unknown'
             }))
           ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
            .slice(0, 10);
