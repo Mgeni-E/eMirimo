@@ -170,10 +170,6 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           })}
         </nav>
 
-        {/* Notification Bell - Mobile */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <NotificationBell />
-        </div>
 
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -196,7 +192,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {(location.pathname === '/dashboard' || location.pathname === '/admin') && (
                 <>
                   <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
-                    {t('welcomeBack')}, {user.name}!
+                    {t('welcomeBack', { name: user.name })}
                   </h1>
                   <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">
                     {t('recentActivity')}
