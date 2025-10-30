@@ -198,7 +198,22 @@ export function SeekerProfile() {
           address: u.address ?? '',
           cv_url: u.cv_url ?? '',
           profile_image: u.profile_image ?? '',
-          education: Array.isArray(u.education) ? u.education : [],
+          education: Array.isArray(u.education)
+            ? u.education.map((edu: any) => {
+                const rawYear = (edu?.graduation_year ?? '').toString();
+                const parsed = parseInt(rawYear, 10);
+                const fallbackYear = new Date().getFullYear();
+                const normalizedYear = Number.isFinite(parsed) && YEARS.includes(parsed) ? parsed : fallbackYear;
+                return {
+                  institution: edu?.institution || '',
+                  degree: edu?.degree || '',
+                  field_of_study: edu?.field_of_study || '',
+                  graduation_year: normalizedYear,
+                  gpa: (edu?.gpa ?? '').toString(),
+                  achievements: Array.isArray(edu?.achievements) ? edu.achievements : []
+                } as Education;
+              })
+            : [],
           work_experience: Array.isArray(u.work_experience)
             ? u.work_experience.map((exp: any) => ({
                 company: exp.company || '',
