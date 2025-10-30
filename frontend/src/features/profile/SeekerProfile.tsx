@@ -28,8 +28,8 @@ interface Education {
 interface WorkExperience {
   company: string;
   position: string;
-  start_date: string;
-  end_date: string;
+  start_date: string; // yyyy-mm-dd
+  end_date: string;   // yyyy-mm-dd
   current: boolean;
   description: string;
   achievements: string[];
@@ -79,6 +79,17 @@ interface SeekerProfile {
 }
 
 export function SeekerProfile() {
+  const toDateInput = (val: any): string => {
+    if (!val) return '';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return '';
+      return d.toISOString().slice(0, 10);
+    } catch {
+      return '';
+    }
+  };
+
   // Reference data for dropdowns
   const RWANDA_UNIVERSITIES = [
     // Public / National
@@ -188,7 +199,18 @@ export function SeekerProfile() {
           cv_url: u.cv_url ?? '',
           profile_image: u.profile_image ?? '',
           education: Array.isArray(u.education) ? u.education : [],
-          work_experience: Array.isArray(u.work_experience) ? u.work_experience : [],
+          work_experience: Array.isArray(u.work_experience)
+            ? u.work_experience.map((exp: any) => ({
+                company: exp.company || '',
+                position: exp.position || '',
+                start_date: toDateInput(exp.start_date),
+                end_date: exp.current ? '' : toDateInput(exp.end_date),
+                current: !!exp.current,
+                description: exp.description || '',
+                achievements: Array.isArray(exp.achievements) ? exp.achievements : [],
+                skills_used: Array.isArray(exp.skills_used) ? exp.skills_used : []
+              }))
+            : [],
           certifications: Array.isArray(u.certifications) ? u.certifications : [],
           languages: Array.isArray(u.languages) ? u.languages : [],
           job_preferences: {
@@ -246,7 +268,17 @@ export function SeekerProfile() {
 
       const payload = {
         ...profile,
-        education: sanitizedEducation
+        education: sanitizedEducation,
+        work_experience: profile.work_experience.map((exp) => ({
+          company: exp.company,
+          position: exp.position,
+          start_date: exp.start_date ? new Date(exp.start_date).toISOString() : undefined,
+          end_date: exp.current || !exp.end_date ? undefined : new Date(exp.end_date).toISOString(),
+          current: exp.current,
+          description: exp.description,
+          achievements: exp.achievements || [],
+          skills_used: exp.skills_used || []
+        }))
       };
 
       await api.put('/users/me', payload);
