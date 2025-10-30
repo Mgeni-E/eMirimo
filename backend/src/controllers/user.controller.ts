@@ -20,7 +20,7 @@ export const getProfile = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.uid;
-    const updates = req.body;
+    const updates = req.body as any;
     
     // Remove sensitive fields that shouldn't be updated via this endpoint
     delete updates.password_hash;
@@ -28,10 +28,42 @@ export const updateProfile = async (req: Request, res: Response) => {
     delete updates.role;
     delete updates.refreshToken;
     delete updates.refreshTokenExpiry;
-    
+    // Normalize/seeker-specific transformation
+    const normalized: any = { updated_at: new Date() };
+
+    // Basic top-level fields (allowed)
+    if (typeof updates.name === 'string') normalized.name = updates.name;
+    if (typeof updates.bio === 'string') normalized.bio = updates.bio;
+    if (typeof updates.phone === 'string') normalized.phone = updates.phone;
+    if (typeof updates.profile_image === 'string') normalized.profile_image = updates.profile_image;
+    if (typeof updates.address === 'string') normalized.address = updates.address;
+
+    // Skills: accept string[] and map to schema objects if needed
+    if (Array.isArray(updates.skills)) {
+      if (updates.skills.length > 0 && typeof updates.skills[0] === 'string') {
+        normalized.skills = updates.skills
+          .filter((s: unknown) => typeof s === 'string' && s.trim().length > 0)
+          .map((name: string) => ({ name: name.trim(), level: 'intermediate', years_experience: 0, verified: false }));
+      } else {
+        normalized.skills = updates.skills;
+      }
+    }
+
+    // Seeker profile nesting
+    const seeker: any = {};
+    if (Array.isArray(updates.education)) seeker.education = updates.education;
+    if (Array.isArray(updates.work_experience)) seeker.work_experience = updates.work_experience;
+    if (Array.isArray(updates.certifications)) seeker.certifications = updates.certifications;
+    if (Array.isArray(updates.languages)) seeker.languages = updates.languages;
+    if (updates.job_preferences) seeker.job_preferences = updates.job_preferences;
+
+    if (Object.keys(seeker).length > 0) {
+      normalized.job_seeker_profile = seeker;
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
-      { ...updates, updated_at: new Date() },
+      normalized,
       { new: true, runValidators: true }
     ).select('-password_hash -refreshToken');
     
