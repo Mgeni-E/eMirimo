@@ -497,32 +497,19 @@ export function SeekerProfile() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Institution
                       </label>
-                      <select
-                        value={RWANDA_UNIVERSITIES.includes(edu.institution) ? edu.institution : '__other'}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '__other') {
-                            updateEducation(index, 'institution', '');
-                          } else {
-                            updateEducation(index, 'institution', val);
-                          }
-                        }}
-                        className="w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                      >
+                      <input
+                        type="text"
+                        list={`rwanda-universities-${index}`}
+                        value={edu.institution}
+                        onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                        placeholder="Start typing to search or enter your institution"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      />
+                      <datalist id={`rwanda-universities-${index}`}>
                         {RWANDA_UNIVERSITIES.map((u) => (
-                          <option key={u} value={u}>{u}</option>
+                          <option key={u} value={u} />
                         ))}
-                        <option value="__other">Other</option>
-                      </select>
-                      {(!RWANDA_UNIVERSITIES.includes(edu.institution)) && (
-                        <input
-                          type="text"
-                          value={edu.institution || edu.institution_other || ''}
-                          onChange={(e) => updateEducation(index, 'institution_other', e.target.value)}
-                          placeholder="Enter institution name"
-                          className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                        />
-                      )}
+                      </datalist>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
