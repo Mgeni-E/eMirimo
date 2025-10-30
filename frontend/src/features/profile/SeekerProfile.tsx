@@ -324,7 +324,7 @@ export function SeekerProfile() {
           {activeTab === 'basic' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('name')}
                 </label>
                 <input
@@ -335,7 +335,7 @@ export function SeekerProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('email')}
                 </label>
                 <input
@@ -346,7 +346,7 @@ export function SeekerProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('phone')}
                 </label>
                 <input
@@ -357,7 +357,7 @@ export function SeekerProfile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('address')}
                 </label>
                 <input
@@ -368,7 +368,7 @@ export function SeekerProfile() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('bio')}
                 </label>
                 <textarea
