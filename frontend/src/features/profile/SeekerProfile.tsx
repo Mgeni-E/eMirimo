@@ -528,15 +528,11 @@ export function SeekerProfile() {
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Profile Picture</div>
                   <div className="flex items-center gap-3">
                     <label className="inline-flex items-center px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-md cursor-pointer">
                       <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                      {uploadingImage ? 'Uploading...' : 'Upload New'}
+                      {uploadingImage ? 'Uploading...' : 'Update'}
                     </label>
-                    {profile.profile_image && (
-                      <a href={profile.profile_image} target="_blank" rel="noreferrer" className="text-sm text-primary-600 dark:text-primary-400">View</a>
-                    )}
                   </div>
                 </div>
               </div>
