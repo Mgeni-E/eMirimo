@@ -10,13 +10,21 @@ function mapUserToSeekerDTO(doc: any) {
 
   const seeker = doc.job_seeker_profile ?? {};
 
+  // Format address: accept either string or structured object
+  const addr = doc.address;
+  const addressString = typeof addr === 'string'
+    ? addr
+    : addr && typeof addr === 'object'
+      ? [addr.street, addr.city, addr.state, addr.country].filter(Boolean).join(', ')
+      : '';
+
   return {
     // top-level basics
     name: doc.name ?? '',
     email: doc.email ?? '',
     bio: doc.bio ?? '',
     phone: doc.phone ?? '',
-    address: doc.address ?? '',
+    address: addressString,
     profile_image: doc.profile_image ?? '',
     cv_url: doc.cv_url ?? '',
     skills,
@@ -74,7 +82,12 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (typeof updates.bio === 'string') normalized.bio = updates.bio;
     if (typeof updates.phone === 'string') normalized.phone = updates.phone;
     if (typeof updates.profile_image === 'string') normalized.profile_image = updates.profile_image;
-    if (typeof updates.address === 'string') normalized.address = updates.address;
+    // Address: map plain string to address.street; accept object as-is
+    if (typeof updates.address === 'string') {
+      normalized.address = { street: updates.address };
+    } else if (updates.address && typeof updates.address === 'object') {
+      normalized.address = updates.address;
+    }
 
     // Skills: accept string[] and map to schema objects if needed
     if (Array.isArray(updates.skills)) {
