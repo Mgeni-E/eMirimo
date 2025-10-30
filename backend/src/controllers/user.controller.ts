@@ -2,6 +2,28 @@ import type { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 
+// Helper: sanitize address strings to prevent repeated tokens like "Rwanda, Rwanda"
+function sanitizeAddressString(raw: string): string {
+  if (!raw) return '';
+  const tokens = raw
+    .split(',')
+    .map(t => t.trim())
+    .filter(t => t.length > 0);
+  const deduped: string[] = [];
+  for (const t of tokens) {
+    const last = deduped[deduped.length - 1];
+    if (!last || last.toLowerCase() !== t.toLowerCase()) deduped.push(t);
+  }
+  const seen = new Set<string>();
+  const finalTokens = deduped.filter(t => {
+    const key = t.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return finalTokens.join(', ');
+}
+
 // Helper: map User document to a stable Job Seeker DTO expected by frontend
 function mapUserToSeekerDTO(doc: any) {
   const skills = Array.isArray(doc.skills)
@@ -13,9 +35,9 @@ function mapUserToSeekerDTO(doc: any) {
   // Format address: accept either string or structured object
   const addr = doc.address;
   const addressString = typeof addr === 'string'
-    ? addr
+    ? sanitizeAddressString(addr)
     : addr && typeof addr === 'object'
-      ? [addr.street, addr.city, addr.state, addr.country].filter(Boolean).join(', ')
+      ? sanitizeAddressString([addr.street, addr.city, addr.state, addr.country].filter(Boolean).join(', '))
       : '';
 
   return {
@@ -114,7 +136,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (typeof updates.profile_image === 'string') normalized.profile_image = updates.profile_image;
     // Address: map plain string to address.street; accept object as-is
     if (typeof updates.address === 'string') {
-      normalized.address = { street: updates.address };
+      normalized.address = { street: sanitizeAddressString(updates.address) };
     } else if (updates.address && typeof updates.address === 'object') {
       normalized.address = updates.address;
     }
