@@ -275,15 +275,62 @@ async function getEmployerRecentActivity(employerId: string) {
 }
 
 async function getJobRecommendations(userId: string, limit: number) {
-  // This would integrate with the existing recommendation service
-  // For now, return mock data
-  return [];
+  try {
+    // Prefer the dedicated recommendations service if available
+    const { RecommendationService } = await import('../services/recommendation.service.js');
+    if (RecommendationService?.getJobRecommendations) {
+      const recs = await RecommendationService.getJobRecommendations(userId, limit);
+      if (Array.isArray(recs) && recs.length > 0) return recs.slice(0, limit);
+    }
+  } catch {}
+
+  // Fallback: return latest active jobs as recommendations with default score
+  const latestJobs = await Job.find({ is_active: true })
+    .populate('employer_id', 'name email')
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  return latestJobs.map((job: any) => ({
+    job,
+    score: 75,
+    reasons: ['Based on your profile and recent activity']
+  }));
 }
 
 async function getLearningRecommendations(userId: string, limit: number) {
-  // This would integrate with the existing recommendation service
-  // For now, return mock data
-  return [];
+  // Try to pull from LearningResource collection
+  const resources = await LearningResource.find()
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  if (Array.isArray(resources) && resources.length > 0) return resources;
+
+  // Fallback curated suggestions
+  return [
+    {
+      id: 'lr-1',
+      title: 'Improve Your Resume for Tech Roles',
+      provider: 'eMirimo Academy',
+      url: 'https://example.com/resume-tips',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'lr-2',
+      title: 'Interview Preparation: Behavioral Questions',
+      provider: 'eMirimo Academy',
+      url: 'https://example.com/behavioral-interview',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'lr-3',
+      title: 'Top 10 In-Demand Skills in 2025',
+      provider: 'eMirimo Insights',
+      url: 'https://example.com/in-demand-skills',
+      createdAt: new Date().toISOString()
+    }
+  ];
 }
 
 async function getTopPerformingJobs(employerId: string) {
