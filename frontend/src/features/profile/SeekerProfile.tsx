@@ -81,23 +81,34 @@ interface SeekerProfile {
 export function SeekerProfile() {
   // Reference data for dropdowns
   const RWANDA_UNIVERSITIES = [
-    'University of Rwanda',
-    'Carnegie Mellon University Africa',
-    'African Leadership University',
-    'University of Kigali',
-    'Kigali Independent University (ULK)',
-    'Adventist University of Central Africa (AUCA)',
-    'Institut Catholique de Kabgayi (ICK)',
-    'University of Global Health Equity (UGHE)',
-    'Kigali Campus – University of Kibungo (UNIK)',
+    // Public / National
+    'University of Rwanda (UR)',
     'Rwanda Polytechnic (RP)',
-    'Mount Kenya University Rwanda',
+    'Institute of Legal Practice and Development (ILPD)',
     'IPRC Kigali',
     'IPRC Huye',
     'IPRC Musanze',
     'IPRC Tumba',
     'IPRC Karongi',
-    'IPRC Ngoma'
+    'IPRC Ngoma',
+    
+    // Private and other universities
+    'Adventist University of Central Africa (AUCA)',
+    'African Leadership University (ALU Rwanda)',
+    'University of Kigali (UoK)',
+    'Kigali Independent University (ULK)',
+    'University of Lay Adventists of Kigali (UNILAK)',
+    'Carnegie Mellon University Africa (CMU-Africa)',
+    'Catholic University of Rwanda (CUR)',
+    'Institut Catholique de Kabgayi (ICK)',
+    'Institut d’Enseignement Supérieur de Ruhengeri (INES-Ruhengeri)',
+    'KIM University',
+    'East African University Rwanda (EAUR)',
+    'University of Technology and Arts of Byumba (UTAB)',
+    'University of Tourism, Technology and Business Studies (UTB)',
+    'University of Global Health Equity (UGHE)',
+    'Kibogora Polytechnic',
+    'Mount Kenya University – Kigali Campus'
   ];
 
   const DEGREE_LEVELS = ['High School', 'Associate', 'Bachelor', 'Master', 'PHD'];
