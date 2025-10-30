@@ -332,7 +332,7 @@ CompanySchema.virtual('company_age').get(function() {
 
 // Virtual for is hiring (has active jobs)
 CompanySchema.virtual('is_hiring').get(function() {
-  return this.stats.active_jobs > 0;
+  return ((this.stats && this.stats.active_jobs) ?? 0) > 0;
 });
 
 // Virtual for employee count range
