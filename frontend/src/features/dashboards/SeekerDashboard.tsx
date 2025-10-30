@@ -186,6 +186,15 @@ export function SeekerDashboard() {
 
   return (
     <DashboardLayout>
+      {stats.profileCompletion < 100 && (
+        <div className="mb-4 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20 flex items-center justify-between">
+          <div>
+            <div className="text-sm text-amber-800 dark:text-amber-200 font-medium">Your profile is {stats.profileCompletion}% complete</div>
+            <div className="text-xs text-amber-700 dark:text-amber-300">Complete your profile to improve recommendations and visibility</div>
+          </div>
+          <Link to="/profile" className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-md">Complete Profile</Link>
+        </div>
+      )}
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 py-4">
         <div 
@@ -284,25 +293,36 @@ export function SeekerDashboard() {
             </Link>
           </div>
           <div className="space-y-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    {getActivityIcon(activity.type)}
-                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {activity.title}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    {activity.description}
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    {activity.timestamp}
-                  </div>
+            {activities.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-600 dark:text-gray-400 mb-2">No recent activity yet</div>
+                <div className="text-sm text-gray-500 dark:text-gray-500 mb-4">Apply to jobs and update your profile to see updates here</div>
+                <div className="flex items-center gap-2 justify-center">
+                  <Link to="/jobs" className="px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-md text-sm">Browse Jobs</Link>
+                  <Link to="/profile" className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm">Update Profile</Link>
                 </div>
               </div>
-            ))}
+            ) : (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      {getActivityIcon(activity.type)}
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {activity.title}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      {activity.description}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {activity.timestamp}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
