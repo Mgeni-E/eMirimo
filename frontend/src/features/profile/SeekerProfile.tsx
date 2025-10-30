@@ -20,6 +20,9 @@ interface Education {
   graduation_year: number;
   gpa: string;
   achievements: string[];
+  // UI-only helpers (not persisted)
+  institution_other?: string;
+  field_of_study_other?: string;
 }
 
 interface WorkExperience {
@@ -76,6 +79,54 @@ interface SeekerProfile {
 }
 
 export function SeekerProfile() {
+  // Reference data for dropdowns
+  const RWANDA_UNIVERSITIES = [
+    'University of Rwanda',
+    'Carnegie Mellon University Africa',
+    'African Leadership University',
+    'University of Kigali',
+    'Kigali Independent University (ULK)',
+    'Adventist University of Central Africa (AUCA)',
+    'Institut Catholique de Kabgayi (ICK)',
+    'University of Global Health Equity (UGHE)',
+    'Kigali Campus – University of Kibungo (UNIK)',
+    'Rwanda Polytechnic (RP)',
+    'Mount Kenya University Rwanda',
+    'IPRC Kigali',
+    'IPRC Huye',
+    'IPRC Musanze',
+    'IPRC Tumba',
+    'IPRC Karongi',
+    'IPRC Ngoma'
+  ];
+
+  const DEGREE_LEVELS = ['High School', 'Associate', 'Bachelor', 'Master', 'PHD'];
+
+  const FIELDS_OF_STUDY = [
+    'Computer Science',
+    'Software Engineering',
+    'Information Technology',
+    'Data Science',
+    'Artificial Intelligence',
+    'Business Administration',
+    'Finance',
+    'Accounting',
+    'Marketing',
+    'Economics',
+    'Mechanical Engineering',
+    'Electrical Engineering',
+    'Civil Engineering',
+    'Public Health',
+    'Medicine',
+    'Nursing',
+    'Education',
+    'Law',
+    'Environmental Science',
+    'Agriculture'
+  ];
+
+  const YEARS: number[] = Array.from({ length: 2040 - 1980 + 1 }, (_, i) => 1980 + i);
+
   const { t } = useTranslation();
   const { user } = useAuth();
   const [profile, setProfile] = useState<SeekerProfile>({
@@ -150,7 +201,30 @@ export function SeekerProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/users/me', profile);
+      // Sanitize education entries before sending (strip UI-only helpers)
+      const sanitizedEducation = profile.education.map((edu) => {
+        const institution = RWANDA_UNIVERSITIES.includes(edu.institution)
+          ? edu.institution
+          : (edu.institution || edu.institution_other || '');
+        const field = FIELDS_OF_STUDY.includes(edu.field_of_study)
+          ? edu.field_of_study
+          : (edu.field_of_study || edu.field_of_study_other || '');
+        return {
+          institution,
+          degree: edu.degree,
+          field_of_study: field,
+          graduation_year: edu.graduation_year,
+          gpa: edu.gpa,
+          achievements: edu.achievements || []
+        };
+      });
+
+      const payload = {
+        ...profile,
+        education: sanitizedEducation
+      };
+
+      await api.put('/users/me', payload);
       setMessage('Profile updated successfully!');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
@@ -412,45 +486,92 @@ export function SeekerProfile() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Institution
                       </label>
-                      <input
-                        type="text"
-                        value={edu.institution}
-                        onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                      />
+                      <select
+                        value={RWANDA_UNIVERSITIES.includes(edu.institution) ? edu.institution : '__other'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '__other') {
+                            updateEducation(index, 'institution', '');
+                          } else {
+                            updateEducation(index, 'institution', val);
+                          }
+                        }}
+                        className="w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {RWANDA_UNIVERSITIES.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                        <option value="__other">Other</option>
+                      </select>
+                      {(!RWANDA_UNIVERSITIES.includes(edu.institution)) && (
+                        <input
+                          type="text"
+                          value={edu.institution || edu.institution_other || ''}
+                          onChange={(e) => updateEducation(index, 'institution_other', e.target.value)}
+                          placeholder="Enter institution name"
+                          className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Degree
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={edu.degree}
                         onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                      />
+                        className="w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="">Select degree</option>
+                        {DEGREE_LEVELS.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Field of Study
                       </label>
-                      <input
-                        type="text"
-                        value={edu.field_of_study}
-                        onChange={(e) => updateEducation(index, 'field_of_study', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                      />
+                      <select
+                        value={FIELDS_OF_STUDY.includes(edu.field_of_study) ? edu.field_of_study : '__other'}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '__other') {
+                            updateEducation(index, 'field_of_study', '');
+                          } else {
+                            updateEducation(index, 'field_of_study', val);
+                          }
+                        }}
+                        className="w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {FIELDS_OF_STUDY.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                        <option value="__other">Other</option>
+                      </select>
+                      {(!FIELDS_OF_STUDY.includes(edu.field_of_study)) && (
+                        <input
+                          type="text"
+                          value={edu.field_of_study || edu.field_of_study_other || ''}
+                          onChange={(e) => updateEducation(index, 'field_of_study_other', e.target.value)}
+                          placeholder="Enter field of study"
+                          className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Graduation Year
                       </label>
-                      <input
-                        type="number"
+                      <select
                         value={edu.graduation_year}
                         onChange={(e) => updateEducation(index, 'graduation_year', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
-                      />
+                        className="w-full pl-3 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {YEARS.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
