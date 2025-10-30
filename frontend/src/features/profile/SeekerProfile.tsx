@@ -176,6 +176,49 @@ export function SeekerProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const initials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ').filter(Boolean);
+    const first = parts[0]?.[0] ?? '';
+    const second = parts[1]?.[0] ?? '';
+    return (first + second).toUpperCase() || 'U';
+  };
+
+  const uploadAvatarToCloudinary = async (file: File): Promise<string> => {
+    const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
+    const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+    if (!cloud || !preset) throw new Error('Cloudinary is not configured');
+    const url = `https://api.cloudinary.com/v1_1/${cloud}/upload`;
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', preset);
+    const res = await fetch(url, { method: 'POST', body: form });
+    if (!res.ok) throw new Error('Failed to upload image');
+    const data = await res.json();
+    return data.secure_url as string;
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    setMessage('');
+    try {
+      const imageUrl = await uploadAvatarToCloudinary(file);
+      // Persist to backend
+      await api.post('/users/me/image', { imageUrl });
+      setProfile(prev => ({ ...prev, profile_image: imageUrl }));
+      setMessage('Profile image updated');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err: any) {
+      console.error(err);
+      setMessage('Error uploading image. Please configure Cloudinary.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -468,7 +511,38 @@ export function SeekerProfile() {
         {/* Tab Content */}
         <div className="space-y-6">
           {activeTab === 'basic' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {/* Avatar uploader */}
+              <div className="flex items-center gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                <div className="relative">
+                  {profile.profile_image ? (
+                    <img
+                      src={profile.profile_image}
+                      alt="Profile avatar"
+                      className="w-20 h-20 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-lg font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+                      {initials(profile.name)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Profile Picture</div>
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center px-3 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-md cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                      {uploadingImage ? 'Uploading...' : 'Upload New'}
+                    </label>
+                    {profile.profile_image && (
+                      <a href={profile.profile_image} target="_blank" rel="noreferrer" className="text-sm text-primary-600 dark:text-primary-400">View</a>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG up to ~5MB. Uses Cloudinary.</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">
                   {t('name')}
@@ -524,6 +598,7 @@ export function SeekerProfile() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Tell us about yourself..."
                 />
+              </div>
               </div>
             </div>
           )}
