@@ -350,7 +350,6 @@ SkillTestResultSchema.index({ passed: 1, score: -1 });
 SkillTestResultSchema.index({ status: 1, result_status: 1 });
 SkillTestResultSchema.index({ started_at: -1 });
 SkillTestResultSchema.index({ completed_at: -1 });
-SkillTestResultSchema.index({ 'certificate.certificate_id': 1 });
 
 // Pre-save middleware
 SkillTestResultSchema.pre('save', function(next) {

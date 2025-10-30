@@ -324,7 +324,6 @@ UserSchema.virtual('profile_completeness').get(function() {
 });
 
 // Indexes for better performance
-UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1, status: 1 });
 UserSchema.index({ 'skills.name': 1 });
 UserSchema.index({ 'job_seeker_profile.work_experience.company': 1 });
