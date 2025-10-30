@@ -513,16 +513,16 @@ export function SeekerProfile() {
           {activeTab === 'basic' && (
             <div className="space-y-6">
               {/* Avatar uploader */}
-              <div className="flex items-center gap-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+              <div className="flex items-center gap-6 p-5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
                 <div className="relative">
                   {profile.profile_image ? (
                     <img
                       src={profile.profile_image}
                       alt="Profile avatar"
-                      className="w-20 h-20 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+                      className="w-28 h-28 rounded-full object-cover border border-gray-200 dark:border-gray-600"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-lg font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+                    <div className="w-28 h-28 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
                       {initials(profile.name)}
                     </div>
                   )}
@@ -530,7 +530,7 @@ export function SeekerProfile() {
                 <div>
                   <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">Profile Picture</div>
                   <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center px-3 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-md cursor-pointer">
+                    <label className="inline-flex items-center px-4 py-2 bg-accent-600 hover:bg-accent-700 text-white rounded-md cursor-pointer">
                       <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                       {uploadingImage ? 'Uploading...' : 'Upload New'}
                     </label>
@@ -538,7 +538,6 @@ export function SeekerProfile() {
                       <a href={profile.profile_image} target="_blank" rel="noreferrer" className="text-sm text-primary-600 dark:text-primary-400">View</a>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, PNG up to ~5MB. Uses Cloudinary.</div>
                 </div>
               </div>
 
