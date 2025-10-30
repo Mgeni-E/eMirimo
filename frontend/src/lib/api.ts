@@ -3,6 +3,7 @@ import axios from 'axios';
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   timeout: 10000,
+  withCredentials: true,
 });
 
 api.interceptors.request.use(cfg=>{
@@ -11,13 +12,47 @@ api.interceptors.request.use(cfg=>{
   return cfg;
 });
 
+let isRefreshing = false;
+let pendingQueue: Array<(token: string | null) => void> = [];
+
+function processQueue(token: string | null) {
+  pendingQueue.forEach(cb => cb(token));
+  pendingQueue = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, clear auth state
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          pendingQueue.push((newToken) => {
+            if (newToken) originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+      isRefreshing = true;
+      try {
+        const { data } = await api.post('/auth/refresh', {}, { withCredentials: true });
+        const newToken = data?.token as string | undefined;
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+          processQueue(newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
+      } catch (e) {
+        localStorage.removeItem('token');
+        processQueue(null);
+        window.location.href = '/login';
+        return Promise.reject(e);
+      } finally {
+        isRefreshing = false;
+      }
     }
     return Promise.reject(error);
   }

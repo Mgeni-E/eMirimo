@@ -89,11 +89,11 @@ export const register = async (req:Request,res:Response)=>{
   // Send welcome email (non-blocking)
   sendWelcomeEmail(email, name).catch(console.error);
   
-  // Set refresh token as httpOnly cookie
+  // Set refresh token as httpOnly cookie (relaxed in development for cross-origin dev)
   res.cookie('refresh_token', refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
   
@@ -167,11 +167,11 @@ export const login = async (req:Request,res:Response)=>{
   user.last_login = new Date();
   await user.save();
   
-  // Set refresh token as httpOnly cookie
+  // Set refresh token as httpOnly cookie (relaxed in development for cross-origin dev)
   res.cookie('refresh_token', refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
   
@@ -252,11 +252,11 @@ export const refresh_token = async (req:Request,res:Response)=>{
     user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await user.save();
     
-    // Set new refresh token as httpOnly cookie
+    // Set new refresh token as httpOnly cookie (relaxed in development)
     res.cookie('refresh_token', newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
     
