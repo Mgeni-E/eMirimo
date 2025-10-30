@@ -212,6 +212,20 @@ export function SeekerProfile() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Basic validation: ensure required fields for education
+      for (const edu of profile.education) {
+        if (!edu.institution || !edu.institution.trim()) {
+          setMessage('Please provide Institution for each education item.');
+          setSaving(false);
+          return;
+        }
+        if (!edu.degree || !edu.degree.trim()) {
+          setMessage('Please select Degree for each education item.');
+          setSaving(false);
+          return;
+        }
+      }
+
       // Sanitize education entries before sending (strip UI-only helpers)
       const sanitizedEducation = profile.education.map((edu) => {
         const institution = RWANDA_UNIVERSITIES.includes(edu.institution)
