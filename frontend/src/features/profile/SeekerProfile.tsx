@@ -112,7 +112,35 @@ export function SeekerProfile() {
     try {
       const response = await api.get('/users/me');
       if (response.data.user) {
-        setProfile(response.data.user);
+        const u = response.data.user as Partial<SeekerProfile>;
+        // Normalize server payload to ensure controlled inputs and safe maps
+        setProfile(prev => ({
+          ...prev,
+          name: u.name ?? prev.name ?? '',
+          email: u.email ?? prev.email ?? '',
+          bio: u.bio ?? '',
+          phone: u.phone ?? '',
+          skills: Array.isArray(u.skills) ? u.skills : [],
+          linkedin: u.linkedin ?? '',
+          address: u.address ?? '',
+          cv_url: u.cv_url ?? '',
+          profile_image: u.profile_image ?? '',
+          education: Array.isArray(u.education) ? u.education : [],
+          work_experience: Array.isArray(u.work_experience) ? u.work_experience : [],
+          certifications: Array.isArray(u.certifications) ? u.certifications : [],
+          languages: Array.isArray(u.languages) ? u.languages : [],
+          job_preferences: {
+            job_types: Array.isArray(u.job_preferences?.job_types) ? u.job_preferences!.job_types : [],
+            work_locations: Array.isArray(u.job_preferences?.work_locations) ? u.job_preferences!.work_locations : [],
+            salary_expectation: {
+              min: u.job_preferences?.salary_expectation?.min ?? 0,
+              max: u.job_preferences?.salary_expectation?.max ?? 0,
+              currency: u.job_preferences?.salary_expectation?.currency ?? 'RWF',
+            },
+            availability: u.job_preferences?.availability ?? 'immediate',
+            remote_preference: u.job_preferences?.remote_preference ?? 'flexible',
+          },
+        }));
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
