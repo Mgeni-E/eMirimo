@@ -26,7 +26,7 @@ export const getSeekerDashboard = async (req: any, res: Response) => {
     const hired = applications.filter(app => app.status === 'hired').length;
     
     // Calculate profile completion
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).lean();
     const profileCompletion = calculateProfileCompletion(user);
     
     // Get recent activity
@@ -193,20 +193,36 @@ export const getAdminDashboard = async (req: any, res: Response) => {
 
 // Helper functions
 
+function isNonEmpty(value: any): boolean {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return true;
+}
+
 function calculateProfileCompletion(user: any): number {
-  let completion = 0;
-  const fields = [
-    'name', 'email', 'phone', 'bio', 'address', 'city', 'country',
-    'skills', 'education', 'work_experience', 'job_preferences'
+  const seeker = user?.job_seeker_profile || {};
+  const skills = Array.isArray(user?.skills) ? user.skills : [];
+
+  const requiredFields: any[] = [
+    user?.name,
+    user?.email,
+    user?.bio,
+    user?.phone,
+    user?.profile_image,
+    skills,
+    seeker?.professional_summary,
+    seeker?.work_experience,
+    seeker?.education,
+    seeker?.languages,
+    seeker?.job_preferences?.job_types,
+    seeker?.job_preferences?.availability,
   ];
-  
-  fields.forEach(field => {
-    if (user[field] && (Array.isArray(user[field]) ? user[field].length > 0 : user[field])) {
-      completion += 100 / fields.length;
-    }
-  });
-  
-  return Math.round(completion);
+
+  const filled = requiredFields.reduce((acc, v) => acc + (isNonEmpty(v) ? 1 : 0), 0);
+  const pct = Math.round((filled / requiredFields.length) * 100);
+  return isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct));
 }
 
 async function getRecentActivity(userId: string) {
