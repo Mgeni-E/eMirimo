@@ -44,7 +44,37 @@ function mapUserToSeekerDTO(doc: any) {
       availability: seeker.job_preferences?.availability ?? 'immediate',
       remote_preference: seeker.job_preferences?.remote_preference ?? 'flexible',
     },
+    profile_completion: computeProfileCompletion({ doc, seeker, skills }),
+    is_complete: computeProfileCompletion({ doc, seeker, skills }) === 100,
   };
+}
+
+function isNonEmpty(value: any): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value).length > 0;
+  return true;
+}
+
+function computeProfileCompletion({ doc, seeker, skills }: { doc: any; seeker: any; skills: string[] }): number {
+  const requiredFields: any[] = [
+    doc?.name,
+    doc?.email,
+    doc?.bio,
+    doc?.phone,
+    doc?.profile_image,
+    skills,
+    seeker?.professional_summary,
+    seeker?.work_experience,
+    seeker?.education,
+    seeker?.languages,
+    seeker?.job_preferences?.job_types,
+    seeker?.job_preferences?.availability,
+  ];
+  const filled = requiredFields.reduce((acc, v) => acc + (isNonEmpty(v) ? 1 : 0), 0);
+  const pct = Math.round((filled / requiredFields.length) * 100);
+  return isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct));
 }
 
 export const getProfile = async (req: Request, res: Response) => {
@@ -122,7 +152,8 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ user });
+    const dto = mapUserToSeekerDTO(user);
+    res.json({ user: dto });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update profile' });
   }
