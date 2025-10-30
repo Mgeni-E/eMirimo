@@ -2,16 +2,54 @@ import type { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 
+// Helper: map User document to a stable Job Seeker DTO expected by frontend
+function mapUserToSeekerDTO(doc: any) {
+  const skills = Array.isArray(doc.skills)
+    ? doc.skills.map((s: any) => (typeof s === 'string' ? s : (s?.name ?? '')).trim()).filter((s: string) => s.length > 0)
+    : [];
+
+  const seeker = doc.job_seeker_profile ?? {};
+
+  return {
+    // top-level basics
+    name: doc.name ?? '',
+    email: doc.email ?? '',
+    bio: doc.bio ?? '',
+    phone: doc.phone ?? '',
+    address: doc.address ?? '',
+    profile_image: doc.profile_image ?? '',
+    cv_url: doc.cv_url ?? '',
+    skills,
+    // seeker nested fields flattened for frontend
+    education: Array.isArray(seeker.education) ? seeker.education : [],
+    work_experience: Array.isArray(seeker.work_experience) ? seeker.work_experience : [],
+    certifications: Array.isArray(seeker.certifications) ? seeker.certifications : [],
+    languages: Array.isArray(seeker.languages) ? seeker.languages : [],
+    job_preferences: {
+      job_types: Array.isArray(seeker.job_preferences?.job_types) ? seeker.job_preferences.job_types : [],
+      work_locations: Array.isArray(seeker.job_preferences?.work_locations) ? seeker.job_preferences.work_locations : [],
+      salary_expectation: {
+        min: seeker.job_preferences?.salary_expectation?.min ?? 0,
+        max: seeker.job_preferences?.salary_expectation?.max ?? 0,
+        currency: seeker.job_preferences?.salary_expectation?.currency ?? 'RWF',
+      },
+      availability: seeker.job_preferences?.availability ?? 'immediate',
+      remote_preference: seeker.job_preferences?.remote_preference ?? 'flexible',
+    },
+  };
+}
+
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.uid;
-    const user = await User.findById(userId).select('-password_hash -refreshToken');
+    const user = await User.findById(userId).select('-password_hash -refreshToken').lean();
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ user });
+    // Serve a stable DTO for the frontend
+    res.json({ user: mapUserToSeekerDTO(user) });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
