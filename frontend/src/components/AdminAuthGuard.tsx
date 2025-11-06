@@ -8,41 +8,52 @@ interface AdminAuthGuardProps {
 }
 
 export const AdminAuthGuard = ({ children }: AdminAuthGuardProps) => {
-  const { user } = useAuth();
+  const { user, isInitialized, initialize } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    
-    // Check if user is authenticated
-    if (!user && !token) {
-      console.log('No user or token, redirecting to login');
-      navigate('/login');
-      return;
-    }
-    
-    // Check if user has admin role
-    if (user && user.role !== 'admin') {
-      console.log('User is not admin, redirecting to dashboard');
-      navigate('/dashboard');
-      return;
-    }
-    
-    // If we have a token but no user, wait a bit for user to load
-    if (token && !user) {
-      console.log('Have token but no user, waiting...');
-      setTimeout(() => {
+    const checkAdminAccess = async () => {
+      // Wait for initialization if not done yet
+      if (!isInitialized) {
+        await initialize();
+      }
+      
+      const token = localStorage.getItem('token');
+      
+      // Check if user is authenticated
+      if (!user && !token) {
+        navigate('/login', { replace: true });
         setIsLoading(false);
-      }, 1000);
-      return;
-    }
-    
-    setIsLoading(false);
-  }, [user, navigate]);
+        return;
+      }
+      
+      // Check if user has admin role
+      if (user && user.role !== 'admin') {
+        navigate('/dashboard', { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      
+      // If we have a token but no user after initialization, redirect to login
+      if (token && !user && isInitialized) {
+        navigate('/login', { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(false);
+    };
 
-  if (isLoading) {
+    checkAdminAccess();
+  }, [user, isInitialized, navigate, initialize]);
+
+  if (isLoading || !isInitialized) {
     return <Loading size="lg" text="Checking admin access..." />;
+  }
+
+  if (!user || user.role !== 'admin') {
+    return null; // Will redirect
   }
 
   return <>{children}</>;

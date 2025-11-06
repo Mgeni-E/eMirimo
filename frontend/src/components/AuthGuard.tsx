@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/store';
 import { Loading } from './Loading';
-import { api } from '../lib/api';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -15,43 +14,40 @@ export const AuthGuard = ({
   requireAuth = true, 
   redirectTo = '/login' 
 }: AuthGuardProps) => {
-  const { user, setUser } = useAuth();
+  const { user, isInitialized, initialize } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const bootstrapped = useRef(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    // Bootstrap user on initial load if token exists but user is not in memory
-    const bootstrap = async () => {
-      if (bootstrapped.current) return;
-      bootstrapped.current = true;
-      if (token && !user) {
-        try {
-          const { data } = await api.get('/users/me');
-          if (data?.user) setUser(data.user);
-        } catch {
-          // invalid token; clear and redirect if required
-          localStorage.removeItem('token');
-        }
+    const checkAuth = async () => {
+      // Wait for initialization if not done yet
+      if (!isInitialized) {
+        await initialize();
       }
+      
+      const token = localStorage.getItem('token');
+      
+      // If auth required but no user and no token, redirect to login
+      if (requireAuth && !user && !token) {
+        navigate(redirectTo, { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      
+      // If auth not required but user is logged in, redirect to dashboard
+      if (!requireAuth && user) {
+        navigate('/dashboard', { replace: true });
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(false);
     };
-    bootstrap();
 
-    if (requireAuth && !user && !token) {
-      navigate(redirectTo);
-      return;
-    }
-    
-    if (!requireAuth && user) {
-      navigate('/dashboard');
-      return;
-    }
-    
-    setIsLoading(false);
-  }, [user, requireAuth, navigate, redirectTo, setUser]);
+    checkAuth();
+  }, [user, isInitialized, requireAuth, navigate, redirectTo, initialize]);
 
-  if (isLoading) {
+  if (isLoading || !isInitialized) {
     return <Loading size="lg" text="Checking authentication..." />;
   }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/store';
+import { DashboardLayout } from '../../components/DashboardLayout';
 import { ApplicationModal } from '../../components/ApplicationModal';
 import { 
   MapPinIcon, 
@@ -10,8 +11,8 @@ import {
   CurrencyDollarIcon, 
   BuildingOfficeIcon,
   StarIcon,
-  ArrowLeftIcon,
   CheckCircleIcon,
+  XCircleIcon,
   UserIcon,
   CalendarIcon,
   BookOpenIcon,
@@ -23,8 +24,9 @@ interface Job {
   _id: string;
   title: string;
   description: string;
-  location: string;
+  location: string; // Always a string after transformation
   type: string;
+  company_name?: string;
   salary?: {
     min: number;
     max: number;
@@ -38,6 +40,7 @@ interface Job {
     email: string;
   };
   application_deadline: string;
+  expiry_date?: string;
   posted_at: string;
   created_at: string;
   updated_at: string;
@@ -65,7 +68,44 @@ export function JobDetail() {
     try {
       setLoading(true);
       const { data } = await api.get(`/jobs/${id}`);
-      setJob(data);
+      
+      // Helper function to format location
+      const formatLocation = (loc: any): string => {
+        if (!loc) return 'Location not specified';
+        if (typeof loc === 'string') return loc;
+        if (typeof loc === 'object') {
+          const parts: string[] = [];
+          if (loc.city) parts.push(loc.city);
+          if (loc.country) parts.push(loc.country);
+          if (parts.length > 0) return parts.join(', ');
+          if (loc.address) return loc.address;
+          return 'Location not specified';
+        }
+        return 'Location not specified';
+      };
+      
+      // Transform backend data to frontend format
+      const transformedJob: Job = {
+        ...data,
+        // Ensure company_name is available
+        company_name: data.company_name || (data.employer_id as any)?.employer_profile?.company_name || (data.employer_id as any)?.name || 'Company',
+        // Transform location from object to string
+        location: formatLocation(data.location),
+        // Transform skills from objects to strings
+        skills: Array.isArray(data.required_skills)
+          ? data.required_skills.map((s: any) => typeof s === 'string' ? s : s?.name || s)
+          : Array.isArray(data.skills) ? data.skills : [],
+        // Transform requirements from objects to strings
+        requirements: Array.isArray(data.requirements)
+          ? data.requirements.map((r: any) => typeof r === 'string' ? r : r?.description || r?.name || r)
+          : [],
+        // Transform benefits from objects to strings
+        benefits: Array.isArray(data.benefits)
+          ? data.benefits.map((b: any) => typeof b === 'string' ? b : b?.name || b?.description || b)
+          : []
+      };
+      
+      setJob(transformedJob);
       
       // Load course recommendations for skill gaps
       if (user && user.role === 'seeker') {
@@ -130,54 +170,54 @@ export function JobDetail() {
     });
   };
 
+  const isDeadlinePassed = (deadline: string): boolean => {
+    if (!deadline) return false;
+    const deadlineDate = new Date(deadline);
+    if (isNaN(deadlineDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+    return deadlineDate < today;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400 text-lg">{t('loading')}</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400 text-lg">{t('loading')}</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Job Not Found</h1>
-          <Link
-            to="/jobs"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to Jobs
-          </Link>
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Job Not Found</h1>
+            <p className="text-gray-600 dark:text-gray-400">The job you're looking for doesn't exist or has been removed.</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <Link
-            to="/jobs"
-            className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mb-4"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to Jobs
-          </Link>
-          
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <BuildingOfficeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    {job.employer_id.name}
+                    {job.company_name || job.employer_id.name}
                   </span>
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
@@ -190,10 +230,32 @@ export function JobDetail() {
                     <span>{job.location}</span>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                    <ClockIcon className="w-5 h-5" />
-                    <span className="capitalize">{job.type}</span>
-                  </div>
+                  {/* Application Deadline */}
+                  {(job.application_deadline || job.expiry_date) && (() => {
+                    const deadline = job.application_deadline || job.expiry_date;
+                    const deadlineDate = new Date(deadline);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    deadlineDate.setHours(0, 0, 0, 0);
+                    const isPassed = deadlineDate < today;
+                    
+                    return (
+                      <div className={`flex items-center gap-2 ${isPassed 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-green-600 dark:text-green-400'
+                      }`}>
+                        <ClockIcon className="w-5 h-5" />
+                        <span className="flex items-center gap-2">
+                          <span>{new Date(deadline).toLocaleDateString()}</span>
+                          {isPassed && (
+                            <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                              Closed
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   
                   {job.salary && (
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
@@ -210,33 +272,51 @@ export function JobDetail() {
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                   Posted {formatDate(job.posted_at)}
                 </div>
-                <div className="text-sm text-red-600 dark:text-red-400 font-medium">
+                <div className={`text-sm font-medium ${isDeadlinePassed(job.application_deadline) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   Deadline: {formatDate(job.application_deadline)}
+                  {isDeadlinePassed(job.application_deadline) && (
+                    <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                      Closed
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Apply Button */}
-            <div className="mb-8">
-              {user ? (
-                <button
-                  onClick={handleApplyClick}
-                  disabled={applying}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
-                >
-                  {applying ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Applying...
-                    </>
+            {/* Apply Button - Only show for job seekers */}
+            {user && user.role === 'seeker' && (() => {
+              const deadlinePassed = isDeadlinePassed(job.application_deadline);
+              return (
+                <div className="mb-8">
+                  {deadlinePassed ? (
+                    <div className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gray-400 dark:bg-gray-600 text-white rounded-lg font-semibold cursor-not-allowed shadow-lg">
+                      <XCircleIcon className="w-5 h-5" />
+                      Application Closed
+                    </div>
                   ) : (
-                    <>
-                      <CheckCircleIcon className="w-5 h-5" />
-                      Apply Now
-                    </>
+                    <button
+                      onClick={handleApplyClick}
+                      disabled={applying}
+                      className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+                    >
+                      {applying ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Applying...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon className="w-5 h-5" />
+                          Apply Now
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
-              ) : (
+                </div>
+              );
+            })()}
+            {!user && (
+              <div className="mb-8">
                 <Link
                   to="/login"
                   className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
@@ -244,8 +324,8 @@ export function JobDetail() {
                   <UserIcon className="w-5 h-5" />
                   Login to Apply
                 </Link>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -268,12 +348,15 @@ export function JobDetail() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Requirements</h2>
                 <ul className="space-y-2">
-                  {job.requirements.map((requirement, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <CheckCircleIcon className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      {requirement}
-                    </li>
-                  ))}
+                  {job.requirements.map((requirement, index) => {
+                    const reqText = typeof requirement === 'string' ? requirement : (requirement?.description || requirement?.name || String(requirement));
+                    return (
+                      <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                        <CheckCircleIcon className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        {reqText}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -283,12 +366,15 @@ export function JobDetail() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Benefits</h2>
                 <ul className="space-y-2">
-                  {job.benefits.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
-                      <StarIcon className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      {benefit}
-                    </li>
-                  ))}
+                  {job.benefits.map((benefit, index) => {
+                    const benefitText = typeof benefit === 'string' ? benefit : (benefit?.name || benefit?.description || String(benefit));
+                    return (
+                      <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                        <StarIcon className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                        {benefitText}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -301,14 +387,17 @@ export function JobDetail() {
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {job.skills.map((skill, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 text-sm font-medium rounded-md"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                  {job.skills.map((skill, index) => {
+                    const skillName = typeof skill === 'string' ? skill : (skill?.name || String(skill));
+                    return (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 text-sm font-medium rounded-md"
+                      >
+                        {skillName}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -319,7 +408,7 @@ export function JobDetail() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <BuildingOfficeIcon className="w-4 h-4" />
-                  <span>{job.employer_id.name}</span>
+                  <span>{job.company_name || job.employer_id.name}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                   <CalendarIcon className="w-4 h-4" />
@@ -403,13 +492,36 @@ export function JobDetail() {
             )}
 
             {/* Application Deadline */}
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 p-6">
-              <h3 className="text-lg font-bold text-red-900 dark:text-red-300 mb-2">Application Deadline</h3>
-              <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                <CalendarIcon className="w-5 h-5" />
-                <span className="font-medium">{formatDate(job.application_deadline)}</span>
-              </div>
-            </div>
+            {(() => {
+              const deadlinePassed = isDeadlinePassed(job.application_deadline);
+              return (
+                <div className={`rounded-xl border p-6 ${deadlinePassed 
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+                  : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className={`text-lg font-bold ${deadlinePassed 
+                      ? 'text-red-900 dark:text-red-300' 
+                      : 'text-green-900 dark:text-green-300'
+                    }`}>
+                      Application Deadline
+                    </h3>
+                    {deadlinePassed && (
+                      <span className="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                        Closed
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-2 ${deadlinePassed 
+                    ? 'text-red-700 dark:text-red-400' 
+                    : 'text-green-700 dark:text-green-400'
+                  }`}>
+                    <CalendarIcon className="w-5 h-5" />
+                    <span className="font-medium">{formatDate(job.application_deadline)}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -422,7 +534,9 @@ export function JobDetail() {
           job={{
             _id: job._id,
             title: job.title,
-            company: job.employer_id?.name || 'Company',
+            company_name: job.company_name || job.employer_id?.name || 'Company',
+            company: job.company_name || job.employer_id?.name || 'Company',
+            employer_id: job.employer_id,
             location: job.location,
             salary: job.salary
           }}
@@ -436,6 +550,6 @@ export function JobDetail() {
           onApply={handleApplicationSubmit}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 }

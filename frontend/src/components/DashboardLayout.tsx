@@ -1,6 +1,6 @@
 import { useAuth } from '../lib/store';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { MenuIcon, CloseIcon } from './icons';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -16,6 +16,12 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { t } = useTranslation();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   if (!user) {
     return (
@@ -50,6 +56,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {
           title: t('jobs'),
           path: '/admin/jobs'
+        },
+        {
+          title: t('applications'),
+          path: '/admin/applications'
         },
         {
           title: t('notifications'),
@@ -174,7 +184,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 font-medium"
           >
             {t('logout')}

@@ -7,13 +7,41 @@ import { createNotification } from './notification.controller.js';
 // Apply for a job
 export const apply = async (req: any, res: Response) => {
   try {
-    const { job_id, cover_letter, resume_url } = req.body;
+    const { 
+      job_id, 
+      cover_letter, 
+      availability, 
+      salary_expectation
+    } = req.body;
     const seeker_id = req.user.uid;
 
     // Check if job exists and get employer
     const job = await Job.findById(job_id).populate('employer_id');
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Check if job is active - prevent applications to inactive jobs
+    // Only reject if is_active is explicitly false (allow true, undefined, or null)
+    if ((job as any).is_active === false) {
+      return res.status(403).json({ 
+        error: 'This job is currently inactive',
+        message: 'Applications are not being accepted for this job at this time. The job may have been paused or closed by the employer or administrator.'
+      });
+    }
+
+    // Check if deadline has passed
+    if (job.application_deadline) {
+      const deadline = new Date(job.application_deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadline.setHours(0, 0, 0, 0);
+      if (deadline < today) {
+        return res.status(403).json({ 
+          error: 'Application deadline has passed',
+          message: 'The application deadline for this job has passed. Applications are no longer being accepted.'
+        });
+      }
     }
 
     // Check if already applied
@@ -25,54 +53,142 @@ export const apply = async (req: any, res: Response) => {
       return res.status(400).json({ error: 'You have already applied for this job' });
     }
 
-    // Create application
-    const application = await Application.create({
+    // Get seeker details for company_name and resume URL
+    const seeker = await User.findById(seeker_id);
+    if (!seeker) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Automatically fetch resume URL from user's profile
+    const userResumeUrl = (seeker as any).cv_url || (seeker as any).job_seeker_profile?.documents?.resume_url || '';
+
+    // Prepare application data
+    const applicationData: any = {
       job_id,
       seeker_id,
       employer_id: (job.employer_id as any)._id,
-      cover_letter,
-      resume_url
-    });
+      company_name: job.company_name || (job.employer_id as any)?.employer_profile?.company_name || 'Company',
+      cover_letter: cover_letter || '',
+      resume_url: userResumeUrl, // Automatically fetch from user's profile
+      applied_at: new Date(),
+      status: 'applied'
+    };
+
+    // Add optional fields if provided
+    if (availability) {
+      applicationData.availability = availability;
+    }
+    if (salary_expectation) {
+      applicationData.salary_expectation = salary_expectation;
+    }
+
+    // Create application
+    const application = await Application.create(applicationData);
 
     // Populate the application with job and seeker details
     const populatedApplication = await Application.findById(application._id)
-      .populate('job_id', 'title company location')
-      .populate('seeker_id', 'name email')
+      .populate('job_id', 'title company_name location')
+      .populate('seeker_id', 'name email skills work_experience education')
       .populate('employer_id', 'name email');
+
+    // Get job title and company name for notifications
+    const jobTitle = job.title;
+    const companyName = job.company_name || (job.employer_id as any)?.employer_profile?.company_name || 'Company';
+    const seekerName = seeker.name || 'Job Seeker';
 
     // Create notification for employer
     await createNotification(
       (job.employer_id as any)._id.toString(),
-      `New application received for ${job.title}`,
+      `New application received for ${jobTitle}`,
       'job_application',
       {
-        application_id: application._id,
+        application_id: application._id.toString(),
         job_id: job_id,
         seeker_id: seeker_id,
-        job_title: job.title
-      }
+        job_title: jobTitle,
+        company_name: companyName,
+        seeker_name: seekerName
+      },
+      'New Job Application',
+      'high',
+      `/applications/${application._id}`,
+      'application'
     );
 
     // Create notification for seeker
     await createNotification(
       seeker_id,
-      `Application submitted successfully for ${job.title}`,
+      `Application submitted successfully for ${jobTitle} at ${companyName}`,
       'job_application',
       {
-        application_id: application._id,
+        application_id: application._id.toString(),
         job_id: job_id,
-        job_title: job.title
-      }
+        job_title: jobTitle,
+        company_name: companyName
+      },
+      'Application Submitted',
+      'medium',
+      `/applications/${application._id}`,
+      'application'
     );
+
+    // Create notification for all admins
+    const admins = await User.find({ role: 'admin', is_active: { $ne: false } })
+      .select('_id')
+      .lean();
+    
+    for (const admin of admins) {
+      await createNotification(
+        admin._id.toString(),
+        `New application submitted: ${seekerName} applied for ${jobTitle} at ${companyName}`,
+        'job_application',
+        {
+          application_id: application._id.toString(),
+          job_id: job_id,
+          seeker_id: seeker_id,
+          employer_id: (job.employer_id as any)._id.toString(),
+          job_title: jobTitle,
+          company_name: companyName,
+          seeker_name: seekerName
+        },
+        'New Application Submitted',
+        'medium',
+        `/admin/applications/${application._id}`,
+        'application'
+      );
+    }
 
     res.status(201).json({
       success: true,
       application: populatedApplication,
       message: 'Application submitted successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Apply error:', error);
-    res.status(500).json({ error: 'Failed to submit application' });
+    
+    // Handle validation errors specifically
+    if (error.name === 'ValidationError') {
+      const validationErrors: Record<string, string> = {};
+      if (error.errors) {
+        Object.keys(error.errors).forEach(key => {
+          validationErrors[key] = error.errors[key].message;
+        });
+      }
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        message: 'Please check your application details',
+        validationErrors 
+      });
+    }
+    
+    // Handle other errors
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const statusCode = error.response?.status || error.status || 500;
+    
+    res.status(statusCode).json({ 
+      error: 'Failed to submit application', 
+      message: errorMessage 
+    });
   }
 };
 

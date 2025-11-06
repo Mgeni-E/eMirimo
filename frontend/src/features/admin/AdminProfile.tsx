@@ -277,23 +277,6 @@ export function AdminProfile() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Profile</h1>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage your admin account information and settings</p>
           </div>
-          
-          {/* Connection Status and Refresh */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Live
-              </span>
-            </div>
-            <button
-              onClick={handleRefresh}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <RefreshIcon className="w-4 h-4 mr-2" />
-              Refresh
-            </button>
-          </div>
         </div>
 
       {/* Error Display */}

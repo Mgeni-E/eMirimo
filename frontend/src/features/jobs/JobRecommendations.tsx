@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { useAuth } from '../../lib/store';
 import { 
   StarIcon, 
   MapPinIcon, 
@@ -32,6 +33,7 @@ interface JobRecommendation {
 }
 
 export function JobRecommendations() {
+  const { user } = useAuth();
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -156,12 +158,30 @@ export function JobRecommendations() {
               <BriefcaseIcon className="w-4 h-4 mr-1" />
               <span className="text-sm capitalize">{rec.job.type}</span>
             </div>
-            <div className="flex items-center text-gray-600 dark:text-gray-400">
-              <ClockIcon className="w-4 h-4 mr-1" />
-              <span className="text-sm">
-                {new Date(rec.job.deadline).toLocaleDateString()}
-              </span>
-            </div>
+            {(() => {
+              const deadlineDate = new Date(rec.job.deadline);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              deadlineDate.setHours(0, 0, 0, 0);
+              const isPassed = deadlineDate < today;
+              
+              return (
+                <div className={`flex items-center text-sm ${isPassed 
+                  ? 'text-red-600 dark:text-red-400' 
+                  : 'text-green-600 dark:text-green-400'
+                }`}>
+                  <ClockIcon className="w-4 h-4 mr-1" />
+                  <span className="flex items-center gap-2">
+                    <span>{new Date(rec.job.deadline).toLocaleDateString()}</span>
+                    {isPassed && (
+                      <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                        Closed
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
             {rec.job.salary_min && rec.job.salary_max && (
               <div className="text-gray-600 dark:text-gray-400">
                 <span className="text-sm font-medium">
@@ -207,12 +227,15 @@ export function JobRecommendations() {
             >
               View Details
             </Link>
-            <Link
-              to={`/jobs/${rec.job._id}/apply`}
-              className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
-            >
-              Apply Now
-            </Link>
+            {/* Only show Apply Now button for job seekers */}
+            {user && user.role === 'seeker' && (
+              <Link
+                to={`/jobs/${rec.job._id}`}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+              >
+                Apply Now
+              </Link>
+            )}
           </div>
         </div>
       ))}

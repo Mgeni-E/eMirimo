@@ -41,20 +41,30 @@ const UserSchema = new Schema({
   },
   profile_image: { 
     type: String,
+    default: '',
     validate: {
       validator: function(v: string) {
-        return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
+        // Allow empty string, null, or undefined
+        if (!v || v.trim() === '') return true;
+        // Reject blob URLs (not persistent)
+        if (v.startsWith('blob:')) return false;
+        // Allow any valid HTTP/HTTPS URL (including Cloudinary, etc.)
+        return /^https?:\/\/.+/.test(v);
       },
-      message: 'Profile image must be a valid URL'
+      message: 'Profile image must be a valid HTTP/HTTPS URL or empty. Blob URLs are not allowed.'
     }
   },
   cover_image: { 
     type: String,
+    default: '',
     validate: {
       validator: function(v: string) {
-        return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(v);
+        // Allow empty string, null, or undefined
+        if (!v || v.trim() === '') return true;
+        // Allow any valid HTTP/HTTPS URL (including Cloudinary, etc.)
+        return /^https?:\/\/.+/.test(v);
       },
-      message: 'Cover image must be a valid URL'
+      message: 'Cover image must be a valid URL or empty'
     }
   },
   
@@ -90,9 +100,13 @@ const UserSchema = new Schema({
       type: String,
       validate: {
         validator: function(v: string) {
-          return !v || /^https?:\/\/(www\.)?linkedin\.com\/in\/.+/.test(v);
+          // Allow empty string, null, or undefined
+          if (!v || v.trim() === '') return true;
+          // Accept any valid LinkedIn URL (profile, company page, etc.)
+          // This accepts: /in/, /company/, /pub/, /school/, /groups/, /showcase/, etc.
+          return /^https?:\/\/(www\.)?linkedin\.com\/.+/.test(v);
         },
-        message: 'LinkedIn URL must be a valid LinkedIn profile URL'
+        message: 'LinkedIn URL must be a valid LinkedIn URL (profile, company page, etc.)'
       }
     },
     github: { 
@@ -251,7 +265,36 @@ const UserSchema = new Schema({
   
   // Employer Specific Fields
   employer_profile: {
-    company_id: { type: Schema.Types.ObjectId, ref: 'Company' },
+    company_name: { 
+      type: String, 
+      trim: true
+      // Index defined below at schema level
+    },
+    company_description: { 
+      type: String, 
+      maxlength: 1000,
+      trim: true
+    },
+    company_website: { 
+      type: String,
+      validate: {
+        validator: function(v: string) {
+          return !v || /^https?:\/\/.+/.test(v);
+        },
+        message: 'Company website must be a valid URL'
+      }
+    },
+    company_size: {
+      type: String,
+      enum: ['1-10 employees', '11-50 employees', '51-200 employees', '201-500 employees', '501-1000 employees', '1000+ employees'],
+      trim: true
+    },
+    industry: {
+      type: String,
+      enum: ['Technology', 'Healthcare', 'Finance', 'Education', 'Manufacturing', 'Retail', 'Consulting', 'Non-profit', 'Government', 'Other'],
+      trim: true,
+      index: true
+    },
     position: { type: String, trim: true },
     department: { type: String, trim: true },
     hiring_authority: { type: Boolean, default: false },
@@ -311,7 +354,7 @@ UserSchema.virtual('profile_completeness').get(function() {
   if (this.role === 'seeker') {
     fields.push('job_seeker_profile.professional_summary', 'job_seeker_profile.work_experience');
   } else if (this.role === 'employer') {
-    fields.push('employer_profile.company_id');
+    fields.push('employer_profile.company_name');
   }
   
   fields.forEach(field => {
@@ -325,11 +368,15 @@ UserSchema.virtual('profile_completeness').get(function() {
 
 // Indexes for better performance
 UserSchema.index({ role: 1, status: 1 });
+// Note: email index is automatically created by unique: true, no need to duplicate
 UserSchema.index({ 'skills.name': 1 });
 UserSchema.index({ 'job_seeker_profile.work_experience.company': 1 });
 UserSchema.index({ 'job_seeker_profile.work_experience.position': 1 });
+UserSchema.index({ 'employer_profile.company_name': 1 }); // For employer searches
 UserSchema.index({ created_at: -1 });
 UserSchema.index({ last_active: -1 });
+UserSchema.index({ last_login: -1 });
+UserSchema.index({ is_verified: 1, status: 1 }); // For verified user queries
 
 // Text search index
 UserSchema.index({

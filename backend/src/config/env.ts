@@ -34,19 +34,7 @@ export const validateEnv = () => {
   
   if (missing.length > 0) {
     console.warn(`⚠️  Missing environment variables: ${missing.join(', ')}`);
-    console.warn('Using default values. Please set these in your .env file for production.');
   }
-  
-  // Log configuration (without sensitive data)
-  console.log('\n📋 Environment Configuration:');
-  console.log('┌─────────────────────────────────────────────────────────────┐');
-  console.log(`│ Server Port:     ${config.PORT.toString().padEnd(40)} │`);
-  console.log(`│ Environment:     ${config.NODE_ENV.padEnd(40)} │`);
-  console.log(`│ Database:        ${config.MONGO_URI.includes('localhost') ? 'Local MongoDB' : 'Cloud MongoDB'.padEnd(40)} │`);
-  console.log(`│ CORS Origin:     ${config.CORS_ORIGIN.padEnd(40)} │`);
-  console.log(`│ JWT Secret:      ${config.JWT_SECRET ? 'Configured'.padEnd(40) : 'Missing'.padEnd(40)} │`);
-  console.log(`│ JWT Expiry:      ${config.JWT_EXPIRES.padEnd(40)} │`);
-  console.log('└─────────────────────────────────────────────────────────────┘\n');
 };
 
 export default config;

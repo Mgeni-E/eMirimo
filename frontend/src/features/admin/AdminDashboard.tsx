@@ -14,6 +14,7 @@ import {
   ArrowRightIcon,
   RefreshIcon
 } from '../../components/icons';
+import { PlatformAnalyticsChart } from '../../components/PlatformAnalyticsChart';
 import { api } from '../../lib/api';
 import { socketService } from '../../lib/socket';
 
@@ -234,25 +235,6 @@ export function AdminDashboard() {
               {t('platformOverview', { name: user?.name || 'Admin' })}
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            {/* Connection Status */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {t('live')}
-              </span>
-            </div>
-            
-            {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>{t('refresh')}</span>
-            </button>
-          </div>
         </div>
         
         {/* Last Updated */}
@@ -446,6 +428,9 @@ export function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Platform Analytics Charts */}
+      <PlatformAnalyticsChart />
     </DashboardLayout>
   );
 }

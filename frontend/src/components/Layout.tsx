@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/store';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -25,8 +25,14 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
   const { user, logout } = useAuth();
   const { notifications, hideNotification } = useNotification();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -139,7 +145,7 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                       {t('welcome')}, {user.name}
                     </span>
                     <button
-                      onClick={logout}
+                      onClick={handleLogout}
                       className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg"
                     >
                       {t('logout')}
@@ -232,8 +238,8 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
                       {t('welcome')}, {user.name}
                     </div>
                     <button
-                      onClick={() => {
-                        logout();
+                      onClick={async () => {
+                        await handleLogout();
                         setIsMobileMenuOpen(false);
                       }}
                       className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all duration-300"

@@ -11,6 +11,7 @@ import {
   PlusIcon,
   TrashIcon,
   SaveIcon,
+  UploadIcon,
 } from '../../components/icons';
 
 interface Education {
@@ -177,6 +178,7 @@ export function SeekerProfile() {
   const [message, setMessage] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingCV, setUploadingCV] = useState(false);
 
   const initials = (name: string) => {
     if (!name) return 'U';
@@ -186,18 +188,10 @@ export function SeekerProfile() {
     return (first + second).toUpperCase() || 'U';
   };
 
+  // Use storage service for image uploads (Cloudinary)
   const uploadAvatarToCloudinary = async (file: File): Promise<string> => {
-    const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
-    const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
-    if (!cloud || !preset) throw new Error('Cloudinary is not configured');
-    const url = `https://api.cloudinary.com/v1_1/${cloud}/upload`;
-    const form = new FormData();
-    form.append('file', file);
-    form.append('upload_preset', preset);
-    const res = await fetch(url, { method: 'POST', body: form });
-    if (!res.ok) throw new Error('Failed to upload image');
-    const data = await res.json();
-    return data.secure_url as string;
+    const { uploadImageToCloudinary } = await import('../../lib/storage.service');
+    return uploadImageToCloudinary(file, { folder: 'profile_images' });
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,6 +211,100 @@ export function SeekerProfile() {
       setMessage('Error uploading image. Please configure Cloudinary.');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Use storage service for document uploads (Firebase Storage when configured, Cloudinary as fallback)
+  const uploadCVToCloudinary = async (file: File): Promise<string> => {
+    const { uploadFile } = await import('../../lib/storage.service');
+    return uploadFile(file, 'document', { 
+      folder: 'cv_resumes',
+      onProgress: (progress) => {
+        // Optional: Show upload progress
+        if (progress === 100) {
+          console.log('CV upload completed');
+        }
+      }
+    });
+  };
+
+  const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const validExtensions = ['.pdf', '.doc', '.docx'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+      setMessage('Error: Please upload a PDF, DOC, or DOCX file');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
+    setUploadingCV(true);
+    setMessage('');
+    
+    try {
+      // Step 1: Read file as ArrayBuffer for parsing
+      const fileBuffer = await file.arrayBuffer();
+      
+      // Step 2: Upload CV to Cloudinary first to get URL
+      const cvUrl = await uploadCVToCloudinary(file);
+      
+      // Step 3: Send file buffer to backend for parsing, along with the Cloudinary URL
+      // Convert ArrayBuffer to base64 for JSON transmission (chunked to avoid stack overflow)
+      const uint8Array = new Uint8Array(fileBuffer);
+      let binaryString = '';
+      const chunkSize = 8192; // Process in chunks
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, i + chunkSize);
+        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64File = btoa(binaryString);
+      
+      const response = await api.post('/users/me/cv', {
+        cvUrl,
+        fileData: base64File,
+        fileName: file.name,
+        fileType: file.type,
+        autoFill: true
+      });
+
+      // Step 4: Update profile state with CV URL
+      setProfile(prev => ({ ...prev, cv_url: cvUrl }));
+
+      // Step 5: Refresh profile data to get auto-filled fields
+      await fetchProfile();
+
+      // Step 6: Show success message with detailed parsed data info
+      const fieldsExtracted = response.data?.parsed?.fieldsExtracted || {};
+      const extractedFields: string[] = [];
+      
+      if (fieldsExtracted.name) extractedFields.push('Name');
+      if (fieldsExtracted.phone) extractedFields.push('Phone');
+      if (fieldsExtracted.skills > 0) extractedFields.push(`${fieldsExtracted.skills} Skill(s)`);
+      if (fieldsExtracted.education > 0) extractedFields.push(`${fieldsExtracted.education} Education Entry/ies`);
+      if (fieldsExtracted.work_experience > 0) extractedFields.push(`${fieldsExtracted.work_experience} Work Experience(s)`);
+      if (fieldsExtracted.certifications > 0) extractedFields.push(`${fieldsExtracted.certifications} Certification(s)`);
+      if (fieldsExtracted.languages > 0) extractedFields.push(`${fieldsExtracted.languages} Language(s)`);
+      
+      if (extractedFields.length > 0) {
+        setMessage(`✅ CV uploaded successfully! Auto-filled: ${extractedFields.join(', ')}. Please review and complete any missing details.`);
+      } else {
+        setMessage('✅ CV uploaded successfully! The document has been saved. Please review and fill in your profile details manually.');
+      }
+      setTimeout(() => setMessage(''), 8000);
+    } catch (err: any) {
+      console.error('Error uploading CV:', err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Error uploading CV. Please try again.';
+      setMessage(`Error: ${errorMsg}`);
+      setTimeout(() => setMessage(''), 5000);
+    } finally {
+      setUploadingCV(false);
+      // Reset file input
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -469,14 +557,27 @@ export function SeekerProfile() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {t('profile')}
           </h1>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700 disabled:opacity-50"
-          >
-            <SaveIcon className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleCVUpload}
+                disabled={uploadingCV}
+              />
+              <UploadIcon className="w-4 h-4" />
+              {uploadingCV ? 'Uploading...' : 'Upload CV/Resume'}
+            </label>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-accent-600 text-white rounded-lg hover:bg-accent-700 disabled:opacity-50"
+            >
+              <SaveIcon className="w-4 h-4" />
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </div>
         </div>
 
         {message && (

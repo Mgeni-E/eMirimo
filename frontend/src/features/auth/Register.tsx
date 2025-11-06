@@ -115,15 +115,20 @@ export function Register(){
         <form onSubmit={submit} className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              {t('name')}
+              {form.role === 'employer' ? 'Your Name or Company Name' : t('name')}
             </label>
             <input 
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400" 
-              placeholder={t('name')}
+              placeholder={form.role === 'employer' ? 'Enter your name (e.g., John Doe) or company name (e.g., ABC Company)' : t('name')}
               value={form.name} 
               onChange={e=>setForm({...form,name:e.target.value})}
               required
             />
+            {form.role === 'employer' && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                You can use your personal name (for HR/recruiting staff) or company name. You can add company details in your profile after registration.
+              </p>
+            )}
           </div>
           
           <div>

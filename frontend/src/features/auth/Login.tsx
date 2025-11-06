@@ -26,17 +26,28 @@ export function Login(){
     
     try {
       const { data } = await api.post('/auth/login', form);
+      const token = data.token;
+      const userData = data.user;
+      
+      // Store token
       localStorage.setItem('token', data.token);
-      setUser(data.user);
+      
+      // Update auth state with user data and token
+      setUser({ ...userData, token });
       
       showNotification({
         type: 'success',
         title: t('loginSuccessful'),
-        message: t('welcomeBack', { name: data.user.name }),
+        message: t('welcomeBack', { name: userData.name }),
         duration: 4000
       });
       
-      nav('/dashboard');
+      // Navigate based on role
+      if (userData.role === 'admin') {
+        nav('/admin');
+      } else {
+        nav('/dashboard');
+      }
     } catch (err: any) {
       const errorData = err.response?.data;
       let errorTitle = t('loginFailed');

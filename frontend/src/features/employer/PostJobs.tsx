@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../../lib/api';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   JobsIcon, 
@@ -8,7 +10,6 @@ import {
   EditIcon,
   TrashIcon,
   CheckIcon,
-  XIcon,
   ClockIcon,
   UsersIcon,
 } from '../../components/icons';
@@ -47,13 +48,29 @@ export function MyJobs() {
     job_category: '',
     experience_level: '',
     expiry_date: '',
+    work_location: 'onsite' as 'remote' | 'hybrid' | 'onsite',
     requirements: [] as string[],
     benefits: [] as string[]
   });
-  const [newSkill, setNewSkill] = useState('');
-  const [newRequirement, setNewRequirement] = useState('');
-  const [newBenefit, setNewBenefit] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [editJobData, setEditJobData] = useState({
+    title: '',
+    description: '',
+    type: 'full-time',
+    skills: [] as string[],
+    location: '',
+    salary: '',
+    job_category: '',
+    experience_level: '',
+    expiry_date: '',
+    work_location: 'onsite' as 'remote' | 'hybrid' | 'onsite',
+    requirements: [] as string[],
+    benefits: [] as string[]
+  });
 
   useEffect(() => {
     loadJobs();
@@ -69,18 +86,18 @@ export function MyJobs() {
       const transformedJobs: Job[] = data.map((job: any) => ({
         id: job._id,
         title: job.title,
-        company: job.employer_id?.name || 'Your Company',
-        location: job.location,
-        type: job.type,
-        status: job.is_active ? 'published' : 'draft',
+        company: job.company_name || job.employer_id?.name || 'Your Company',
+        location: typeof job.location === 'string' ? job.location : `${job.location?.city || ''}${job.location?.city && job.location?.country ? ', ' : ''}${job.location?.country || ''}`,
+        type: job.job_type || job.type,
+        status: job.is_active === false ? 'draft' : (job.status === 'active' ? 'published' : job.status || 'published'),
         salary: job.salary,
         description: job.description,
-        requirements: job.requirements || [],
-        benefits: job.benefits || [],
-        postedDate: job.createdAt,
-        applicationDeadline: job.expiry_date,
-        applicationsCount: job.applicationsCount || 0,
-        views: job.views || 0
+        requirements: Array.isArray(job.requirements) ? job.requirements.map((r: any) => typeof r === 'string' ? r : r.description) : [],
+        benefits: Array.isArray(job.benefits) ? job.benefits.map((b: any) => typeof b === 'string' ? b : b.name) : [],
+        postedDate: job.created_at || job.createdAt,
+        applicationDeadline: job.expiry_date || job.application_deadline,
+        applicationsCount: job.applications_count || job.applicationsCount || 0,
+        views: job.views_count || job.views || 0
       }));
       
       setJobs(transformedJobs);
@@ -91,10 +108,138 @@ export function MyJobs() {
     }
   };
 
+  const handleEditClick = async (job: Job) => {
+    try {
+      // Fetch full job details from backend to get all fields
+      const response = await api.get(`/jobs/${job.id}`);
+      const jobData = response.data;
+      
+      setEditingJob(job);
+      
+      // Format salary for display
+      let salaryStr = '';
+      if (jobData.salary) {
+        if (typeof jobData.salary === 'string') {
+          salaryStr = jobData.salary;
+        } else if (typeof jobData.salary === 'object' && jobData.salary.min && jobData.salary.max) {
+          salaryStr = `${jobData.salary.min} - ${jobData.salary.max} ${jobData.salary.currency || 'RWF'}`;
+        }
+      }
+      
+      // Format expiry date
+      let expiryDate = '';
+      if (jobData.expiry_date || jobData.application_deadline) {
+        const date = new Date(jobData.expiry_date || jobData.application_deadline);
+        if (!isNaN(date.getTime())) {
+          expiryDate = date.toISOString().split('T')[0];
+        }
+      }
+      
+      // Format location
+      let locationStr = '';
+      if (jobData.location) {
+        if (typeof jobData.location === 'string') {
+          locationStr = jobData.location;
+        } else if (typeof jobData.location === 'object') {
+          const parts: string[] = [];
+          if (jobData.location.city) parts.push(jobData.location.city);
+          if (jobData.location.country) parts.push(jobData.location.country);
+          locationStr = parts.join(', ') || jobData.location.address || '';
+        }
+      }
+      
+      setEditJobData({
+        title: jobData.title || '',
+        description: jobData.description || '',
+        type: jobData.job_type || jobData.type || 'full-time',
+        skills: [],
+        location: locationStr,
+        salary: salaryStr,
+        job_category: jobData.category || jobData.job_category || '',
+        experience_level: jobData.experience_level || '',
+        expiry_date: expiryDate,
+        work_location: jobData.work_location || 'onsite',
+        requirements: [],
+        benefits: []
+      });
+      setShowEditModal(true);
+      setError(null);
+      setSuccess(false);
+    } catch (err: any) {
+      console.error('Failed to load job details:', err);
+      setError('Failed to load job details. Please try again.');
+    }
+  };
+
+  const handleUpdateJob = async () => {
+    if (!editingJob) return;
+    
+    setSubmitting(true);
+    setError(null);
+    setSuccess(false);
+    
+    try {
+      // Prepare job data for submission
+      const jobData: any = {
+        ...editJobData,
+        // Convert expiry_date to application_deadline if provided
+        application_deadline: editJobData.expiry_date ? new Date(editJobData.expiry_date).toISOString() : undefined,
+        // Ensure work_location is set
+        work_location: editJobData.work_location || 'onsite'
+      };
+      
+      // Remove empty arrays and empty strings
+      if (jobData.skills.length === 0) delete jobData.skills;
+      if (jobData.requirements.length === 0) delete jobData.requirements;
+      if (jobData.benefits.length === 0) delete jobData.benefits;
+      if (!jobData.salary) delete jobData.salary;
+      
+      const response = await api.put(`/jobs/${editingJob.id}`, jobData);
+      
+      // Success
+      setSuccess(true);
+      setShowEditModal(false);
+      setEditingJob(null);
+      
+      // Refresh jobs list after a short delay
+      setTimeout(() => {
+        loadJobs();
+        setSuccess(false);
+      }, 500);
+    } catch (err: any) {
+      console.error('Failed to update job:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to update job. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleCreateJob = async () => {
     setSubmitting(true);
+    setError(null);
+    setSuccess(false);
+    
     try {
-      await api.post('/jobs', newJob);
+      // Prepare job data for submission
+      const jobData: any = {
+        ...newJob,
+        // Convert expiry_date to application_deadline if provided
+        application_deadline: newJob.expiry_date ? new Date(newJob.expiry_date).toISOString() : undefined,
+        // Ensure work_location is set
+        work_location: newJob.work_location || 'onsite'
+      };
+      
+      // Remove empty arrays and empty strings
+      if (jobData.skills.length === 0) delete jobData.skills;
+      if (jobData.requirements.length === 0) delete jobData.requirements;
+      if (jobData.benefits.length === 0) delete jobData.benefits;
+      if (!jobData.salary) delete jobData.salary;
+      
+      const response = await api.post('/jobs', jobData);
+      
+      // Success
+      setSuccess(true);
       setShowCreateModal(false);
       setNewJob({
         title: '',
@@ -106,67 +251,25 @@ export function MyJobs() {
         job_category: '',
         experience_level: '',
         expiry_date: '',
+        work_location: 'onsite',
         requirements: [],
         benefits: []
       });
-      loadJobs(); // Refresh jobs list
-    } catch (error) {
-      console.error('Failed to create job:', error);
+      
+      // Refresh jobs list after a short delay
+      setTimeout(() => {
+        loadJobs();
+        setSuccess(false);
+      }, 500);
+    } catch (err: any) {
+      console.error('Failed to create job:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to create job. Please try again.';
+      setError(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const addSkill = () => {
-    if (newSkill.trim() && !newJob.skills.includes(newSkill.trim())) {
-      setNewJob(prev => ({
-        ...prev,
-        skills: [...prev.skills, newSkill.trim()]
-      }));
-      setNewSkill('');
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setNewJob(prev => ({
-      ...prev,
-      skills: prev.skills.filter(s => s !== skill)
-    }));
-  };
-
-  const addRequirement = () => {
-    if (newRequirement.trim() && !newJob.requirements.includes(newRequirement.trim())) {
-      setNewJob(prev => ({
-        ...prev,
-        requirements: [...prev.requirements, newRequirement.trim()]
-      }));
-      setNewRequirement('');
-    }
-  };
-
-  const removeRequirement = (requirement: string) => {
-    setNewJob(prev => ({
-      ...prev,
-      requirements: prev.requirements.filter(r => r !== requirement)
-    }));
-  };
-
-  const addBenefit = () => {
-    if (newBenefit.trim() && !newJob.benefits.includes(newBenefit.trim())) {
-      setNewJob(prev => ({
-        ...prev,
-        benefits: [...prev.benefits, newBenefit.trim()]
-      }));
-      setNewBenefit('');
-    }
-  };
-
-  const removeBenefit = (benefit: string) => {
-    setNewJob(prev => ({
-      ...prev,
-      benefits: prev.benefits.filter(b => b !== benefit)
-    }));
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -324,96 +427,96 @@ export function MyJobs() {
         </div>
       </div>
 
-      {/* Jobs List */}
-      <div className="space-y-6">
+      {/* Jobs List - Small Square Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredJobs.map((job) => (
-          <div key={job.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                      {job.title}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">{job.company} • {job.location}</p>
-                    <div className="flex items-center space-x-4 mb-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(job.type)}`}>
-                        {job.type.charAt(0).toUpperCase() + job.type.slice(1).replace('-', ' ')}
-                      </span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.status)}`}>
-                        {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                      </span>
-                      {job.salary && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{job.salary}</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
-                      {job.description}
-                    </p>
-                    <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center">
-                        <ClockIcon className="w-4 h-4 mr-1" />
-                        Posted {new Date(job.postedDate).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center">
-                        <UsersIcon className="w-4 h-4 mr-1" />
-                        {job.applicationsCount} applications
-                      </div>
-                      <div className="flex items-center">
-                        <EyeIcon className="w-4 h-4 mr-1" />
-                        {job.views} views
-                      </div>
-                    </div>
-                    {job.applicationDeadline && (
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        Application deadline: {new Date(job.applicationDeadline).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+          <div 
+            key={job.id} 
+            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow duration-200 flex flex-col"
+          >
+            {/* Job Title */}
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 line-clamp-2 min-h-[3rem]">
+              {job.title}
+            </h3>
+            
+            {/* Company */}
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <span className="truncate">{job.company}</span>
+            </div>
+            
+            {/* Application Deadline */}
+            {job.applicationDeadline && (() => {
+              const deadlineDate = new Date(job.applicationDeadline);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              deadlineDate.setHours(0, 0, 0, 0);
+              const isPassed = deadlineDate < today;
               
-              <div className="flex items-center space-x-3 mt-4 lg:mt-0">
-                <button className="flex items-center px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300">
-                  <EyeIcon className="w-4 h-4 mr-1" />
-                  View
+              return (
+                <div className={`flex items-center text-sm mb-3 ${isPassed 
+                  ? 'text-red-600 dark:text-red-400' 
+                  : 'text-green-600 dark:text-green-400'
+                }`}>
+                  <ClockIcon className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                  <span className="flex items-center gap-2">
+                    <span>Deadline: {new Date(job.applicationDeadline).toLocaleDateString()}</span>
+                    {isPassed && (
+                      <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                        Closed
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })()}
+            
+            {/* Action Icons */}
+            <div className="flex items-center justify-end gap-2 mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
+              {/* View Icon */}
+              <Link
+                to={`/jobs/${job.id}`}
+                className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                title="View Details"
+              >
+                <EyeIcon className="w-5 h-5" />
+              </Link>
+              
+              {/* Edit Icon */}
+              <button 
+                onClick={() => handleEditClick(job)}
+                className="p-2 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                title="Edit Job"
+              >
+                <EditIcon className="w-5 h-5" />
+              </button>
+              
+              {/* Deactivate/Activate Icon */}
+              {job.status === 'published' ? (
+                <button 
+                  onClick={() => {/* TODO: Implement pause */}}
+                  className="p-2 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                  title="Pause"
+                >
+                  <ClockIcon className="w-5 h-5" />
                 </button>
-                
-                {job.status === 'draft' && (
-                  <>
-                    <button className="flex items-center px-3 py-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-                      <EditIcon className="w-4 h-4 mr-1" />
-                      Edit
-                    </button>
-                    <button className="flex items-center px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-                      <CheckIcon className="w-4 h-4 mr-1" />
-                      Publish
-                    </button>
-                  </>
-                )}
-                
-                {job.status === 'published' && (
-                  <>
-                    <button className="flex items-center px-3 py-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
-                      <EditIcon className="w-4 h-4 mr-1" />
-                      Edit
-                    </button>
-                    <button className="flex items-center px-3 py-2 text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300">
-                      <ClockIcon className="w-4 h-4 mr-1" />
-                      Pause
-                    </button>
-                    <button className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
-                      <XIcon className="w-4 h-4 mr-1" />
-                      Close
-                    </button>
-                  </>
-                )}
-                
-                <button className="flex items-center px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
-                  <TrashIcon className="w-4 h-4 mr-1" />
-                  Delete
+              ) : job.status === 'paused' ? (
+                <button 
+                  onClick={() => {/* TODO: Implement resume */}}
+                  className="p-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                  title="Resume"
+                >
+                  <CheckIcon className="w-5 h-5" />
                 </button>
-              </div>
+              ) : null}
+              
+              {/* Delete Icon */}
+              <button 
+                onClick={() => {/* TODO: Implement delete */}}
+                className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
             </div>
           </div>
         ))}
@@ -532,8 +635,24 @@ export function MyJobs() {
                     type="date"
                     value={newJob.expiry_date}
                     onChange={(e) => setNewJob(prev => ({ ...prev, expiry_date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Work Location *
+                  </label>
+                  <select
+                    value={newJob.work_location}
+                    onChange={(e) => setNewJob(prev => ({ ...prev, work_location: e.target.value as 'remote' | 'hybrid' | 'onsite' }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="onsite">On-site</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
                 </div>
               </div>
               
@@ -545,144 +664,236 @@ export function MyJobs() {
                 <textarea
                   value={newJob.description}
                   onChange={(e) => setNewJob(prev => ({ ...prev, description: e.target.value }))}
-                  rows={6}
+                  rows={10}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Describe the role, responsibilities, and what makes this opportunity exciting..."
+                  placeholder="Describe the role, responsibilities, required skills, requirements, and benefits..."
                 />
-              </div>
-              
-              {/* Skills */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Required Skills
-                </label>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Add a skill (e.g., React, Python, Leadership)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addSkill}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {newJob.skills.map((skill, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 rounded-full text-sm"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        className="ml-2 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200"
-                      >
-                        <XIcon className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Requirements */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Job Requirements
-                </label>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newRequirement}
-                    onChange={(e) => setNewRequirement(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addRequirement()}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Add a requirement (e.g., Bachelor's degree in Computer Science)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addRequirement}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {newJob.requirements.map((requirement, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <span className="text-gray-900 dark:text-white">{requirement}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeRequirement(requirement)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Benefits */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Benefits & Perks
-                </label>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newBenefit}
-                    onChange={(e) => setNewBenefit(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addBenefit()}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Add a benefit (e.g., Health insurance, Flexible hours)"
-                  />
-                  <button
-                    type="button"
-                    onClick={addBenefit}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {newJob.benefits.map((benefit, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <span className="text-gray-900 dark:text-white">{benefit}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeBenefit(benefit)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleCreateJob}
-                disabled={submitting || !newJob.title || !newJob.description || !newJob.location || !newJob.job_category || !newJob.experience_level}
-                className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Creating...' : 'Post Job'}
-              </button>
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                  <p className="text-red-800 dark:text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+              
+              {/* Success Message */}
+              {success && (
+                <div className="p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+                  <p className="text-green-800 dark:text-green-300 text-sm">Job posted successfully!</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3">
+                <button 
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setError(null);
+                    setSuccess(false);
+                  }}
+                  className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleCreateJob}
+                  disabled={submitting || !newJob.title || !newJob.description || !newJob.location || !newJob.job_category || !newJob.experience_level}
+                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Creating...' : 'Post Job'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Job Modal */}
+      {showEditModal && editingJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">Edit Job</h3>
+              <p className="text-gray-600 dark:text-gray-400">Update job posting details</p>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={editJobData.title}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Senior Software Engineer"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Type *
+                  </label>
+                  <select
+                    value={editJobData.type}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, type: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    value={editJobData.location}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, location: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Kigali, Rwanda"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Salary Range
+                  </label>
+                  <input
+                    type="text"
+                    value={editJobData.salary}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, salary: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., 2,500,000 - 3,500,000 RWF"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Job Category *
+                  </label>
+                  <select
+                    value={editJobData.job_category}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, job_category: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select category</option>
+                    <option value="technology">Technology</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                    <option value="finance">Finance</option>
+                    <option value="hr">Human Resources</option>
+                    <option value="operations">Operations</option>
+                    <option value="design">Design</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Experience Level *
+                  </label>
+                  <select
+                    value={editJobData.experience_level}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, experience_level: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select level</option>
+                    <option value="entry">Entry Level (0-2 years)</option>
+                    <option value="mid">Mid Level (3-5 years)</option>
+                    <option value="senior">Senior Level (6-10 years)</option>
+                    <option value="lead">Lead/Principal (10+ years)</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Application Deadline
+                  </label>
+                  <input
+                    type="date"
+                    value={editJobData.expiry_date}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, expiry_date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Work Location *
+                  </label>
+                  <select
+                    value={editJobData.work_location}
+                    onChange={(e) => setEditJobData(prev => ({ ...prev, work_location: e.target.value as 'remote' | 'hybrid' | 'onsite' }))}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="onsite">On-site</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Job Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Job Description *
+                </label>
+                <textarea
+                  value={editJobData.description}
+                  onChange={(e) => setEditJobData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={10}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Describe the role, responsibilities, required skills, requirements, and benefits..."
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="p-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                  <p className="text-red-800 dark:text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+              
+              {/* Success Message */}
+              {success && (
+                <div className="p-4 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg">
+                  <p className="text-green-800 dark:text-green-300 text-sm">Job updated successfully!</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3">
+                <button 
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingJob(null);
+                    setError(null);
+                    setSuccess(false);
+                  }}
+                  className="px-6 py-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleUpdateJob}
+                  disabled={submitting || !editJobData.title || !editJobData.description || !editJobData.location || !editJobData.job_category || !editJobData.experience_level}
+                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Updating...' : 'Update Job'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

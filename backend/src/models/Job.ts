@@ -35,13 +35,21 @@ const JobSchema = new Schema({
     required: true, 
     index: true 
   },
-  company_id: { 
-    type: Types.ObjectId, 
-    ref: 'Company', 
-    index: true 
+  company_name: { 
+    type: String, 
+    trim: true,
+    index: true,
+    required: true
   },
-  company_name: { type: String, trim: true },
-  company_logo: { type: String },
+  company_logo: { 
+    type: String,
+    validate: {
+      validator: function(v: string) {
+        return !v || /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(v);
+      },
+      message: 'Company logo must be a valid image URL'
+    }
+  },
   
   // Job Details
   job_type: { 
@@ -203,11 +211,13 @@ const JobSchema = new Schema({
 
 // Virtual for days since posted
 JobSchema.virtual('days_since_posted').get(function() {
+  if (!this.posted_at) return null;
   return Math.floor((Date.now() - this.posted_at.getTime()) / (1000 * 60 * 60 * 24));
 });
 
 // Virtual for days until deadline
 JobSchema.virtual('days_until_deadline').get(function() {
+  if (!this.application_deadline) return null;
   return Math.floor((this.application_deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 });
 
@@ -266,24 +276,6 @@ JobSchema.pre('save', function(next) {
   next();
 });
 
-// Post-save middleware to update company job count
-JobSchema.post('save', async function(doc) {
-  if (doc.company_id) {
-    const Company = model('Company');
-    await Company.findByIdAndUpdate(doc.company_id, {
-      $inc: { total_jobs: 1 }
-    });
-  }
-});
-
-// Post-remove middleware to update company job count
-JobSchema.post('remove', async function(doc) {
-  if (doc.company_id) {
-    const Company = model('Company');
-    await Company.findByIdAndUpdate(doc.company_id, {
-      $inc: { total_jobs: -1 }
-    });
-  }
-});
+// Note: Company model removed - company_name is now a simple string field
 
 export const Job = model('Job', JobSchema);

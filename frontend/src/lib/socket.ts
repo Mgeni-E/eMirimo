@@ -94,6 +94,8 @@ class SocketService {
   // Listen for admin updates
   onAdminUpdate(callback: (data: any) => void) {
     if (this.socket) {
+      // Listen for both event name formats for compatibility
+      this.socket.on('admin-update', callback);
       this.socket.on('admin_update', callback);
     }
   }
@@ -101,6 +103,7 @@ class SocketService {
   // Remove admin update listener
   offAdminUpdate() {
     if (this.socket) {
+      this.socket.off('admin-update');
       this.socket.off('admin_update');
     }
   }

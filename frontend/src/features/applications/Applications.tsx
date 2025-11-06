@@ -20,11 +20,14 @@ export function Applications(){
     setLoading(true);
     try {
       const response = await api.get('/applications/me');
-      if (response.data.success) {
-        setApps(response.data.applications || []);
-      }
+      // Handle both response formats: { success: true, applications: [] } or direct array
+      const applications = response.data?.success
+        ? (response.data.applications || [])
+        : (Array.isArray(response.data) ? response.data : []);
+      setApps(applications);
     } catch (err) {
       console.error('Failed to load applications:', err);
+      setApps([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -33,13 +36,35 @@ export function Applications(){
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'applied': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
+      case 'under_review': return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300';
       case 'shortlisted': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300';
-      case 'interview': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
-      case 'offer': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
+      case 'interview_scheduled': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
+      case 'interview_completed': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300';
+      case 'offer_made': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300';
       case 'hired': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300';
       case 'rejected': return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300';
+      case 'withdrawn': return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
       default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300';
     }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const formatLocation = (location: any): string => {
+    if (!location) return 'Remote';
+    if (typeof location === 'string') return location;
+    if (typeof location === 'object') {
+      const parts: string[] = [];
+      if (location.city) parts.push(location.city);
+      if (location.country) parts.push(location.country);
+      if (location.address) parts.push(location.address);
+      if (parts.length > 0) return parts.join(', ');
+      if (location.is_remote || location.remote_allowed) return 'Remote';
+      return 'Location not specified';
+    }
+    return 'Remote';
   };
 
   return (
@@ -88,7 +113,7 @@ export function Applications(){
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {app.job_id?.location || 'Remote'}
+                      {formatLocation(app.job_id?.location)}
                     </span>
                     <span className="flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +124,7 @@ export function Applications(){
                   </div>
                 </div>
                 <span className={`px-4 py-2 text-sm font-semibold rounded-full ${getStatusColor(app.status)}`}>
-                  {t(app.status)}
+                  {formatStatus(app.status)}
                 </span>
               </div>
               

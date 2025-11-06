@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -5,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthGuard } from './components/AuthGuard';
 import { AdminAuthGuard } from './components/AdminAuthGuard';
+import { useAuth } from './lib/store';
 import { Home } from './features/common/Home';
 import { Login } from './features/auth/Login';
 import { Register } from './features/auth/Register';
@@ -20,6 +22,7 @@ import { AdminUsers } from './features/admin/AdminUsers';
 import { AdminUserDetail } from './features/admin/AdminUserDetail';
 import { AdminJobs } from './features/admin/AdminJobs';
 import { AdminJobDetail } from './features/admin/AdminJobDetail';
+import { AdminApplications } from './features/admin/AdminApplications';
 import { AdminNotifications } from './features/admin/AdminNotifications';
 import { AdminProfile } from './features/admin/AdminProfile';
 import { MyJobs } from './features/employer/PostJobs';
@@ -29,18 +32,21 @@ import { EmployerHiringPipeline } from './features/employer/EmployerHiringPipeli
 import { Learning } from './features/learning/Learning';
 import { LearningDetail } from './features/learning/LearningDetail';
 import { Recommendations } from './features/recommendations/Recommendations';
-import { CompanyProfile } from './features/company/CompanyProfile';
-import { Messaging } from './features/messaging/Messaging';
-import { SkillsAssessment } from './features/skills/SkillsAssessment';
 import { PrivacyPolicy } from './features/legal/PrivacyPolicy';
 import { TermsAndConditions } from './features/legal/TermsAndConditions';
 
-export default function App() {
+function AppContent() {
+  const { initialize, isInitialized } = useAuth();
+
+  // Initialize session on app mount
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize();
+    }
+  }, [initialize, isInitialized]);
+
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <NotificationProvider>
-          <Routes>
+    <Routes>
           {/* Public routes with Layout */}
           <Route path="/" element={<Layout><Home/></Layout>} />
           <Route path="/login" element={<Layout><AuthGuard requireAuth={false}><Login/></AuthGuard></Layout>} />
@@ -59,9 +65,6 @@ export default function App() {
           <Route path="/recommendations" element={<AuthGuard><Recommendations/></AuthGuard>} />
           <Route path="/applications" element={<AuthGuard><Applications/></AuthGuard>} />
           <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
-          <Route path="/company/:slug" element={<AuthGuard><CompanyProfile/></AuthGuard>} />
-          <Route path="/messaging" element={<AuthGuard><Messaging/></AuthGuard>} />
-          <Route path="/skills" element={<AuthGuard><SkillsAssessment/></AuthGuard>} />
           <Route path="/employer/jobs" element={<AuthGuard><MyJobs/></AuthGuard>} />
           <Route path="/employer/applications" element={<AuthGuard><EmployerApplications/></AuthGuard>} />
           <Route path="/employer/interviews" element={<AuthGuard><EmployerInterviews/></AuthGuard>} />
@@ -73,11 +76,21 @@ export default function App() {
           <Route path="/admin/users/:id" element={<AdminAuthGuard><AdminUserDetail/></AdminAuthGuard>} />
           <Route path="/admin/jobs" element={<AdminAuthGuard><AdminJobs/></AdminAuthGuard>} />
           <Route path="/admin/jobs/:id" element={<AdminAuthGuard><AdminJobDetail/></AdminAuthGuard>} />
+          <Route path="/admin/applications" element={<AdminAuthGuard><AdminApplications/></AdminAuthGuard>} />
           <Route path="/admin/notifications" element={<AdminAuthGuard><AdminNotifications/></AdminAuthGuard>} />
           <Route path="/admin/profile" element={<AdminAuthGuard><AdminProfile/></AdminAuthGuard>} />
           
-          <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider>
+        <NotificationProvider>
+          <AppContent />
         </NotificationProvider>
       </ThemeProvider>
     </ErrorBoundary>

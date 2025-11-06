@@ -53,14 +53,12 @@ const NotificationSchema = new Schema({
     // Can contain: job_id, application_id, employer_id, message_id, etc.
   },
   context: {
-    job_id: { type: Types.ObjectId, ref: 'Job' },
-    application_id: { type: Types.ObjectId, ref: 'Application' },
-    message_id: { type: Types.ObjectId, ref: 'Message' },
-    conversation_id: { type: Types.ObjectId, ref: 'Conversation' },
-    company_id: { type: Types.ObjectId, ref: 'Company' },
-    user_id: { type: Types.ObjectId, ref: 'User' },
+    job_id: { type: Types.ObjectId, ref: 'Job', index: true },
+    application_id: { type: Types.ObjectId, ref: 'Application', index: true },
+    user_id: { type: Types.ObjectId, ref: 'User', index: true },
     interview_id: { type: Types.ObjectId },
-    offer_id: { type: Types.ObjectId }
+    offer_id: { type: Types.ObjectId },
+    learning_resource_id: { type: Types.ObjectId, ref: 'LearningResource', index: true }
   },
   
   // Action & Navigation
@@ -68,9 +66,10 @@ const NotificationSchema = new Schema({
     type: String,
     validate: {
       validator: function(v: string) {
-        return !v || /^https?:\/\/.+/.test(v);
+        // Allow empty, full URLs (http/https), or relative paths starting with /
+        return !v || /^https?:\/\/.+/.test(v) || /^\/.+/.test(v);
       },
-      message: 'Action URL must be a valid URL'
+      message: 'Action URL must be a valid URL (http/https) or relative path (starting with /)'
     }
   },
   action_text: { type: String, maxlength: 50 },

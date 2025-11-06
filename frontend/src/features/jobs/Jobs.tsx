@@ -28,9 +28,6 @@ export function Jobs(){
     experience: '',
     company_size: ''
   });
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
-
   const load = async ()=>{
     setLoading(true);
     try {
@@ -39,10 +36,15 @@ export function Jobs(){
         ...filters,
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       };
-      const { data } = await api.get('/jobs', { params });
-      setJobs(data);
+      const response = await api.get('/jobs', { params });
+      // Handle both array response and object with jobs array
+      const jobsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.jobs || response.data?.data || []);
+      setJobs(jobsData);
     } catch (err) {
       console.error('Failed to load jobs:', err);
+      setJobs([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -53,10 +55,15 @@ export function Jobs(){
     
     setLoading(true);
     try {
-      const { data } = await api.get('/jobs/recommendations');
-      setRecommendations(data);
+      const response = await api.get('/jobs/recommendations');
+      // Handle both array response and object with recommendations array
+      const recommendationsData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.recommendations || response.data?.data || []);
+      setRecommendations(recommendationsData);
     } catch (err) {
       console.error('Failed to load recommendations:', err);
+      setRecommendations([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -72,31 +79,6 @@ export function Jobs(){
     load();
   }, [filters]);
 
-  const handleApplyClick = (job: any) => {
-    if (!user) {
-      // Redirect to login
-      return;
-    }
-    setSelectedJob(job);
-    setShowApplicationModal(true);
-  };
-
-  const handleApplicationSubmit = async (applicationData: any) => {
-    try {
-      const response = await api.post('/applications', applicationData);
-      
-      if (response.data.success) {
-        // Success is handled by the modal
-        return Promise.resolve();
-      } else {
-        throw new Error(response.data.error || t('applicationFailed'));
-      }
-    } catch (err: any) {
-      console.error('Failed to apply:', err);
-      const errorMessage = err.response?.data?.error || t('failedSubmitApplication');
-      throw new Error(errorMessage);
-    }
-  };
 
   return (
     <DashboardLayout>
@@ -258,137 +240,109 @@ export function Jobs(){
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(activeTab === 'all' ? jobs : recommendations).map(job=>(
-            <div
-              key={job._id}
-              className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 overflow-hidden"
-            >
-              {/* Card Header */}
-              <div className="p-6 pb-4">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BuildingOfficeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        {job.employer_id?.name || t('company')}
+          {(activeTab === 'all' ? jobs : recommendations).map(job=>{
+            // Format location
+            const formatLocation = (loc: any): string => {
+              if (!loc) return 'Location not specified';
+              if (typeof loc === 'string') return loc;
+              if (typeof loc === 'object') {
+                const parts: string[] = [];
+                if (loc.city) parts.push(loc.city);
+                if (loc.country) parts.push(loc.country);
+                if (parts.length > 0) return parts.join(', ');
+                if (loc.address) return loc.address;
+                return 'Location not specified';
+              }
+              return 'Location not specified';
+            };
+
+            // Get company name
+            const companyName = job.company_name || job.employer_id?.name || (job.employer_id as any)?.employer_profile?.company_name || 'Company';
+
+            // Check deadline
+            const deadline = job.application_deadline || job.expiry_date;
+            const deadlineDate = deadline ? new Date(deadline) : null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const isDeadlinePassed = deadlineDate ? (() => {
+              const d = new Date(deadlineDate);
+              d.setHours(0, 0, 0, 0);
+              return d < today;
+            })() : false;
+
+            return (
+              <div
+                key={job._id}
+                className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 overflow-hidden flex flex-col"
+              >
+                {/* Simple Card Content - Only Essential Details */}
+                <div className="p-6 flex-1 flex flex-col">
+                  {/* Job Title */}
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors mb-3 line-clamp-2">
+                    {job.title}
+                  </h3>
+                  
+                  {/* Employer Name */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <BuildingOfficeIcon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {companyName}
+                    </span>
+                  </div>
+                  
+                  {/* Application Deadline */}
+                  {deadline && (
+                    <div className={`flex items-center gap-2 mb-4 ${isDeadlinePassed 
+                      ? 'text-red-600 dark:text-red-400' 
+                      : 'text-green-600 dark:text-green-400'
+                    }`}>
+                      <ClockIcon className="w-4 h-4" />
+                      <span className="text-sm font-medium flex items-center gap-2">
+                        <span>Deadline: {new Date(deadline).toLocaleDateString()}</span>
+                        {isDeadlinePassed && (
+                          <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                            Closed
+                          </span>
+                        )}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2">
-                      {job.title}
-                    </h3>
-                    {activeTab === 'recommended' && job.score && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <StarIcon className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                          {job.score}% Match
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Job Details */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <MapPinIcon className="w-4 h-4" />
-                    <span>{job.location}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <ClockIcon className="w-4 h-4" />
-                    <span className="capitalize">{job.type}</span>
-                  </div>
-                  
-                  {job.salary && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <CurrencyDollarIcon className="w-4 h-4" />
-                      <span>
-                        {job.salary.min && job.salary.max 
-                          ? `${job.salary.currency} ${job.salary.min.toLocaleString()} - ${job.salary.max.toLocaleString()}`
-                          : t('salaryNotSpecified')
-                        }
+                  )}
+
+                  {/* Match Score for Recommendations */}
+                  {activeTab === 'recommended' && job.score && (
+                    <div className="flex items-center gap-2 mb-4">
+                      <StarIcon className="w-4 h-4 text-yellow-500" />
+                      <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                        {job.score}% Match
                       </span>
                     </div>
                   )}
                 </div>
                 
-                {/* Description */}
-                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3 mb-4">
-                  {job.description}
-                </p>
-                
-                {/* Skills */}
-                {job.skills && job.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {job.skills.slice(0, 3).map((skill: string, index: number) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 text-xs font-medium rounded-md"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                    {job.skills.length > 3 && (
-                      <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-md">
-                        +{job.skills.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Card Footer */}
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
-                <div className="flex items-center justify-between gap-3">
-                  <Link 
-                    to={`/jobs/${job._id}`}
-                    className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-medium hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
-                  >
-                    <span>View Details</span>
-                    <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                  
-                  {user && user.role === 'seeker' && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleApplyClick(job);
-                      }}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
+                {/* Card Footer - Apply Now Button */}
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
+                  {user && user.role === 'seeker' ? (
+                    <Link
+                      to={`/jobs/${job._id}`}
+                      className="block w-full text-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold text-sm"
                     >
                       Apply Now
-                    </button>
+                    </Link>
+                  ) : (
+                    <Link
+                      to={`/jobs/${job._id}`}
+                      className="block w-full text-center px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-semibold text-sm"
+                    >
+                      View Details
+                    </Link>
                   )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Application Modal */}
-      {selectedJob && user && (
-        <ApplicationModal
-          isOpen={showApplicationModal}
-          onClose={() => setShowApplicationModal(false)}
-          job={{
-            _id: selectedJob._id,
-            title: selectedJob.title,
-            company: selectedJob.employer_id?.name || t('company'),
-            location: selectedJob.location,
-            salary: selectedJob.salary
-          }}
-          user={{
-            name: user.name,
-            email: user.email,
-            cv_url: (user as any).cv_url,
-            skills: (user as any).skills || [],
-            work_experience: (user as any).work_experience || []
-          }}
-          onApply={handleApplicationSubmit}
-        />
-      )}
     </DashboardLayout>
   );
 }

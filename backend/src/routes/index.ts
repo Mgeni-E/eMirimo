@@ -11,9 +11,6 @@ import jobRecommendations from './jobRecommendation.routes.js';
 import { router as recommendations } from './recommendation.routes.js';
 import { router as learning } from './learning.routes.js';
 import { router as dashboard } from './dashboard.routes.js';
-import company from './company.routes.js';
-import messaging from './messaging.routes.js';
-import skills from './skills.routes.js';
 
 export const router = Router();
 router.use('/auth', auth);
@@ -28,6 +25,3 @@ router.use('/recommendations', jobRecommendations);
 router.use('/ai-recommendations', recommendations);
 router.use('/learning', learning);
 router.use('/dashboard', dashboard);
-router.use('/companies', company);
-router.use('/messaging', messaging);
-router.use('/skills', skills);

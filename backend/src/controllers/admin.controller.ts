@@ -130,6 +130,72 @@ export const getAnalytics = async (req: any, res: Response) => {
   }
 };
 
+// Chart analytics endpoint with time-series data
+export const getChartAnalytics = async (req: any, res: Response) => {
+  try {
+    const now = new Date();
+    const days = 30; // Last 30 days
+    const chartData: any[] = [];
+
+    // Generate data for last 30 days
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const [users, jobs, applications] = await Promise.all([
+        User.countDocuments({
+          created_at: { $gte: date, $lt: nextDate }
+        }),
+        Job.countDocuments({
+          created_at: { $gte: date, $lt: nextDate }
+        }),
+        Application.countDocuments({
+          created_at: { $gte: date, $lt: nextDate }
+        })
+      ]);
+
+      chartData.push({
+        date: date.toISOString().split('T')[0],
+        users,
+        jobs,
+        applications
+      });
+    }
+
+    // Get role distribution
+    const usersByRole = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]);
+
+    // Get job status distribution
+    const jobsByStatus = await Job.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Get application status distribution
+    const applicationsByStatus = await Application.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        timeSeries: chartData,
+        roleDistribution: usersByRole.map(r => ({ role: r._id || 'unknown', count: r.count })),
+        jobStatusDistribution: jobsByStatus.map(s => ({ status: s._id || 'unknown', count: s.count })),
+        applicationStatusDistribution: applicationsByStatus.map(s => ({ status: s._id || 'unknown', count: s.count }))
+      }
+    });
+  } catch (error) {
+    console.error('Chart analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch chart analytics' });
+  }
+};
+
 export const updateUserStatus = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
@@ -168,9 +234,14 @@ export const updateUserStatus = async (req: any, res: Response) => {
     // Create notification for the user
     await Notification.create({
       user_id: id,
+      title: 'Account Status Updated',
       message: `Your account status has been updated. ${reason ? `Reason: ${reason}` : ''}`,
       type: 'system',
+      category: 'system',
       read_status: false,
+      context: {
+        user_id: id
+      },
       created_at: new Date()
     });
 
@@ -274,10 +345,10 @@ export const getUserApplications = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     
-    const applications = await Application.find({ user_id: id })
-      .populate('job_id', 'title employer_id')
-      .populate('employer_id', 'name company_name')
-      .sort({ createdAt: -1 })
+    const applications = await Application.find({ seeker_id: id })
+      .populate('job_id', 'title company_name location')
+      .populate('employer_id', 'name email')
+      .sort({ applied_at: -1 })
       .lean();
     
     res.json({
@@ -287,6 +358,40 @@ export const getUserApplications = async (req: any, res: Response) => {
   } catch (error) {
     console.error('Get user applications error:', error);
     res.status(500).json({ error: 'Failed to fetch user applications' });
+  }
+};
+
+// Get all applications (for admin)
+export const getAllApplications = async (req: any, res: Response) => {
+  try {
+    const { status, job_id, seeker_id, employer_id, limit = 50, offset = 0 } = req.query;
+    
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (job_id) filter.job_id = job_id;
+    if (seeker_id) filter.seeker_id = seeker_id;
+    if (employer_id) filter.employer_id = employer_id;
+
+    const applications = await Application.find(filter)
+      .populate('job_id', 'title company_name location salary')
+      .populate('seeker_id', 'name email skills work_experience education')
+      .populate('employer_id', 'name email')
+      .sort({ applied_at: -1 })
+      .limit(parseInt(limit as string))
+      .skip(parseInt(offset as string))
+      .lean();
+
+    const total = await Application.countDocuments(filter);
+
+    res.json({
+      success: true,
+      applications,
+      total,
+      count: applications.length
+    });
+  } catch (error) {
+    console.error('Get all applications error:', error);
+    res.status(500).json({ error: 'Failed to fetch applications' });
   }
 };
 
@@ -323,17 +428,38 @@ export const getUserJobs = async (req: any, res: Response) => {
 export const updateJobStatus = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
-    const { is_active, is_featured, reason } = req.body;
+    const { status, is_active, is_featured, reason } = req.body;
     
     const updateData: any = { updated_at: new Date() };
-    if (is_active !== undefined) updateData.is_active = is_active;
+    
+    // Handle both status string and is_active boolean
+    if (status !== undefined) {
+      // Map status string to is_active boolean
+      if (status === 'active' || status === 'published') {
+        updateData.is_active = true;
+        updateData.status = 'active';
+      } else if (status === 'inactive' || status === 'paused' || status === 'draft') {
+        updateData.is_active = false;
+        updateData.status = status === 'paused' ? 'paused' : status === 'draft' ? 'draft' : 'inactive';
+      } else {
+        updateData.status = status;
+      }
+    }
+    
+    if (is_active !== undefined) {
+      updateData.is_active = is_active;
+      if (!updateData.status) {
+        updateData.status = is_active ? 'active' : 'paused';
+      }
+    }
+    
     if (is_featured !== undefined) updateData.is_featured = is_featured;
     if (reason) updateData.status_reason = reason;
     
     const job = await Job.findByIdAndUpdate(
       id,
       updateData,
-      { new: true }
+      { new: true, runValidators: true }
     ).populate('employer_id', 'name email');
     
     if (!job) {
@@ -358,9 +484,14 @@ export const updateJobStatus = async (req: any, res: Response) => {
     const employerId = typeof job.employer_id === 'object' ? (job.employer_id as any)._id : job.employer_id;
     await Notification.create({
       user_id: employerId,
+      title: 'Job Status Updated',
       message: `Your job "${job.title}" has been updated. ${reason ? `Reason: ${reason}` : ''}`,
       type: 'system',
+      category: 'job',
       read_status: false,
+      context: {
+        job_id: job._id
+      },
       created_at: new Date()
     });
 
@@ -381,7 +512,70 @@ export const updateJobStatus = async (req: any, res: Response) => {
     });
   } catch (error) {
     console.error('Update job status error:', error);
-    res.status(500).json({ error: 'Failed to update job status' });
+    res.status(500).json({ error: 'Failed to update job status', message: error instanceof Error ? error.message : 'Unknown error' });
+  }
+};
+
+export const deleteJob = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const job = await Job.findById(id);
+    
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Delete the job
+    await Job.findByIdAndDelete(id);
+
+    // Log the action
+    await Log.create({
+      level: 'info',
+      message: `Job deleted by admin`,
+      userId: req.user.uid,
+      action: 'job_delete',
+      metadata: {
+        job_id: id,
+        job_title: job.title
+      },
+      timestamp: new Date()
+    });
+
+    // Create notification for the employer
+    const employerId = typeof job.employer_id === 'object' ? (job.employer_id as any)._id : job.employer_id;
+    if (employerId) {
+      await Notification.create({
+        user_id: employerId,
+        title: 'Job Deleted',
+        message: `Your job "${job.title}" has been deleted by an administrator.`,
+        type: 'system',
+        category: 'job',
+        read_status: false,
+        context: {
+          job_id: job._id
+        },
+        created_at: new Date()
+      });
+    }
+
+    // Broadcast real-time update to admin dashboard
+    try {
+      const socketService = (global as any).socketService;
+      if (socketService) {
+        socketService.broadcastJobStatusChange(id, false, 'Job deleted');
+      }
+    } catch (socketError) {
+      console.error('Socket broadcast error:', socketError);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Job deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete job error:', error);
+    res.status(500).json({ error: 'Failed to delete job', message: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -489,16 +683,16 @@ export const getDashboardData = async (req: any, res: Response) => {
       Job.countDocuments(),
       Application.countDocuments(),
       Notification.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: last24Hours } }),
-      Job.countDocuments({ createdAt: { $gte: last24Hours } }),
-      Application.countDocuments({ createdAt: { $gte: last24Hours } }),
-      User.countDocuments({ createdAt: { $gte: last7Days } }),
-      Job.countDocuments({ createdAt: { $gte: last7Days } }),
-      Application.countDocuments({ createdAt: { $gte: last7Days } }),
-      User.find().sort({ createdAt: -1 }).limit(5).select('name email role createdAt').lean(),
-      Job.find().populate('employer_id', 'name').sort({ createdAt: -1 }).limit(5).select('title employer_id createdAt').lean(),
-      Application.find().populate('user_id', 'name').populate('job_id', 'title').sort({ createdAt: -1 }).limit(5).select('user_id job_id status createdAt').lean(),
-      Notification.find().sort({ createdAt: -1 }).limit(10).select('title message type createdAt').lean()
+      User.countDocuments({ created_at: { $gte: last24Hours } }),
+      Job.countDocuments({ created_at: { $gte: last24Hours } }),
+      Application.countDocuments({ created_at: { $gte: last24Hours } }),
+      User.countDocuments({ created_at: { $gte: last7Days } }),
+      Job.countDocuments({ created_at: { $gte: last7Days } }),
+      Application.countDocuments({ created_at: { $gte: last7Days } }),
+      User.find().sort({ created_at: -1 }).limit(5).select('name email role created_at').lean(),
+      Job.find().populate('employer_id', 'name').sort({ created_at: -1 }).limit(5).select('title employer_id created_at').lean(),
+      Application.find().populate('seeker_id', 'name').populate('job_id', 'title').sort({ created_at: -1 }).limit(5).select('seeker_id job_id status created_at').lean(),
+      Notification.find().sort({ created_at: -1 }).limit(10).select('title message type created_at').lean()
     ]);
 
     // Calculate growth percentages
@@ -538,15 +732,15 @@ export const getActivityFeed = async (req: any, res: Response) => {
     // Get recent activities from multiple sources
     const [userActivities, jobActivities, applicationActivities] = await Promise.all([
       User.find()
-        .sort({ createdAt: -1 })
+        .sort({ created_at: -1 })
         .limit(parseInt(limit as string))
-        .select('name email role createdAt')
+        .select('name email role created_at')
         .lean(),
       Job.find()
         .populate('employer_id', 'name')
-        .sort({ createdAt: -1 })
+        .sort({ created_at: -1 })
         .limit(parseInt(limit as string))
-        .select('title employer_id createdAt is_active')
+        .select('title employer_id created_at is_active')
         .lean(),
       Application.find()
         .populate('seeker_id', 'name')
@@ -564,7 +758,7 @@ export const getActivityFeed = async (req: any, res: Response) => {
         type: 'user',
         title: 'New User Registration',
         description: `${user.name} registered as ${user.role}`,
-        timestamp: user.createdAt,
+        timestamp: user.created_at || user.createdAt,
         user: user.name,
         data: user
       })),
@@ -573,7 +767,7 @@ export const getActivityFeed = async (req: any, res: Response) => {
         type: 'job',
         title: job.is_active ? 'New Job Posted' : 'Job Updated',
         description: `${job.title} by ${job.employer_id?.name || 'Unknown'}`,
-        timestamp: job.createdAt,
+        timestamp: job.created_at || job.createdAt,
         user: job.employer_id?.name || 'Unknown',
         data: job
       })),

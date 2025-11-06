@@ -358,6 +358,23 @@ export class RecommendationService {
   }
 
   /**
+   * Helper function to extract location string from job location (handles both object and string formats)
+   */
+  private static getLocationString(location: any): string {
+    if (!location) return '';
+    if (typeof location === 'string') return location.toLowerCase();
+    if (typeof location === 'object') {
+      // Handle object format: { city, country, address }
+      const parts: string[] = [];
+      if (location.city) parts.push(location.city);
+      if (location.country) parts.push(location.country);
+      if (location.address && !parts.length) parts.push(location.address);
+      return parts.join(', ').toLowerCase();
+    }
+    return '';
+  }
+
+  /**
    * Calculate Rwanda-specific context bonus
    */
   private static calculateRwandaContextBonus(profileAnalysis: any, job: any): number {
@@ -380,8 +397,12 @@ export class RecommendationService {
     }
 
     // Location match bonus
-    const jobLocation = job.location?.toLowerCase() || '';
-    if (jobLocation.includes('kigali') && profileAnalysis.rwandaContext.location.toLowerCase().includes('kigali')) {
+    const jobLocation = this.getLocationString(job.location);
+    const userLocation = typeof profileAnalysis.rwandaContext.location === 'string' 
+      ? profileAnalysis.rwandaContext.location.toLowerCase()
+      : (profileAnalysis.rwandaContext.location?.country || '').toLowerCase();
+    
+    if (jobLocation.includes('kigali') && userLocation.includes('kigali')) {
       bonus += 0.2;
     }
 
@@ -767,7 +788,7 @@ export class RecommendationService {
     }
     
     const preferredLocations = jobPreferences.work_locations.map((loc: string) => loc.toLowerCase());
-    const jobLocation = job.location?.toLowerCase() || '';
+    const jobLocation = this.getLocationString(job.location);
     
     // Check for exact match or partial match
     for (const pref of preferredLocations) {

@@ -16,14 +16,17 @@ import { api } from '../../lib/api';
 import { socketService } from '../../lib/socket';
 
 interface User {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   email: string;
   role: 'seeker' | 'employer' | 'admin';
   status: 'active' | 'inactive' | 'pending';
-  createdAt: string;
+  createdAt?: string;
+  created_at?: string;
   lastLogin?: string;
-  profileComplete: boolean;
+  last_login?: string;
+  profileComplete?: boolean;
 }
 
 export function AdminUsers() {
@@ -78,12 +81,20 @@ export function AdminUsers() {
   const handleAdminUpdate = useCallback((data: any) => {
     switch (data.type) {
       case 'user-status-change':
-        // Update the specific user in the list
-        setUsers(prev => prev.map(user => 
-          user.id === data.data.userId 
+        // Update the specific user in the list - handle both id and _id
+        setUsers(prev => prev.map(user => {
+          const userIdentifier = user.id || (user as any)._id;
+          return userIdentifier === data.data.userId 
             ? { ...user, status: data.data.status }
-            : user
-        ));
+            : user;
+        }));
+        break;
+      case 'user-deleted':
+        // Remove the deleted user from the list
+        setUsers(prev => prev.filter(user => {
+          const userIdentifier = user.id || (user as any)._id;
+          return userIdentifier !== data.data.userId;
+        }));
         break;
       case 'new-activity':
         if (data.data.type === 'user') {
@@ -121,16 +132,23 @@ export function AdminUsers() {
       console.log('Users data:', usersData);
       console.log('Users count:', usersData.length);
       
+      // Normalize user data to ensure consistent id field
+      const normalizedUsers = usersData.map((user: any) => ({
+        ...user,
+        id: user.id || user._id, // Ensure id field exists
+        createdAt: user.createdAt || user.created_at,
+        lastLogin: user.lastLogin || user.last_login
+      }));
+      
       // Debug individual user structure
-      if (usersData.length > 0) {
-        console.log('First user structure:', usersData[0]);
-        console.log('First user status:', usersData[0].status);
-        console.log('First user role:', usersData[0].role);
-        console.log('First user ID:', usersData[0].id || usersData[0]._id);
-        console.log('All user IDs:', usersData.map(u => u.id || u._id));
+      if (normalizedUsers.length > 0) {
+        console.log('First user structure:', normalizedUsers[0]);
+        console.log('First user status:', normalizedUsers[0].status);
+        console.log('First user role:', normalizedUsers[0].role);
+        console.log('First user ID:', normalizedUsers[0].id);
       }
       
-      setUsers(usersData);
+      setUsers(normalizedUsers);
       setLastUpdated(new Date().toISOString());
     } catch (error: any) {
       console.error('Failed to load users:', error);
@@ -155,10 +173,11 @@ export function AdminUsers() {
       });
       
       if (response.data.success) {
-        // Update the user in the local state
-        setUsers(prev => prev.map(user => 
-          user.id === userId ? { ...user, status } : user
-        ));
+        // Update the user in the local state - handle both id and _id
+        setUsers(prev => prev.map(user => {
+          const userIdentifier = user.id || (user as any)._id;
+          return userIdentifier === userId ? { ...user, status } : user;
+        }));
         
         setLastUpdated(new Date().toISOString());
         console.log('User status updated successfully');
@@ -175,18 +194,24 @@ export function AdminUsers() {
     }
 
     try {
+      setError(null); // Clear any previous errors
       const response = await api.delete(`/admin/users/${userId}`);
       
       if (response.data.success) {
-        // Remove the user from the local state
-        setUsers(prev => prev.filter(user => user.id !== userId));
+        // Remove the user from the local state - handle both id and _id
+        setUsers(prev => prev.filter(user => {
+          const userIdentifier = user.id || (user as any)._id;
+          return userIdentifier !== userId;
+        }));
         
         setLastUpdated(new Date().toISOString());
         console.log('User deleted successfully');
+      } else {
+        setError('Failed to delete user. Please try again.');
       }
     } catch (error: any) {
       console.error('Failed to delete user:', error);
-      setError('Failed to delete user. Please try again.');
+      setError(error.response?.data?.error || 'Failed to delete user. Please try again.');
     }
   };
 
@@ -251,25 +276,6 @@ export function AdminUsers() {
                 Last updated: {new Date(lastUpdated).toLocaleString()}
               </p>
             )}
-          </div>
-          <div className="flex items-center space-x-4">
-            {/* Connection Status */}
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Live
-              </span>
-            </div>
-            
-            {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <RefreshIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
           </div>
         </div>
 

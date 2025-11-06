@@ -21,7 +21,7 @@ export const getSeekerDashboard = async (req: any, res: Response) => {
     // Calculate stats
     const totalApplications = applications.length;
     const interviewsScheduled = applications.filter(app => 
-      app.status === 'interview' || app.status === 'shortlisted'
+      app.status === 'interview_scheduled' || app.status === 'interview_completed' || app.status === 'shortlisted' || app.status === 'under_review'
     ).length;
     const hired = applications.filter(app => app.status === 'hired').length;
     
@@ -46,7 +46,7 @@ export const getSeekerDashboard = async (req: any, res: Response) => {
           interviewsScheduled,
           hired,
           profileCompletion,
-          newOpportunities: Math.floor(Math.random() * 10) + 1
+          newOpportunities: await Job.countDocuments({ is_active: true, created_at: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } })
         },
         applications: applications.slice(0, 5),
         recentActivity,
@@ -79,11 +79,11 @@ export const getEmployerDashboard = async (req: any, res: Response) => {
       .populate('job_id', 'title')
       .sort({ applied_at: -1 });
 
-    // Calculate stats
-    const activeJobs = jobs.filter(job => job.is_active).length;
+    // Calculate stats from real database data
+    const activeJobs = jobs.filter(job => job.is_active !== false && (job.status === 'active' || job.status === 'published')).length;
     const totalApplications = applications.length;
     const interviewsScheduled = applications.filter(app => 
-      app.status === 'interview' || app.status === 'shortlisted'
+      app.status === 'interview_scheduled' || app.status === 'shortlisted' || app.status === 'under_review'
     ).length;
     const hiredCandidates = applications.filter(app => app.status === 'hired').length;
     
@@ -111,6 +111,73 @@ export const getEmployerDashboard = async (req: any, res: Response) => {
   } catch (error) {
     console.error('Error fetching employer dashboard:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+};
+
+/**
+ * Get employer analytics data for charts
+ */
+export const getEmployerAnalytics = async (req: any, res: Response) => {
+  try {
+    const employerId = req.user.uid;
+    const now = new Date();
+    const days = 30; // Last 30 days
+    const chartData: any[] = [];
+
+    // Get employer's jobs
+    const jobs = await Job.find({ employer_id: employerId });
+    const jobIds = jobs.map(job => job._id);
+
+    // Generate time-series data for last 30 days
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const [jobsCount, applicationsCount] = await Promise.all([
+        Job.countDocuments({
+          employer_id: employerId,
+          created_at: { $gte: date, $lt: nextDate }
+        }),
+        Application.countDocuments({
+          job_id: { $in: jobIds },
+          applied_at: { $gte: date, $lt: nextDate }
+        })
+      ]);
+
+      chartData.push({
+        date: date.toISOString().split('T')[0],
+        jobs: jobsCount,
+        applications: applicationsCount
+      });
+    }
+
+    // Get application status distribution
+    const applicationsByStatus = await Application.aggregate([
+      { $match: { job_id: { $in: jobIds } } },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Get job status distribution
+    const jobsByStatus = await Job.aggregate([
+      { $match: { employer_id: employerId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        timeSeries: chartData,
+        jobStatusDistribution: jobsByStatus.map(s => ({ status: s._id || 'unknown', count: s.count })),
+        applicationStatusDistribution: applicationsByStatus.map(s => ({ status: s._id || 'unknown', count: s.count }))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching employer analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch employer analytics' });
   }
 };
 
@@ -243,104 +310,114 @@ async function getRecentActivity(userId: string) {
 
 async function getEmployerRecentActivity(employerId: string) {
   const jobs = await Job.find({ employer_id: employerId })
-    .sort({ createdAt: -1 })
-    .limit(5);
+    .sort({ created_at: -1 })
+    .limit(5)
+    .lean();
 
+  const jobIds = jobs.map(job => job._id);
   const applications = await Application.find({ 
-    job_id: { $in: jobs.map(job => job._id) } 
+    job_id: { $in: jobIds } 
   })
     .populate('seeker_id', 'name')
     .populate('job_id', 'title')
     .sort({ applied_at: -1 })
-    .limit(5);
+    .limit(5)
+    .lean();
 
   return [
     ...jobs.map(job => ({
-      id: job._id,
+      id: job._id.toString(),
       type: 'job',
       title: `Posted job: ${job.title}`,
-      description: 'Job is now live and accepting applications',
-      timestamp: job.createdAt,
-      status: 'success'
+      description: job.is_active !== false ? 'Job is now live and accepting applications' : 'Job is inactive',
+      timestamp: job.created_at || job.posted_at || new Date(),
+      status: job.is_active !== false ? 'success' : 'pending'
     })),
     ...applications.map(app => ({
-      id: app._id,
+      id: app._id.toString(),
       type: 'application',
       title: `New application for ${(app.job_id as any)?.title || 'Unknown Job'}`,
       description: `Application from ${(app.seeker_id as any)?.name || 'Unknown User'}`,
-      timestamp: app.applied_at,
-      status: 'pending'
+      timestamp: app.applied_at || app.created_at || new Date(),
+      status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
     }))
-  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
+  ].sort((a, b) => {
+    const aTime = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp).getTime();
+    const bTime = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime();
+    return bTime - aTime;
+  }).slice(0, 5);
 }
 
 async function getJobRecommendations(userId: string, limit: number) {
   try {
-    // Prefer the dedicated recommendations service if available
+    // Use the dedicated recommendations service
     const { RecommendationService } = await import('../services/recommendation.service.js');
     if (RecommendationService?.getJobRecommendations) {
       const recs = await RecommendationService.getJobRecommendations(userId, limit);
-      if (Array.isArray(recs) && recs.length > 0) return recs.slice(0, limit);
+      if (Array.isArray(recs) && recs.length > 0) {
+        return recs.map((r: any) => ({
+          job: r.job,
+          matchScore: Math.round((r.matchScore || 0) * 100),
+          reasons: r.reasons || []
+        })).slice(0, limit);
+      }
     }
-  } catch {}
+  } catch (error) {
+    console.error('Error getting job recommendations:', error);
+  }
 
-  // Fallback: return latest active jobs as recommendations with default score
+  // Fallback: return latest active jobs from database (real data, no mock scores)
   const latestJobs = await Job.find({ is_active: true })
     .populate('employer_id', 'name email')
-    .sort({ createdAt: -1 })
+    .sort({ created_at: -1 })
     .limit(limit)
     .lean();
 
   return latestJobs.map((job: any) => ({
     job,
-    score: 75,
-    reasons: ['Based on your profile and recent activity']
+    matchScore: 0, // No mock score, just return real jobs
+    reasons: []
   }));
 }
 
 async function getLearningRecommendations(userId: string, limit: number) {
-  // Try to pull from LearningResource collection
-  const resources = await LearningResource.find()
-    .sort({ createdAt: -1 })
+  try {
+    // Prefer the dedicated recommendations service if available
+    const { RecommendationService } = await import('../services/recommendation.service.js');
+    if (RecommendationService?.getCourseRecommendations) {
+      const recs = await RecommendationService.getCourseRecommendations(userId, limit);
+      if (Array.isArray(recs) && recs.length > 0) {
+        return recs.map((r: any) => r.course || r).slice(0, limit);
+      }
+    }
+  } catch {}
+
+  // Return real learning resources from database
+  const resources = await LearningResource.find({ is_active: true })
+    .sort({ created_at: -1 })
     .limit(limit)
     .lean();
 
-  if (Array.isArray(resources) && resources.length > 0) return resources;
-
-  // Fallback curated suggestions
-  return [
-    {
-      id: 'lr-1',
-      title: 'Improve Your Resume for Tech Roles',
-      provider: 'eMirimo Academy',
-      url: 'https://example.com/resume-tips',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'lr-2',
-      title: 'Interview Preparation: Behavioral Questions',
-      provider: 'eMirimo Academy',
-      url: 'https://example.com/behavioral-interview',
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 'lr-3',
-      title: 'Top 10 In-Demand Skills in 2025',
-      provider: 'eMirimo Insights',
-      url: 'https://example.com/in-demand-skills',
-      createdAt: new Date().toISOString()
-    }
-  ];
+  return resources || [];
 }
 
 async function getTopPerformingJobs(employerId: string) {
   const jobs = await Job.find({ employer_id: employerId })
     .populate('employer_id', 'name')
-    .sort({ createdAt: -1 })
+    .sort({ created_at: -1 })
     .limit(3);
+
+  // Calculate actual application counts from database
+  const jobIds = jobs.map(job => job._id);
+  const applicationCounts = await Application.aggregate([
+    { $match: { job_id: { $in: jobIds } } },
+    { $group: { _id: '$job_id', count: { $sum: 1 } } }
+  ]);
+
+  const countMap = new Map(applicationCounts.map((item: any) => [item._id.toString(), item.count]));
 
   return jobs.map(job => ({
     ...job.toObject(),
-    applicationCount: 0 // This would be calculated from applications
+    applicationCount: countMap.get(job._id.toString()) || 0
   }));
 }

@@ -15,6 +15,7 @@ import {
   BookOpenIcon
 } from '../../components/icons';
 import { JobRecommendations } from '../jobs/JobRecommendations';
+import { PlatformAnalyticsChart } from '../../components/PlatformAnalyticsChart';
 
 interface DashboardStats {
   totalApplications: number;
@@ -93,21 +94,29 @@ export function SeekerDashboard() {
 
   const loadFallbackData = async () => {
     try {
-      // Load applications data
+      // Load applications data from database
       const applicationsResponse = await api.get('/applications/me');
       const applications = Array.isArray(applicationsResponse.data) ? applicationsResponse.data : [];
       
-      // Calculate stats
+      // Calculate stats from real data
       const totalApplications = applications.length;
       const interviewsScheduled = applications.filter((app: any) => 
-        app.status === 'interview' || app.status === 'shortlisted'
+        app.status === 'interview_scheduled' || app.status === 'interview_completed' || app.status === 'shortlisted' || app.status === 'under_review'
       ).length;
       
-      // Mock profile completion calculation
-      const profileCompletion = calculateProfileCompletion();
+      // Get user profile for completion calculation
+      const profileResponse = await api.get('/users/me');
+      const user = profileResponse.data?.user;
+      const profileCompletion = user ? calculateProfileCompletion(user) : 0;
       
-      // Mock new opportunities
-      const newOpportunities = Math.floor(Math.random() * 10) + 1;
+      // Get new opportunities from database (jobs posted in last 7 days)
+      const jobsResponse = await api.get('/jobs?limit=100');
+      const allJobs = Array.isArray(jobsResponse.data) ? jobsResponse.data : [];
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const newOpportunities = allJobs.filter((job: any) => {
+        const jobDate = new Date(job.created_at || job.createdAt || 0);
+        return jobDate >= sevenDaysAgo;
+      }).length;
 
       setStats({
         totalApplications,
@@ -118,41 +127,54 @@ export function SeekerDashboard() {
 
       setApplications(applications);
 
-      // Mock recent activities
-      setActivities([
-        {
-          id: '1',
-          type: 'application',
-          title: t('appliedToSoftwareEngineer'),
-          description: t('applicationSubmittedSuccessfully'),
-          timestamp: t('hoursAgo', { count: 2 }),
-          status: 'success'
-        },
-        {
-          id: '2',
-          type: 'interview',
-          title: t('interviewScheduledTomorrow'),
-          description: t('frontendDeveloperPosition'),
-          timestamp: t('daysAgo', { count: 1 }),
-          status: 'pending'
-        },
-        {
-          id: '3',
-          type: 'profile',
-          title: t('profileUpdatedSuccessfully'),
-          description: t('profileNowComplete'),
-          timestamp: t('daysAgo', { count: 3 }),
-          status: 'warning'
-        }
-      ]);
+      // Get real recent activities from applications
+      const recentActivities = applications.slice(0, 5).map((app: any) => ({
+        id: app.id || app._id,
+        type: 'application' as const,
+        title: `Applied to ${app.job_id?.title || app.job?.title || 'Job'}`,
+        description: `Application status: ${app.status}`,
+        timestamp: app.applied_at || app.created_at || new Date().toISOString(),
+        status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
+      }));
+
+      setActivities(recentActivities);
     } catch (error) {
       console.error('Failed to load fallback data:', error);
+      // Set empty state instead of mock data
+      setStats({
+        totalApplications: 0,
+        interviewsScheduled: 0,
+        profileCompletion: 0,
+        newOpportunities: 0
+      });
+      setActivities([]);
     }
   };
 
-  const calculateProfileCompletion = () => {
-    // Mock calculation - in real app, this would check profile completeness
-    return 95;
+  const calculateProfileCompletion = (user: any) => {
+    if (!user) return 0;
+    
+    const seeker = user?.job_seeker_profile || {};
+    const skills = Array.isArray(user?.skills) ? user.skills : [];
+
+    const requiredFields = [
+      user?.name,
+      user?.email,
+      user?.bio,
+      user?.phone,
+      user?.profile_image,
+      skills.length > 0,
+      seeker?.professional_summary,
+      seeker?.work_experience?.length > 0,
+      seeker?.education?.length > 0,
+      seeker?.languages?.length > 0,
+      seeker?.job_preferences?.job_types?.length > 0,
+      seeker?.job_preferences?.availability
+    ];
+
+    const filled = requiredFields.filter(Boolean).length;
+    const pct = Math.round((filled / requiredFields.length) * 100);
+    return isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct));
   };
 
   const getStatusColor = (status: string) => {
@@ -429,6 +451,9 @@ export function SeekerDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Platform Analytics Charts */}
+      <PlatformAnalyticsChart />
     </DashboardLayout>
   );
 }

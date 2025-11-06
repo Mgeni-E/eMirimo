@@ -20,6 +20,10 @@ const resources = {
       profile: 'Profile',
       settings: 'Settings',
       notifications: 'Notifications',
+      users: 'Users',
+      interviews: 'Interviews',
+      hiringPipeline: 'Hiring Pipeline',
+      myJobs: 'My Jobs',
       messages: 'Messages',
       resources: 'Resources',
       help: 'Help',
@@ -275,7 +279,21 @@ const resources = {
       contactSupportAssistance: 'Please contact support for assistance.',
       loadingDashboard: 'Loading dashboard...',
       dashboardEndpointNotAvailable: 'Dashboard endpoint not available, using fallback',
-      mockCalculation: 'Mock calculation - in real app, this would check profile completeness'
+      mockCalculation: 'Mock calculation - in real app, this would check profile completeness',
+      
+      // Analytics
+      platformAnalytics: 'Platform Analytics',
+      performanceImprovementAnalysis: 'Performance and improvement analysis',
+      timeSeries: 'Time Series',
+      userRoles: 'User Roles',
+      jobStatus: 'Job Status',
+      applicationStatus: 'Application Status',
+      userRoleDistribution: 'User Role Distribution',
+      userRoleCounts: 'User Role Counts',
+      jobStatusDistribution: 'Job Status Distribution',
+      jobStatusCounts: 'Job Status Counts',
+      applicationStatusDistribution: 'Application Status Distribution',
+      applicationStatusCounts: 'Application Status Counts'
     } 
   },
   rw: { 
@@ -296,6 +314,10 @@ const resources = {
       profile: 'Umwirondoro',
       settings: 'Igenamiterere',
       notifications: 'Amakuru',
+      users: 'Abakoresha',
+      interviews: 'Icyiyumviro',
+      hiringPipeline: 'Gucunga Inzira',
+      myJobs: 'Akazi Zanjye',
       messages: 'Ubutumwa',
       resources: 'Ibikoresho',
       help: 'Ubufasha',
@@ -552,7 +574,21 @@ const resources = {
       contactSupportAssistance: 'Nyamuneka uhamagare ubufasha kugira ngo ubafashe.',
       loadingDashboard: 'Birakoresha urufunguzo...',
       dashboardEndpointNotAvailable: 'Urufunguzo rw\'urubuga rutariho, dukoresha inyongera',
-      mockCalculation: 'Ibarura ry\'inyongera - mu rubuga rw\'ukuri, iyi ni yo yasuzumaga ukuzuza k\'umwirondoro'
+      mockCalculation: 'Ibarura ry\'inyongera - mu rubuga rw\'ukuri, iyi ni yo yasuzumaga ukuzuza k\'umwirondoro',
+      
+      // Analytics
+      platformAnalytics: 'Ibarura ry\'Urubuga',
+      performanceImprovementAnalysis: 'Gusuzuma imikorere no kwiyongera',
+      timeSeries: 'Igihe cy\'Amakuru',
+      userRoles: 'Amahitamo y\'Abakoresha',
+      jobStatus: 'Imiterere y\'Akazi',
+      applicationStatus: 'Imiterere y\'Gusaba',
+      userRoleDistribution: 'Gusanganya Amahitamo y\'Abakoresha',
+      userRoleCounts: 'Umubare w\'Amahitamo y\'Abakoresha',
+      jobStatusDistribution: 'Gusanganya Imiterere y\'Akazi',
+      jobStatusCounts: 'Umubare w\'Imiterere y\'Akazi',
+      applicationStatusDistribution: 'Gusanganya Imiterere y\'Gusaba',
+      applicationStatusCounts: 'Umubare w\'Imiterere y\'Gusaba'
     } 
   }
 };

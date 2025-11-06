@@ -53,11 +53,14 @@ export function Learning() {
     setLoading(true);
     try {
       const response = await api.get('/learning');
-      if (response.data.success) {
-        setResources(response.data.resources || []);
-      }
+      // Handle both response formats: { success: true, resources: [] } or direct array
+      const resources = response.data?.success
+        ? (response.data.resources || [])
+        : (Array.isArray(response.data) ? response.data : []);
+      setResources(resources);
     } catch (error) {
       console.error('Failed to load learning resources:', error);
+      setResources([]); // Set empty array on error
     } finally {
       setLoading(false);
     }

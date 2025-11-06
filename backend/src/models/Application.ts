@@ -25,10 +25,10 @@ const ApplicationSchema = new Schema({
     required: true, 
     index: true 
   },
-  company_id: { 
-    type: Types.ObjectId, 
-    ref: 'Company', 
-    index: true 
+  company_name: { 
+    type: String, 
+    trim: true,
+    index: true
   },
   
   // Application Details
@@ -54,9 +54,43 @@ const ApplicationSchema = new Schema({
     type: String,
     validate: {
       validator: function(v: string) {
-        return !v || /^https?:\/\/.+\.(pdf|doc|docx)$/i.test(v);
+        if (!v) return true; // Allow empty resume URL
+        
+        // Must be a valid HTTP/HTTPS URL
+        if (!/^https?:\/\/.+/.test(v)) {
+          return false;
+        }
+        
+        // Accept direct file URLs (PDF, DOC, DOCX)
+        if (/\.(pdf|doc|docx)$/i.test(v)) {
+          return true;
+        }
+        
+        // Accept Google Docs URLs (document, drive, etc.)
+        if (/docs\.google\.com/i.test(v) || /drive\.google\.com/i.test(v)) {
+          return true;
+        }
+        
+        // Accept other common document hosting services
+        if (/\.(dropbox|onedrive|drive\.google|box\.com|sharepoint)/i.test(v)) {
+          return true;
+        }
+        
+        // Accept Cloudinary URLs (for uploaded documents)
+        if (/cloudinary\.com/i.test(v)) {
+          return true;
+        }
+        
+        // Accept any valid URL (flexible for other hosting services)
+        // This allows users to use any document hosting service
+        try {
+          new URL(v);
+          return true;
+        } catch {
+          return false;
+        }
       },
-      message: 'Resume must be a valid PDF or DOC file URL'
+      message: 'Resume must be a valid URL (PDF, DOC, Google Docs, or other document hosting service)'
     }
   },
   portfolio_url: { type: String },
@@ -133,6 +167,19 @@ const ApplicationSchema = new Schema({
     can_reapply: { type: Boolean, default: false },
     reapply_after: { type: Date }
   },
+  
+  // Application-specific fields
+  availability: { 
+    type: String,
+    enum: ['immediate', '2-weeks', '1-month', '2-months', '3-months'],
+    default: 'immediate'
+  },
+  salary_expectation: {
+    min: { type: Number, min: 0 },
+    max: { type: Number, min: 0 },
+    currency: { type: String, default: 'RWF' }
+  },
+  additional_notes: { type: String, maxlength: 2000 },
   
   // Internal Notes & Communication
   internal_notes: { type: String, maxlength: 2000 },

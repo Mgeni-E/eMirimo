@@ -38,6 +38,6 @@ export class JobPostingHooks {
       }
     });
 
-    console.log('✅ Job posting hooks initialized');
+    // Job posting hooks initialized silently
   }
 }

@@ -41,12 +41,22 @@ api.interceptors.response.use(
         if (newToken) {
           localStorage.setItem('token', newToken);
           api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+          
+          // Update user state if token refreshed and user data provided
+          if (data?.user) {
+            const { useAuth } = await import('./store.js');
+            useAuth.getState().setUser({ ...data.user, token: newToken });
+          }
+          
           processQueue(newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
         }
       } catch (e) {
+        // Clear session on refresh failure
         localStorage.removeItem('token');
+        const { useAuth } = await import('./store.js');
+        useAuth.getState().clearSession();
         processQueue(null);
         window.location.href = '/login';
         return Promise.reject(e);

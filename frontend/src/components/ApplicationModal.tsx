@@ -7,8 +7,15 @@ interface ApplicationModalProps {
   job: {
     _id: string;
     title: string;
-    company: string;
-    location: string;
+    company_name?: string;
+    company?: string; // Legacy support
+    employer_id?: {
+      name: string;
+    };
+    location: string | {
+      city?: string;
+      country?: string;
+    };
     salary?: {
       min: number;
       max: number;
@@ -28,48 +35,70 @@ interface ApplicationModalProps {
 interface ApplicationData {
   job_id: string;
   cover_letter: string;
-  resume_url: string;
   availability: string;
   salary_expectation: {
     min: number;
     max: number;
     currency: string;
   };
-  additional_notes: string;
 }
 
 export function ApplicationModal({ isOpen, onClose, job, user, onApply }: ApplicationModalProps) {
   const [formData, setFormData] = useState<ApplicationData>({
     job_id: job._id,
     cover_letter: '',
-    resume_url: user.cv_url || '',
     availability: 'immediate',
     salary_expectation: {
       min: 0,
       max: 0,
       currency: 'RWF'
-    },
-    additional_notes: ''
+    }
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loadingUserData, setLoadingUserData] = useState(false);
 
+  // Fetch fresh user data when modal opens to ensure profile data is up-to-date
   useEffect(() => {
     if (isOpen) {
-      // Pre-fill form with user data
-      setFormData(prev => ({
-        ...prev,
-        resume_url: user.cv_url || '',
-        salary_expectation: {
-          min: job.salary?.min || 0,
-          max: job.salary?.max || 0,
-          currency: job.salary?.currency || 'RWF'
+      const fetchUserData = async () => {
+        try {
+          setLoadingUserData(true);
+          const { api } = await import('../lib/api');
+          const response = await api.get('/users/me');
+          const userData = response.data?.user || user;
+          
+          // Pre-fill form with fresh user data
+          setFormData(prev => ({
+            ...prev,
+            salary_expectation: {
+              min: job.salary?.min || userData.job_seeker_profile?.job_preferences?.salary_expectation?.min || 0,
+              max: job.salary?.max || userData.job_seeker_profile?.job_preferences?.salary_expectation?.max || 0,
+              currency: job.salary?.currency || userData.job_seeker_profile?.job_preferences?.salary_expectation?.currency || 'RWF'
+            },
+            availability: userData.job_seeker_profile?.job_preferences?.availability || 'immediate'
+          }));
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
+          // Fallback to provided user data
+          setFormData(prev => ({
+            ...prev,
+            salary_expectation: {
+              min: job.salary?.min || 0,
+              max: job.salary?.max || 0,
+              currency: job.salary?.currency || 'RWF'
+            }
+          }));
+        } finally {
+          setLoadingUserData(false);
         }
-      }));
+      };
+      
+      fetchUserData();
     }
-  }, [isOpen, user, job]);
+  }, [isOpen, job._id]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -78,10 +107,8 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
       newErrors.cover_letter = 'Cover letter is required';
     } else if (formData.cover_letter.length < 50) {
       newErrors.cover_letter = 'Cover letter must be at least 50 characters';
-    }
-
-    if (!formData.resume_url.trim()) {
-      newErrors.resume_url = 'Resume URL is required';
+    } else if (formData.cover_letter.length > 2000) {
+      newErrors.cover_letter = 'Cover letter must not exceed 2000 characters';
     }
 
     if (formData.salary_expectation.min < 0) {
@@ -111,8 +138,13 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
         setIsSuccess(false);
         onClose();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Application submission error:', error);
+      // Display error message to user
+      const errorMessage = error?.message || error?.response?.data?.message || error?.response?.data?.error || 'Failed to submit application. Please try again.';
+      setErrors({ submit: errorMessage });
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -155,7 +187,7 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
               Apply for {job.title}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              {job.company} • {job.location}
+              {job.company_name || job.company || job.employer_id?.name || 'Company'} • {typeof job.location === 'string' ? job.location : `${job.location?.city || ''}${job.location?.city && job.location?.country ? ', ' : ''}${job.location?.country || ''}`}
             </p>
           </div>
           <button
@@ -174,7 +206,7 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
               Application Submitted Successfully!
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              Your application has been sent to {job.company}. You'll receive notifications about the status.
+              Your application has been sent to {job.company_name || job.company || job.employer_id?.name || 'the company'}. You'll receive notifications about the status.
             </p>
           </div>
         )}
@@ -182,6 +214,22 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
         {/* Application Form */}
         {!isSuccess && (
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {loadingUserData && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">Loading your profile data...</p>
+              </div>
+            )}
+            {errors.submit && (
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-start">
+                  <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">Application Failed</p>
+                    <p className="text-sm text-red-700 dark:text-red-400 mt-1">{errors.submit}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Cover Letter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -195,6 +243,7 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
                   errors.cover_letter ? 'border-red-500' : 'border-gray-300'
                 }`}
                 rows={6}
+                maxLength={2000}
                 required
               />
               {errors.cover_letter && (
@@ -203,32 +252,15 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
                   {errors.cover_letter}
                 </p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
-                {formData.cover_letter.length}/500 characters
+              <p className={`mt-1 text-sm ${
+                formData.cover_letter.length > 2000 
+                  ? 'text-red-600 dark:text-red-400' 
+                  : formData.cover_letter.length > 1500
+                  ? 'text-yellow-600 dark:text-yellow-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}>
+                {formData.cover_letter.length}/2000 characters
               </p>
-            </div>
-
-            {/* Resume URL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Resume/CV URL *
-              </label>
-              <input
-                type="url"
-                value={formData.resume_url}
-                onChange={(e) => handleInputChange('resume_url', e.target.value)}
-                placeholder="https://your-resume.com or Google Drive link"
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                  errors.resume_url ? 'border-red-500' : 'border-gray-300'
-                }`}
-                required
-              />
-              {errors.resume_url && (
-                <p className="mt-1 text-sm text-red-600 flex items-center">
-                  <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
-                  {errors.resume_url}
-                </p>
-              )}
             </div>
 
             {/* Availability */}
@@ -288,18 +320,11 @@ export function ApplicationModal({ isOpen, onClose, job, user, onApply }: Applic
               </div>
             </div>
 
-            {/* Additional Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Additional Notes (Optional)
-              </label>
-              <textarea
-                value={formData.additional_notes}
-                onChange={(e) => handleInputChange('additional_notes', e.target.value)}
-                placeholder="Any additional information you'd like to share..."
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
-                rows={3}
-              />
+            {/* Info Message */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                <strong>Note:</strong> Your resume/CV and other profile details will be automatically included from your profile.
+              </p>
             </div>
 
             {/* Submit Button */}

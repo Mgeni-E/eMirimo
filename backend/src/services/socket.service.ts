@@ -63,6 +63,21 @@ class SocketService {
         console.log(`User ${userId} left notifications room`);
       });
 
+      // Handle admin joining admin dashboard room
+      socket.on('join-admin-dashboard', () => {
+        const userRole = (socket as any).userRole;
+        if (userRole === 'admin') {
+          socket.join('admin-dashboard');
+          console.log(`Admin ${userId} joined admin dashboard room`);
+        }
+      });
+
+      // Handle admin leaving admin dashboard room
+      socket.on('leave-admin-dashboard', () => {
+        socket.leave('admin-dashboard');
+        console.log(`User ${userId} left admin dashboard room`);
+      });
+
       // Handle disconnect
       socket.on('disconnect', () => {
         console.log(`User ${userId} disconnected`);
@@ -155,6 +170,40 @@ class SocketService {
   // Get all connected users
   getConnectedUsers(): string[] {
     return Array.from(this.connectedUsers.keys());
+  }
+
+  // Broadcast user status change to admin dashboard
+  broadcastUserStatusChange(userId: string, status: string, reason?: string) {
+    this.io.to('admin-dashboard').emit('admin-update', {
+      type: 'user-status-change',
+      data: {
+        userId,
+        status,
+        reason
+      }
+    });
+  }
+
+  // Broadcast user deleted to admin dashboard
+  broadcastUserDeleted(userId: string) {
+    this.io.to('admin-dashboard').emit('admin-update', {
+      type: 'user-deleted',
+      data: {
+        userId
+      }
+    });
+  }
+
+  // Broadcast job status change to admin dashboard
+  broadcastJobStatusChange(jobId: string, isActive: boolean, reason?: string) {
+    this.io.to('admin-dashboard').emit('admin-update', {
+      type: 'job-status-change',
+      data: {
+        jobId,
+        isActive,
+        reason
+      }
+    });
   }
 }
 

@@ -3,7 +3,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { 
   getSeekerDashboard, 
   getEmployerDashboard, 
-  getAdminDashboard 
+  getAdminDashboard,
+  getEmployerAnalytics
 } from '../controllers/dashboard.controller.js';
 
 export const router = Router();
@@ -16,6 +17,9 @@ router.get('/seeker', getSeekerDashboard);
 
 // Get employer dashboard data
 router.get('/employer', getEmployerDashboard);
+
+// Get employer analytics data
+router.get('/employer/analytics', getEmployerAnalytics);
 
 // Get admin dashboard data
 router.get('/admin', getAdminDashboard);

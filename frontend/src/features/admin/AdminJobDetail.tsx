@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { api } from '../../lib/api';
 import { 
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -11,20 +12,40 @@ import {
 
 interface JobDetail {
   id: string;
+  _id?: string;
   title: string;
-  company: string;
-  location: string;
+  company_name?: string;
+  company?: string; // Legacy support
+  employer_id?: {
+    name: string;
+    email: string;
+  };
+  location: string | {
+    city?: string;
+    country?: string;
+  };
   type: 'full-time' | 'part-time' | 'contract' | 'internship';
   status: 'active' | 'inactive' | 'pending' | 'expired';
-  salary?: string;
+  salary?: string | {
+    min: number;
+    max: number;
+    currency: string;
+  };
   description: string;
   requirements: string[];
   benefits: string[];
-  postedBy: string;
+  postedBy?: string;
+  employer_id?: {
+    name: string;
+  };
   createdAt: string;
+  created_at?: string;
   expiresAt?: string;
-  applicationsCount: number;
-  viewsCount: number;
+  expiry_date?: string;
+  applicationsCount?: number;
+  applications_count?: number;
+  viewsCount?: number;
+  views_count?: number;
 }
 
 export function AdminJobDetail() {
@@ -44,41 +65,47 @@ export function AdminJobDetail() {
     setError(null);
     
     try {
-      // Mock job detail data - in production, this would come from API
-      const mockJob: JobDetail = {
-        id: jobId,
-        title: 'Senior Software Engineer',
-        company: 'TechCorp Solutions',
-        location: 'Kigali, Rwanda',
-        type: 'full-time',
-        status: 'active',
-        salary: '$3,000 - $5,000',
-        description: 'We are looking for a Senior Software Engineer to join our growing team. You will be responsible for developing and maintaining our web applications, working with modern technologies, and collaborating with cross-functional teams.',
-        requirements: [
-          'Bachelor\'s degree in Computer Science or related field',
-          '5+ years of experience in software development',
-          'Proficiency in React, Node.js, and TypeScript',
-          'Experience with cloud platforms (AWS, Azure)',
-          'Strong problem-solving and communication skills'
-        ],
-        benefits: [
-          'Competitive salary and equity',
-          'Health insurance coverage',
-          'Flexible working hours',
-          'Professional development opportunities',
-          'Team building activities'
-        ],
-        postedBy: 'TechCorp HR',
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        applicationsCount: 25,
-        viewsCount: 150
+      // Use public jobs endpoint - admins can access any job
+      const response = await api.get(`/jobs/${jobId}`);
+      const jobData = response.data;
+      
+      if (!jobData) {
+        setError('Job not found');
+        return;
+      }
+      
+      // Transform backend data to match frontend interface
+      const transformedJob: JobDetail = {
+        id: jobData._id || jobId,
+        _id: jobData._id,
+        title: jobData.title,
+        company_name: jobData.company_name,
+        company: jobData.company_name || jobData.company || jobData.employer_id?.name || 'Unknown Company',
+        employer_id: jobData.employer_id,
+        location: typeof jobData.location === 'string' 
+          ? jobData.location 
+          : `${jobData.location?.city || ''}${jobData.location?.city && jobData.location?.country ? ', ' : ''}${jobData.location?.country || ''}`,
+        type: jobData.job_type || jobData.type || 'full-time',
+        status: jobData.is_active === false ? 'inactive' : (jobData.status || 'active'),
+        salary: jobData.salary,
+        description: jobData.description || '',
+        requirements: Array.isArray(jobData.requirements) 
+          ? jobData.requirements.map((r: any) => typeof r === 'string' ? r : (r.description || r.type || '')) 
+          : [],
+        benefits: Array.isArray(jobData.benefits) 
+          ? jobData.benefits.map((b: any) => typeof b === 'string' ? b : (b.name || b.category || '')) 
+          : [],
+        postedBy: jobData.employer_id?.name,
+        createdAt: jobData.created_at || jobData.createdAt || new Date().toISOString(),
+        expiresAt: jobData.expiry_date || jobData.expiresAt || jobData.application_deadline,
+        applicationsCount: jobData.applications_count || jobData.applicationsCount || jobData.application_count || 0,
+        viewsCount: jobData.views_count || jobData.viewsCount || jobData.views || 0
       };
       
-      setJob(mockJob);
+      setJob(transformedJob);
     } catch (error: any) {
       console.error('Failed to load job detail:', error);
-      setError('Failed to load job details. Please try again.');
+      setError(error.response?.data?.error || 'Failed to load job details. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +113,10 @@ export function AdminJobDetail() {
 
   const updateJobStatus = async (status: 'active' | 'inactive') => {
     try {
-      // In production, this would make an API call
+      await api.patch(`/admin/jobs/${id}`, { 
+        is_active: status === 'active',
+        status: status === 'active' ? 'active' : 'paused'
+      });
       setJob(prev => prev ? { ...prev, status } : null);
     } catch (error: any) {
       console.error('Failed to update job status:', error);
@@ -162,7 +192,7 @@ export function AdminJobDetail() {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
-              <p className="text-gray-600 dark:text-gray-400">{job.company}</p>
+              <p className="text-gray-600 dark:text-gray-400">{job.company_name || job.company || job.employer_id?.name || 'Unknown Company'}</p>
             </div>
           </div>
           
@@ -185,28 +215,50 @@ export function AdminJobDetail() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Job Information</h2>
             
             <div className="space-y-4">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
+                  <p className="text-base font-medium text-gray-900 dark:text-white">{job.location || 'Not specified'}</p>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Salary</span>
+                  <p className="text-base font-medium text-gray-900 dark:text-white">
+                    {job.salary 
+                      ? (typeof job.salary === 'string' 
+                          ? job.salary 
+                          : `${job.salary.currency || 'RWF'} ${job.salary.min?.toLocaleString() || ''}${job.salary.max ? ` - ${job.salary.max.toLocaleString()}` : ''}`)
+                      : 'Not specified'}
+                  </p>
+                </div>
+              </div>
+              
               <div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Description</h3>
-                <p className="text-gray-600 dark:text-gray-400">{job.description}</p>
+                <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{job.description || 'No description provided'}</p>
               </div>
               
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Requirements</h3>
-                <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
-                  {job.requirements.map((requirement, index) => (
-                    <li key={index}>{requirement}</li>
-                  ))}
-                </ul>
-              </div>
+              {job.requirements && job.requirements.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Requirements</h3>
+                  <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                    {job.requirements.map((requirement, index) => (
+                      <li key={index}>{requirement}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Benefits</h3>
-                <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
-                  {job.benefits.map((benefit, index) => (
-                    <li key={index}>{benefit}</li>
-                  ))}
-                </ul>
-              </div>
+              {job.benefits && job.benefits.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Benefits</h3>
+                  <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                    {job.benefits.map((benefit, index) => (
+                      <li key={index}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -230,18 +282,43 @@ export function AdminJobDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Posted</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {new Date(job.createdAt).toLocaleDateString()}
+                  {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Unknown'}
                 </span>
               </div>
               
-              {job.expiresAt && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Expires</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {new Date(job.expiresAt).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Employer</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {job.employer_id?.name || job.postedBy || job.company_name || job.company || 'Unknown'}
+                </span>
+              </div>
+              
+              {job.expiresAt && (() => {
+                const deadlineDate = new Date(job.expiresAt);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                deadlineDate.setHours(0, 0, 0, 0);
+                const isPassed = deadlineDate < today;
+                
+                return (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Application Deadline</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${isPassed 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-green-600 dark:text-green-400'
+                      }`}>
+                        {new Date(job.expiresAt).toLocaleDateString()}
+                      </span>
+                      {isPassed && (
+                        <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                          Closed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

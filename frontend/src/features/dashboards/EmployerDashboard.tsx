@@ -10,6 +10,7 @@ import {
   ArrowRightIcon,
   UserIcon
 } from '../../components/icons';
+import { PlatformAnalyticsChart } from '../../components/PlatformAnalyticsChart';
 
 interface EmployerStats {
   activeJobs: number;
@@ -57,16 +58,40 @@ export function EmployerDashboard() {
           const { stats, jobs, applications, recentActivity, topJobs } = dashboardResponse.data.data;
           
           setStats({
-            activeJobs: stats.activeJobs,
-            totalApplications: stats.totalApplications,
-            interviewsScheduled: stats.interviewsScheduled,
-            hiredCandidates: stats.hiredCandidates
+            activeJobs: stats?.activeJobs || 0,
+            totalApplications: stats?.totalApplications || 0,
+            interviewsScheduled: stats?.interviewsScheduled || 0,
+            hiredCandidates: stats?.hiredCandidates || 0
           });
 
           setJobs(jobs || []);
           setApplications(applications || []);
           setTopJobs(topJobs || []);
-          setActivities(recentActivity || []);
+          
+          // Format recent activity timestamps
+          const formatTimestamp = (timestamp: string | Date) => {
+            if (!timestamp) return 'Recently';
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) return 'Recently';
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+          };
+          
+          const formattedActivities = (recentActivity || []).map((activity: any) => ({
+            ...activity,
+            timestamp: formatTimestamp(activity.timestamp)
+          }));
+          
+          setActivities(formattedActivities);
           
           return; // Success, exit early
         }
@@ -86,48 +111,91 @@ export function EmployerDashboard() {
 
   const loadFallbackData = async () => {
     try {
-      // Load employer statistics
+      // Load employer statistics from database using correct endpoints
       const [jobsResponse, applicationsResponse] = await Promise.all([
-        api.get('/employer/jobs/stats'),
-        api.get('/employer/applications/stats')
+        api.get('/jobs/my/jobs').catch(() => ({ data: [] })),
+        api.get('/applications/employer').catch(() => ({ data: [] }))
       ]);
+
+      const jobs = Array.isArray(jobsResponse.data) ? jobsResponse.data : [];
+      const applications = Array.isArray(applicationsResponse.data) ? applicationsResponse.data : [];
+
+      // Calculate stats from real data
+      const activeJobs = jobs.filter((j: any) => j.is_active !== false && (j.status === 'active' || j.status === 'published')).length;
+      const totalApplications = applications.length;
+      const interviewsScheduled = applications.filter((app: any) => 
+        app.status === 'interview_scheduled' || app.status === 'shortlisted' || app.status === 'under_review'
+      ).length;
+      const hiredCandidates = applications.filter((app: any) => app.status === 'hired').length;
 
       setStats({
-        activeJobs: jobsResponse.data?.active || 0,
-        totalApplications: applicationsResponse.data?.total || 0,
-        interviewsScheduled: applicationsResponse.data?.interview || 0,
-        hiredCandidates: applicationsResponse.data?.hired || 0
+        activeJobs,
+        totalApplications,
+        interviewsScheduled,
+        hiredCandidates
       });
 
-      // Mock recent activities
-      setActivities([
-        {
-          id: '1',
-          type: 'application',
-          title: t('newApplicationSoftwareEngineer'),
-          description: t('applicationFromSarahJohnson'),
-          timestamp: t('minutesAgo', { count: 30 }),
-          status: 'pending'
-        },
-        {
-          id: '2',
-          type: 'interview',
-          title: t('interviewScheduledMikeChen'),
-          description: t('frontendDeveloperPosition'),
-          timestamp: t('hoursAgo', { count: 2 }),
-          status: 'success'
-        },
-        {
-          id: '3',
-          type: 'job',
-          title: t('jobPostingProductManager'),
-          description: t('jobNowLiveAccepting'),
-          timestamp: t('daysAgo', { count: 1 }),
-          status: 'success'
-        }
-      ]);
+      setJobs(jobs);
+      setApplications(applications);
+
+      // Format timestamp helper
+      const formatTimestamp = (timestamp: string | Date) => {
+        if (!timestamp) return 'Recently';
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return 'Recently';
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+      };
+
+      // Get real recent activities from database
+      const recentActivities = [
+        ...jobs.slice(0, 5).map((job: any) => ({
+          id: job.id || job._id,
+          type: 'job' as const,
+          title: `Posted job: ${job.title}`,
+          description: job.is_active !== false ? 'Job is now live and accepting applications' : 'Job is inactive',
+          timestamp: formatTimestamp(job.created_at || job.createdAt || job.posted_at),
+          status: job.is_active !== false ? 'success' : 'pending'
+        })),
+        ...applications.slice(0, 5).map((app: any) => ({
+          id: app.id || app._id,
+          type: 'application' as const,
+          title: `New application for ${app.job_id?.title || app.job?.title || 'Job'}`,
+          description: `Application from ${app.seeker_id?.name || app.seeker?.name || 'Unknown User'}`,
+          timestamp: formatTimestamp(app.applied_at || app.created_at),
+          status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
+        }))
+      ].sort((a, b) => {
+        // Sort by original timestamp for proper ordering
+        const aTime = jobs.find((j: any) => (j.id || j._id) === a.id)?.created_at || 
+                     applications.find((app: any) => (app.id || app._id) === a.id)?.applied_at || 
+                     new Date(0);
+        const bTime = jobs.find((j: any) => (j.id || j._id) === b.id)?.created_at || 
+                     applications.find((app: any) => (app.id || app._id) === b.id)?.applied_at || 
+                     new Date(0);
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      }).slice(0, 5);
+
+      setActivities(recentActivities);
     } catch (error) {
       console.error('Failed to load fallback data:', error);
+      // Set empty state instead of mock data
+      setStats({
+        activeJobs: 0,
+        totalApplications: 0,
+        interviewsScheduled: 0,
+        hiredCandidates: 0
+      });
+      setActivities([]);
     }
   };
 
@@ -278,25 +346,32 @@ export function EmployerDashboard() {
             </Link>
           </div>
           <div className="space-y-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}></div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    {getActivityIcon(activity.type)}
-                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {activity.title}
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                  <div className={`w-2 h-2 rounded-full mt-2 ${getStatusColor(activity.status)}`}></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      {getActivityIcon(activity.type)}
+                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {activity.title}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      {activity.description}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {activity.timestamp}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    {activity.description}
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    {activity.timestamp}
-                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p className="text-sm">No recent activity</p>
+                <p className="text-xs mt-1">Your hiring activity will appear here</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -351,6 +426,9 @@ export function EmployerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Platform Analytics Charts */}
+      <PlatformAnalyticsChart />
     </DashboardLayout>
   );
 }

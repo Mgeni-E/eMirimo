@@ -80,11 +80,15 @@ export const register = async (req:Request,res:Response)=>{
   
   const { accessToken, refresh_token } = generateTokens(user.id, user.role);
   
-  // Store refresh token in database
-  user.refresh_token = refresh_token;
-  user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  user.last_login = new Date();
-  await user.save();
+  // Store refresh token in database - use updateOne to avoid triggering full validation
+  await User.updateOne(
+    { _id: user._id },
+    {
+      refresh_token,
+      refresh_token_expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      last_login: new Date()
+    }
+  );
   
   // Send welcome email (non-blocking)
   sendWelcomeEmail(email, name).catch(console.error);
@@ -161,11 +165,16 @@ export const login = async (req:Request,res:Response)=>{
   
   const { accessToken, refresh_token } = generateTokens(user.id, user.role);
   
-  // Store refresh token in database
-  user.refresh_token = refresh_token;
-  user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  user.last_login = new Date();
-  await user.save();
+  // Store refresh token in database - use updateOne to avoid triggering full validation
+  // This prevents validation errors on optional fields like profile_image during login
+  await User.updateOne(
+    { _id: user._id },
+    {
+      refresh_token,
+      refresh_token_expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      last_login: new Date()
+    }
+  );
   
   // Set refresh token as httpOnly cookie (relaxed in development for cross-origin dev)
   res.cookie('refresh_token', refresh_token, {
@@ -247,10 +256,14 @@ export const refresh_token = async (req:Request,res:Response)=>{
     
     const { accessToken, refresh_token: newRefreshToken } = generateTokens(user.id, user.role);
     
-    // Update refresh token in database
-    user.refresh_token = newRefreshToken;
-    user.refresh_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await user.save();
+    // Update refresh token in database - use updateOne to avoid triggering full validation
+    await User.updateOne(
+      { _id: user._id },
+      {
+        refresh_token: newRefreshToken,
+        refresh_token_expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }
+    );
     
     // Set new refresh token as httpOnly cookie (relaxed in development)
     res.cookie('refresh_token', newRefreshToken, {

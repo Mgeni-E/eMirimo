@@ -5,15 +5,16 @@ import config, { validateEnv } from './config/env.js';
 import { initializeSocketService } from './services/socket.service.js';
 import { JobPostingHooks } from './hooks/jobPosting.hooks.js';
 import { ScheduledJobsService } from './services/scheduledJobs.service.js';
+import { initializeModels } from './models/index.js';
 
-// Display startup banner
-console.log('\n eMirimo Backend API Server starting...\n');
-
-// Validate environment configuration
+// Validate environment configuration (silently)
 validateEnv();
 
-mongoose.connect(config.MONGO_URI).then(()=>{
+mongoose.connect(config.MONGO_URI).then(async ()=>{
   console.log('✅ Database connected');
+  
+  // Initialize all main model schemas and verify database schema
+  await initializeModels();
   
   // Initialize job posting hooks for email notifications
   JobPostingHooks.initialize();
@@ -28,11 +29,7 @@ mongoose.connect(config.MONGO_URI).then(()=>{
   const socketService = initializeSocketService(server);
   
   server.listen(config.PORT, ()=>{
-    console.log(`✅ Server running on http://localhost:${config.PORT}`);
-    console.log(`📊 Environment: ${config.NODE_ENV}`);
-    console.log('🔌 Socket.io enabled for real-time features');
-    console.log('📧 Email notification system enabled');
-    console.log('📝 Ready to handle requests\n');
+    console.log(`✅ Server running on http://localhost:${config.PORT}\n`);
   });
 
   // Handle server errors

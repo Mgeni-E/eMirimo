@@ -95,14 +95,26 @@ export const createNotification = async (
   data?: any,
   title?: string,
   priority: 'low' | 'medium' | 'high' = 'medium',
-  action_url?: string
+  action_url?: string,
+  category?: 'job' | 'application' | 'message' | 'system' | 'marketing' | 'security'
 ) => {
   try {
+    // Determine category from type if not provided
+    let notificationCategory = category;
+    if (!notificationCategory) {
+      if (type.includes('job')) notificationCategory = 'job';
+      else if (type.includes('application')) notificationCategory = 'application';
+      else if (type.includes('message')) notificationCategory = 'message';
+      else if (type === 'system' || type === 'security') notificationCategory = type;
+      else notificationCategory = 'system';
+    }
+
     const notification = await Notification.create({
       user_id: userId,
+      title: title || 'Notification',
       message,
-      title,
       type,
+      category: notificationCategory,
       priority,
       data,
       action_url

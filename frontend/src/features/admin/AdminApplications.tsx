@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
   ApplicationsIcon, 
+  FilterIcon,
+  SearchIcon,
+  EyeIcon,
   UserIcon,
   ClockIcon,
   CheckIcon,
   XIcon,
-  EyeIcon,
-  CalendarIcon,
-  FilterIcon,
-  SearchIcon,
-  SortAscendingIcon
+  CalendarIcon
 } from '../../components/icons';
 
 interface Application {
@@ -21,34 +21,35 @@ interface Application {
     _id: string;
     name: string;
     email: string;
-    avatar?: string;
-    skills: string[];
-    work_experience: any[];
+    skills?: any[];
+    work_experience?: any[];
+    education?: any[];
   };
   job_id: {
     _id: string;
     title: string;
-    company: string;
-    location: string;
+    company_name?: string;
+    location: string | {
+      city?: string;
+      country?: string;
+    };
   };
-  status: 'applied' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected';
+  employer_id: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  status: 'applied' | 'under_review' | 'shortlisted' | 'interview_scheduled' | 'interview_completed' | 'offer_made' | 'hired' | 'rejected' | 'withdrawn';
   applied_at: string;
   cover_letter?: string;
   resume_url?: string;
-  notes?: string;
-  interview_date?: string;
-  interview_location?: string;
-  salary_offered?: {
-    amount: number;
-    currency: string;
-  };
-  rejection_reason?: string;
+  company_name?: string;
 }
 
 interface ApplicationStats {
   total: number;
-  pending: number;
-  reviewed: number;
+  applied: number;
+  under_review: number;
   shortlisted: number;
   interviews: number;
   offers: number;
@@ -56,12 +57,12 @@ interface ApplicationStats {
   rejected: number;
 }
 
-export function EmployerApplications() {
+export function AdminApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [stats, setStats] = useState<ApplicationStats>({
     total: 0,
-    pending: 0,
-    reviewed: 0,
+    applied: 0,
+    under_review: 0,
     shortlisted: 0,
     interviews: 0,
     offers: 0,
@@ -71,28 +72,31 @@ export function EmployerApplications() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('newest');
 
   useEffect(() => {
     loadApplications();
-  }, []);
+  }, [statusFilter]);
 
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/applications/employer');
-      // Handle both response formats: { success: true, applications: [] } or direct array
+      const params: any = {};
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+      
+      const response = await api.get('/admin/applications', { params });
       const data = response.data?.success 
         ? (response.data.applications || [])
         : (Array.isArray(response.data) ? response.data : []);
       
       setApplications(data);
       
-      // Calculate stats from real database data
+      // Calculate stats
       const stats = {
         total: data.length,
-        pending: data.filter((app: Application) => app.status === 'applied').length,
-        reviewed: data.filter((app: Application) => app.status === 'under_review').length,
+        applied: data.filter((app: Application) => app.status === 'applied').length,
+        under_review: data.filter((app: Application) => app.status === 'under_review').length,
         shortlisted: data.filter((app: Application) => app.status === 'shortlisted').length,
         interviews: data.filter((app: Application) => app.status === 'interview_scheduled' || app.status === 'interview_completed').length,
         offers: data.filter((app: Application) => app.status === 'offer_made').length,
@@ -103,12 +107,11 @@ export function EmployerApplications() {
       setStats(stats);
     } catch (error) {
       console.error('Failed to load applications:', error);
-      // Set empty state on error
       setApplications([]);
       setStats({
         total: 0,
-        pending: 0,
-        reviewed: 0,
+        applied: 0,
+        under_review: 0,
         shortlisted: 0,
         interviews: 0,
         offers: 0,
@@ -117,24 +120,6 @@ export function EmployerApplications() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateApplicationStatus = async (applicationId: string, status: string, notes?: string) => {
-    try {
-      const response = await api.patch(`/applications/${applicationId}/status`, {
-        status,
-        notes
-      });
-      
-      if (response.data.success) {
-        // Reload applications to get updated data
-        loadApplications();
-        alert('Application status updated successfully!');
-      }
-    } catch (error) {
-      console.error('Failed to update application status:', error);
-      alert('Failed to update application status');
     }
   };
 
@@ -153,43 +138,26 @@ export function EmployerApplications() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'applied': return <ClockIcon className="w-4 h-4" />;
-      case 'under_review': return <EyeIcon className="w-4 h-4" />;
-      case 'shortlisted': return <CheckIcon className="w-4 h-4" />;
-      case 'interview_scheduled': return <CalendarIcon className="w-4 h-4" />;
-      case 'interview_completed': return <CalendarIcon className="w-4 h-4" />;
-      case 'offer_made': return <CheckIcon className="w-4 h-4" />;
-      case 'hired': return <CheckIcon className="w-4 h-4" />;
-      case 'rejected': return <XIcon className="w-4 h-4" />;
-      case 'withdrawn': return <XIcon className="w-4 h-4" />;
-      default: return <ApplicationsIcon className="w-4 h-4" />;
-    }
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const formatLocation = (location: string | { city?: string; country?: string } | undefined): string => {
+    if (!location) return 'Remote';
+    if (typeof location === 'string') return location;
+    const city = location.city || '';
+    const country = location.country || '';
+    return city && country ? `${city}, ${country}` : city || country || 'Remote';
   };
 
   const filteredApplications = applications.filter(app => {
     const seekerName = (app.seeker_id as any)?.name || '';
     const jobTitle = (app.job_id as any)?.title || '';
+    const companyName = app.company_name || (app.job_id as any)?.company_name || '';
     const matchesSearch = seekerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         jobTitle.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const sortedApplications = [...filteredApplications].sort((a, b) => {
-    switch (sortBy) {
-      case 'newest':
-        return new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime();
-      case 'oldest':
-        return new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime();
-      case 'name':
-        return ((a.seeker_id as any)?.name || '').localeCompare((b.seeker_id as any)?.name || '');
-      case 'status':
-        return a.status.localeCompare(b.status);
-      default:
-        return 0;
-    }
+                         jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         companyName.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   if (loading) {
@@ -209,10 +177,10 @@ export function EmployerApplications() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Applications Management
+              All Applications
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Review and manage job applications from candidates
+              View and manage all job applications across the platform
             </p>
           </div>
         </div>
@@ -235,8 +203,8 @@ export function EmployerApplications() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.pending}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Pending Review</div>
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.applied}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">New Applications</div>
             </div>
             <div className="w-12 h-12 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex items-center justify-center">
               <ClockIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
@@ -278,7 +246,7 @@ export function EmployerApplications() {
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search candidates or jobs..."
+                placeholder="Search by candidate name, job title, or company..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -303,21 +271,6 @@ export function EmployerApplications() {
               <option value="withdrawn">Withdrawn</option>
             </select>
           </div>
-          
-          {/* Sort */}
-          <div className="flex items-center gap-2">
-            <SortAscendingIcon className="w-4 h-4 text-gray-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name">Name A-Z</option>
-              <option value="status">Status</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -325,25 +278,25 @@ export function EmployerApplications() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Applications ({sortedApplications.length})
+            Applications ({filteredApplications.length})
           </h3>
         </div>
         
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {sortedApplications.length === 0 ? (
+          {filteredApplications.length === 0 ? (
             <div className="p-8 text-center">
               <ApplicationsIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No applications found</h3>
               <p className="text-gray-600 dark:text-gray-400">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your search or filter criteria'
-                  : 'Applications will appear here when candidates apply to your jobs'
+                  : 'Applications will appear here when candidates apply to jobs'
                 }
               </p>
             </div>
           ) : (
-            sortedApplications.map((application) => (
-              <div key={application._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            filteredApplications.map((application) => (
+              <div key={application._id || application.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Candidate Avatar */}
@@ -366,19 +319,30 @@ export function EmployerApplications() {
                           {(application.seeker_id as any)?.name || 'Unknown Candidate'}
                         </h4>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                          {getStatusIcon(application.status)}
-                          <span className="ml-1 capitalize">{application.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
+                          {formatStatus(application.status)}
                         </span>
                       </div>
                       
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Applied for <span className="font-medium">{(application.job_id as any)?.title || 'Job'}</span> at {(application.job_id as any)?.company_name || (application.job_id as any)?.company || 'Company'}
+                        Applied for <span className="font-medium">{(application.job_id as any)?.title || 'Job'}</span> at {application.company_name || (application.job_id as any)?.company_name || 'Company'}
                       </p>
                       
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{((application.seeker_id as any)?.work_experience?.length || 0)} years experience</span>
-                        <span>•</span>
-                        <span>Applied {new Date(application.applied_at).toLocaleDateString()}</span>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        <span className="flex items-center gap-1">
+                          <UserIcon className="w-4 h-4" />
+                          {(application.employer_id as any)?.name || 'Employer'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ClockIcon className="w-4 h-4" />
+                          Applied {new Date(application.applied_at).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {formatLocation((application.job_id as any)?.location)}
+                        </span>
                       </div>
                       
                       {/* Skills */}
@@ -404,35 +368,20 @@ export function EmployerApplications() {
                   
                   {/* Actions */}
                   <div className="flex items-center space-x-2 ml-4">
-                    <button className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                      View Resume
-                    </button>
-                    
-                    {application.status === 'applied' && (
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => updateApplicationStatus(application._id, 'shortlisted')}
-                          className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          Shortlist
-                        </button>
-                        <button 
-                          onClick={() => updateApplicationStatus(application._id, 'rejected')}
-                          className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    
-                    {application.status === 'shortlisted' && (
-                      <button 
-                        onClick={() => updateApplicationStatus(application._id, 'interview')}
-                        className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        Schedule Interview
-                      </button>
-                    )}
+                    <Link
+                      to={`/admin/users/${(application.seeker_id as any)?._id || application.seeker_id}`}
+                      className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      View Candidate
+                    </Link>
+                    <Link
+                      to={`/admin/jobs/${(application.job_id as any)?._id || application.job_id}`}
+                      className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1"
+                    >
+                      <EyeIcon className="w-4 h-4" />
+                      View Job
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -443,3 +392,4 @@ export function EmployerApplications() {
     </DashboardLayout>
   );
 }
+

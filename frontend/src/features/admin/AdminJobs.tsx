@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
+import { useAuth } from '../../lib/store';
 import { 
   JobsIcon, 
   FilterIcon,
@@ -9,31 +10,52 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  MapPinIcon,
   CalendarIcon,
   UserIcon,
-  RefreshIcon
+  RefreshIcon,
+  TrashIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
 import { socketService } from '../../lib/socket';
 
 interface Job {
   id: string;
+  _id?: string;
   title: string;
-  company: string;
-  location: string;
+  company_name?: string;
+  company?: string; // Legacy support
+  employer_id?: {
+    name: string;
+    email: string;
+  };
+  location: string | {
+    city?: string;
+    country?: string;
+  };
   type: 'full-time' | 'part-time' | 'contract' | 'internship';
   status: 'active' | 'inactive' | 'pending' | 'expired';
-  salary?: string;
+  salary?: string | {
+    min: number;
+    max: number;
+    currency: string;
+  };
   description: string;
   requirements: string[];
-  postedBy: string;
+  postedBy?: string;
+  employer_id?: {
+    name: string;
+  };
   createdAt: string;
+  created_at?: string;
   expiresAt?: string;
-  applicationsCount: number;
+  expiry_date?: string;
+  applicationsCount?: number;
+  applications_count?: number;
 }
 
 export function AdminJobs() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +63,7 @@ export function AdminJobs() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isConnected, setIsConnected] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     loadJobs();
@@ -111,9 +134,27 @@ export function AdminJobs() {
       const response = await api.get('/admin/jobs');
       console.log('Jobs API response:', response.data);
       
-      // Ensure we always have an array
-      const jobsData = Array.isArray(response.data) ? response.data : [];
-      setJobs(jobsData);
+      // Transform backend data to match frontend interface
+      const jobsData = Array.isArray(response.data.jobs) ? response.data.jobs : (Array.isArray(response.data) ? response.data : []);
+      const transformedJobs: Job[] = jobsData.map((job: any) => ({
+        id: job._id || job.id,
+        _id: job._id,
+        title: job.title,
+        company_name: job.company_name,
+        company: job.company_name || job.company || job.employer_id?.name || 'Unknown Company',
+        employer_id: job.employer_id,
+        location: typeof job.location === 'string' ? job.location : `${job.location?.city || ''}${job.location?.city && job.location?.country ? ', ' : ''}${job.location?.country || ''}`,
+        type: job.job_type || job.type,
+        status: job.is_active === false ? 'inactive' : (job.status || 'active'),
+        salary: job.salary, // Keep original format, format when rendering
+        description: job.description,
+        requirements: job.requirements || [],
+        postedBy: job.employer_id?.name,
+        createdAt: job.created_at || job.createdAt,
+        expiresAt: job.expiry_date || job.expiresAt,
+        applicationsCount: job.applications_count || job.applicationsCount || 0
+      }));
+      setJobs(transformedJobs);
     } catch (error: any) {
       console.error('Failed to load jobs:', error);
       console.error('Error response:', error.response?.data);
@@ -130,14 +171,47 @@ export function AdminJobs() {
 
   const updateJobStatus = async (jobId: string, status: 'active' | 'inactive') => {
     try {
+      setError(null);
       await api.patch(`/admin/jobs/${jobId}`, { status });
       setJobs((jobs || []).map(job => 
         job.id === jobId ? { ...job, status } : job
       ));
     } catch (error: any) {
       console.error('Failed to update job status:', error);
-      setError('Failed to update job status. Please try again.');
+      setError(error.response?.data?.error || 'Failed to update job status. Please try again.');
     }
+  };
+
+  const deleteJob = async (jobId: string) => {
+    if (!window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingJobId(jobId);
+      setError(null);
+      await api.delete(`/admin/jobs/${jobId}`);
+      setJobs((jobs || []).filter(job => job.id !== jobId));
+    } catch (error: any) {
+      console.error('Failed to delete job:', error);
+      setError(error.response?.data?.error || 'Failed to delete job. Please try again.');
+    } finally {
+      setDeletingJobId(null);
+    }
+  };
+
+  // Check if user can perform actions on a job
+  const canManageJob = (job: Job): boolean => {
+    if (!user) return false;
+    // Admin can manage all jobs
+    if (user.role === 'admin') return true;
+    // Employer can only manage their own jobs
+    if (user.role === 'employer') {
+      const jobEmployerId = typeof job.employer_id === 'object' ? job.employer_id?._id : job.employer_id;
+      return jobEmployerId === user.id;
+    }
+    // Job seekers cannot manage any jobs
+    return false;
   };
 
   const getTypeColor = (type: string) => {
@@ -170,10 +244,29 @@ export function AdminJobs() {
     }
   };
 
+  const formatSalary = (salary?: string | { min?: number; max?: number; currency?: string }): string => {
+    if (!salary) return '';
+    if (typeof salary === 'string') return salary;
+    if (typeof salary === 'object') {
+      const { min, max, currency = 'RWF' } = salary;
+      if (min && max) {
+        return `${currency} ${min.toLocaleString()} - ${max.toLocaleString()}`;
+      } else if (min) {
+        return `${currency} ${min.toLocaleString()}+`;
+      } else if (max) {
+        return `Up to ${currency} ${max.toLocaleString()}`;
+      }
+      return 'Salary not specified';
+    }
+    return '';
+  };
+
   const filteredJobs = (jobs || []).filter(job => {
+    const companyName = job.company_name || job.company || job.employer_id?.name || '';
+    const locationStr = typeof job.location === 'string' ? job.location : `${job.location?.city || ''}${job.location?.city && job.location?.country ? ', ' : ''}${job.location?.country || ''}`;
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.location.toLowerCase().includes(searchTerm.toLowerCase());
+                         companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         locationStr.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || job.type === typeFilter;
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
     return matchesSearch && matchesType && matchesStatus;
@@ -200,23 +293,6 @@ export function AdminJobs() {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Jobs</h1>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Review and manage all job postings on the platform</p>
-          </div>
-          
-          {/* Connection Status and Refresh */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Live
-              </span>
-            </div>
-            <button
-              onClick={handleRefresh}
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <RefreshIcon className="w-4 h-4 mr-2" />
-              Refresh
-            </button>
           </div>
         </div>
 
@@ -272,90 +348,104 @@ export function AdminJobs() {
         </div>
       </div>
 
-      {/* Jobs List */}
-      <div className="space-y-6">
-        {filteredJobs.map((job) => (
-          <div key={job.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {job.title}
-                  </h3>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(job.type)}`}>
-                    {job.type.charAt(0).toUpperCase() + job.type.slice(1).replace('-', ' ')}
-                  </span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                    {getStatusIcon(job.status)}
-                    <span className="ml-1">{job.status.charAt(0).toUpperCase() + job.status.slice(1)}</span>
-                  </span>
-                </div>
+      {/* Jobs List - Small Square Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredJobs.map((job) => {
+          const canManage = canManageJob(job);
+          const isDeleting = deletingJobId === job.id;
+          
+          return (
+            <div 
+              key={job.id} 
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow duration-200 flex flex-col"
+            >
+              {/* Job Title */}
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-3 line-clamp-2 min-h-[3rem]">
+                {job.title}
+              </h3>
+              
+              {/* Employer */}
+              <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <UserIcon className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                <span className="truncate">
+                  {job.company_name || job.company || job.employer_id?.name || 'Unknown Company'}
+                </span>
+              </div>
+              
+              {/* Application Deadline */}
+              {job.expiresAt && (() => {
+                const deadlineDate = new Date(job.expiresAt);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                deadlineDate.setHours(0, 0, 0, 0);
+                const isPassed = deadlineDate < today;
                 
-                <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  <div className="flex items-center">
-                    <UserIcon className="w-4 h-4 mr-1" />
-                    {job.company}
+                return (
+                  <div className={`flex items-center text-sm mb-3 ${isPassed 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-green-600 dark:text-green-400'
+                  }`}>
+                    <CalendarIcon className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                    <span className="flex items-center gap-2">
+                      <span>Deadline: {new Date(job.expiresAt).toLocaleDateString()}</span>
+                      {isPassed && (
+                        <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                          Closed
+                        </span>
+                      )}
+                    </span>
                   </div>
-                  <div className="flex items-center">
-                    <MapPinIcon className="w-4 h-4 mr-1" />
-                    {job.location}
-                  </div>
-                  <div className="flex items-center">
-                    <CalendarIcon className="w-4 h-4 mr-1" />
-                    Posted {new Date(job.createdAt).toLocaleDateString()}
-                  </div>
-                  {job.salary && (
-                    <div className="text-green-600 dark:text-green-400 font-medium">
-                      {job.salary}
-                    </div>
-                  )}
-                </div>
+                );
+              })()}
+              
+              {/* Action Icons */}
+              <div className="flex items-center justify-end gap-2 mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
+                {/* View Icon - Always visible for all users */}
+                <Link
+                  to={`/admin/jobs/${job.id}`}
+                  className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  title="View Details"
+                >
+                  <EyeIcon className="w-5 h-5" />
+                </Link>
                 
-                <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                  {job.description}
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>{job.applicationsCount} applications</span>
-                    <span>Posted by {job.postedBy}</span>
-                    {job.expiresAt && (
-                      <span>Expires {new Date(job.expiresAt).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      to={`/admin/jobs/${job.id}`}
-                      className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      <EyeIcon className="w-4 h-4 mr-1" />
-                      View Details
-                    </Link>
-                    
+                {/* Management Icons - Only show if user can manage */}
+                {canManage && (
+                  <>
+                    {/* Deactivate/Activate Icon */}
                     {job.status === 'active' ? (
                       <button 
                         onClick={() => updateJobStatus(job.id, 'inactive')}
-                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        className="p-2 text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                        title="Deactivate"
                       >
-                        <XCircleIcon className="w-4 h-4 mr-1" />
-                        Deactivate
+                        <XCircleIcon className="w-5 h-5" />
                       </button>
                     ) : (
                       <button 
                         onClick={() => updateJobStatus(job.id, 'active')}
-                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                        className="p-2 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                        title="Activate"
                       >
-                        <CheckCircleIcon className="w-4 h-4 mr-1" />
-                        Activate
+                        <CheckCircleIcon className="w-5 h-5" />
                       </button>
                     )}
-                  </div>
-                </div>
+                    
+                    {/* Delete Icon */}
+                    <button 
+                      onClick={() => deleteJob(job.id)}
+                      disabled={isDeleting}
+                      className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
         {filteredJobs.length === 0 && (
           <div className="text-center py-12">
