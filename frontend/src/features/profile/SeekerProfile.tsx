@@ -12,6 +12,7 @@ import {
   TrashIcon,
   SaveIcon,
   UploadIcon,
+  DownloadIcon,
 } from '../../components/icons';
 
 interface Education {
@@ -214,11 +215,11 @@ export function SeekerProfile() {
     }
   };
 
-  // Use storage service for document uploads (Firebase Storage when configured, Cloudinary as fallback)
+  // Use storage service for document uploads (Cloudinary for PDFs and documents)
   const uploadCVToCloudinary = async (file: File): Promise<string> => {
     const { uploadFile } = await import('../../lib/storage.service');
     return uploadFile(file, 'document', { 
-      folder: 'cv_resumes',
+      folder: 'emirimo/documents',
       onProgress: (progress) => {
         // Optional: Show upload progress
         if (progress === 100) {
@@ -305,6 +306,50 @@ export function SeekerProfile() {
       setUploadingCV(false);
       // Reset file input
       if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleDownloadCV = async () => {
+    if (!profile.cv_url) {
+      setMessage('Error: No CV/Resume uploaded');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
+    try {
+      // Fetch the file from Cloudinary URL
+      const response = await fetch(profile.cv_url);
+      if (!response.ok) {
+        throw new Error('Failed to download CV');
+      }
+
+      // Get the blob
+      const blob = await response.blob();
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Extract filename from URL or use default
+      const urlParts = profile.cv_url.split('/');
+      const fileName = urlParts[urlParts.length - 1].split('?')[0] || 'resume.pdf';
+      
+      // Create a temporary anchor element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setMessage('CV/Resume downloaded successfully');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error: any) {
+      console.error('Error downloading CV:', error);
+      setMessage('Error: Failed to download CV/Resume. Please try again.');
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 
@@ -569,6 +614,16 @@ export function SeekerProfile() {
               <UploadIcon className="w-4 h-4" />
               {uploadingCV ? 'Uploading...' : 'Upload CV/Resume'}
             </label>
+            {profile.cv_url && (
+              <button
+                onClick={handleDownloadCV}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="Download uploaded CV/Resume"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                Download CV/Resume
+              </button>
+            )}
             <button
               onClick={handleSave}
               disabled={saving}

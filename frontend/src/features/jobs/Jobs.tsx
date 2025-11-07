@@ -212,7 +212,18 @@ export function Jobs(){
                 Clear All Filters
               </button>
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                {jobs.length} jobs found
+                {activeTab === 'all' 
+                  ? (() => {
+                      // Count unique jobs (including recommended ones that might not be in regular list)
+                      const allJobIds = new Set(jobs.map(j => j._id));
+                      recommendations.forEach(rec => {
+                        const recJobId = (rec.job?._id || rec._id);
+                        if (recJobId) allJobIds.add(recJobId);
+                      });
+                      return allJobIds.size;
+                    })()
+                  : recommendations.length
+                } jobs found
               </div>
             </div>
           </div>
@@ -224,7 +235,18 @@ export function Jobs(){
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400 text-lg">{t('loading')}</p>
         </div>
-      ) : (activeTab === 'all' ? jobs : recommendations).length === 0 ? (
+      ) : (() => {
+          // Calculate jobs to display for empty check
+          if (activeTab === 'all' && recommendations.length > 0) {
+            const allJobIds = new Set(jobs.map(j => j._id));
+            recommendations.forEach(rec => {
+              const recJobId = (rec.job?._id || rec._id);
+              if (recJobId) allJobIds.add(recJobId);
+            });
+            return allJobIds.size === 0;
+          }
+          return (activeTab === 'all' ? jobs : recommendations).length === 0;
+        })() ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +262,50 @@ export function Jobs(){
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(activeTab === 'all' ? jobs : recommendations).map(job=>{
+          {(() => {
+            // Merge recommended jobs into all jobs when "All Jobs" tab is active
+            let jobsToDisplay = activeTab === 'all' ? jobs : recommendations;
+            
+            if (activeTab === 'all' && recommendations.length > 0) {
+              // Create a map of recommended job IDs for quick lookup
+              const recommendedJobIds = new Set(
+                recommendations.map(rec => rec.job?._id || rec._id)
+              );
+              
+              // Mark recommended jobs in the all jobs list
+              jobsToDisplay = jobs.map(job => {
+                const isRecommended = recommendedJobIds.has(job._id);
+                let score = undefined;
+                if (isRecommended) {
+                  const matchingRec = recommendations.find(rec => {
+                    const recJobId = rec.job?._id || rec._id;
+                    return recJobId === job._id;
+                  });
+                  score = matchingRec?.score || matchingRec?.matchScore;
+                }
+                return {
+                  ...job,
+                  isRecommended,
+                  score
+                };
+              });
+              
+              // Also add any recommended jobs that aren't in the regular jobs list
+              recommendations.forEach(rec => {
+                const recJob = rec.job || rec;
+                const recJobId = recJob._id;
+                if (!jobs.some(j => j._id === recJobId)) {
+                  jobsToDisplay.push({
+                    ...recJob,
+                    isRecommended: true,
+                    score: rec.score || rec.matchScore
+                  });
+                }
+              });
+            }
+            
+            return jobsToDisplay;
+          })().map(job=>{
             // Format location
             const formatLocation = (loc: any): string => {
               if (!loc) return 'Location not specified';
@@ -277,10 +342,18 @@ export function Jobs(){
               >
                 {/* Simple Card Content - Only Essential Details */}
                 <div className="p-6 flex-1 flex flex-col">
-                  {/* Job Title */}
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors mb-3 line-clamp-2">
-                    {job.title}
-                  </h3>
+                  {/* Job Title with Recommended Badge */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2 flex-1">
+                      {job.title}
+                    </h3>
+                    {(job.isRecommended || activeTab === 'recommended') && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white whitespace-nowrap flex-shrink-0">
+                        <StarIcon className="w-3 h-3 mr-1" />
+                        Recommended
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Employer Name */}
                   <div className="flex items-center gap-2 mb-4">
@@ -309,7 +382,7 @@ export function Jobs(){
                   )}
 
                   {/* Match Score for Recommendations */}
-                  {activeTab === 'recommended' && job.score && (
+                  {(job.isRecommended || activeTab === 'recommended') && job.score && (
                     <div className="flex items-center gap-2 mb-4">
                       <StarIcon className="w-4 h-4 text-yellow-500" />
                       <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">

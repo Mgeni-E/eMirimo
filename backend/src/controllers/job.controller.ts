@@ -501,20 +501,27 @@ export const getRecommendations = async (req:any,res:Response)=>{
   const userSkillNames = user.skills?.map((s: any) => typeof s === 'string' ? s : s?.name).filter(Boolean) || [];
   
   // Find jobs that match user skills (check both required_skills and preferred_skills)
+  // Get more jobs initially so we can calculate scores and then sort by match score
+  // Include jobs with status 'active' OR is_active true (for backward compatibility)
   const jobs = await Job.find({
-    is_active: true,
     $or: [
-      { 'required_skills.name': { $in: userSkillNames } },
-      { 'preferred_skills.name': { $in: userSkillNames } },
-      { skills: { $in: userSkillNames } }
+      { status: 'active' },
+      { is_active: true }
+    ],
+    $and: [
+      {
+        $or: [
+          { 'required_skills.name': { $in: userSkillNames } },
+          { 'preferred_skills.name': { $in: userSkillNames } },
+          { skills: { $in: userSkillNames } }
+        ]
+      }
     ]
   })
   .populate('employer_id', 'name email')
-  .sort({ created_at: -1 })
-  .limit(10)
   .lean();
   
-  // Calculate match scores
+  // Calculate match scores for all matching jobs
   const jobsWithScores = jobs.map(job => {
     const jobSkills = [
       ...(job.required_skills || []).map((s: any) => typeof s === 'string' ? s : s?.name),
@@ -537,5 +544,17 @@ export const getRecommendations = async (req:any,res:Response)=>{
     };
   });
   
-  res.json(jobsWithScores.sort((a, b) => b.matchScore - a.matchScore));
+  // Sort by match score (highest first), then by creation date (newest first) as tiebreaker
+  // Limit to top 10 after sorting by relevance
+  const sortedJobs = jobsWithScores.sort((a, b) => {
+    if (b.matchScore !== a.matchScore) {
+      return b.matchScore - a.matchScore;
+    }
+    // If scores are equal, prefer newer jobs
+    const aDate = new Date(a.created_at || a.posted_at || 0).getTime();
+    const bDate = new Date(b.created_at || b.posted_at || 0).getTime();
+    return bDate - aDate;
+  }).slice(0, 10);
+  
+  res.json(sortedJobs);
 };

@@ -39,17 +39,61 @@ export function JobRecommendations() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchRecommendations();
-  }, []);
+    if (user) {
+      fetchRecommendations();
+    }
+  }, [user]);
 
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await api.get('/jobs/recommendations');
-      setRecommendations(response.data.recommendations || []);
+      
+      // Handle different response formats
+      let recommendationsData: any[] = [];
+      
+      if (Array.isArray(response.data)) {
+        // Direct array response
+        recommendationsData = response.data;
+      } else if (response.data?.recommendations) {
+        // Object with recommendations array
+        recommendationsData = response.data.recommendations;
+      } else if (response.data?.data) {
+        // Object with data array
+        recommendationsData = response.data.data;
+      }
+      
+      // Normalize the data structure - handle both { job, score } and { job, matchScore } formats
+      const normalized = recommendationsData.map((rec: any) => {
+        // If rec is already a job object (from some endpoints), wrap it
+        if (rec._id && rec.title && !rec.job) {
+          return {
+            job: rec,
+            score: rec.matchScore || rec.score || 0,
+            reasons: rec.reasons || []
+          };
+        }
+        // Otherwise, ensure we have the right structure
+        return {
+          job: rec.job || rec,
+          score: rec.score || rec.matchScore || 0,
+          reasons: rec.reasons || []
+        };
+      }).filter((rec: any) => {
+        // Only filter out if job is completely missing or invalid
+        if (!rec || !rec.job) return false;
+        if (!rec.job._id && !rec.job.id) return false;
+        return true;
+      });
+      
+      console.log('Job Recommendations - Raw data:', recommendationsData);
+      console.log('Job Recommendations - Normalized:', normalized.length, normalized);
+      setRecommendations(normalized);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
       setError('Failed to load job recommendations');
+      setRecommendations([]);
     } finally {
       setLoading(false);
     }
@@ -114,124 +158,131 @@ export function JobRecommendations() {
   }
 
   return (
-    <div className="space-y-4">
-      {recommendations.slice(0, 3).map((rec) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {recommendations.slice(0, 6).map((rec, index) => (
         <div
-          key={rec.job._id}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+          key={rec.job?._id || rec.job?.id || `rec-${index}`}
+          className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200 flex flex-col"
         >
-          <div className="flex justify-between items-start mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {rec.job.title}
-                </h3>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
-                  <StarIcon className="w-3 h-3 mr-1" />
-                  Recommended
-                </span>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
-                {rec.job.employer_id.name}
-              </p>
-              <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-sm">
-                {rec.job.description}
-              </p>
-            </div>
-            <div className="ml-4 text-right">
-              <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getScoreColor(rec.score)}`}>
-                <StarIcon className="w-4 h-4 mr-1" />
-                {rec.score}%
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {getScoreLabel(rec.score)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div className="flex items-center text-gray-600 dark:text-gray-400">
-              <MapPinIcon className="w-4 h-4 mr-1" />
-              <span className="text-sm">{rec.job.location}</span>
-            </div>
-            <div className="flex items-center text-gray-600 dark:text-gray-400">
-              <BriefcaseIcon className="w-4 h-4 mr-1" />
-              <span className="text-sm capitalize">{rec.job.type}</span>
-            </div>
-            {(() => {
-              const deadlineDate = new Date(rec.job.deadline);
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              deadlineDate.setHours(0, 0, 0, 0);
-              const isPassed = deadlineDate < today;
-              
-              return (
-                <div className={`flex items-center text-sm ${isPassed 
-                  ? 'text-red-600 dark:text-red-400' 
-                  : 'text-green-600 dark:text-green-400'
-                }`}>
-                  <ClockIcon className="w-4 h-4 mr-1" />
-                  <span className="flex items-center gap-2">
-                    <span>{new Date(rec.job.deadline).toLocaleDateString()}</span>
-                    {isPassed && (
-                      <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
-                        Closed
-                      </span>
-                    )}
+          <div className="flex-1">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-1">
+                    {rec.job?.title || 'Job Title'}
+                  </h3>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white flex-shrink-0">
+                    <StarIcon className="w-2.5 h-2.5 mr-0.5" />
+                    Rec
                   </span>
                 </div>
-              );
-            })()}
-            {rec.job.salary_min && rec.job.salary_max && (
-              <div className="text-gray-600 dark:text-gray-400">
-                <span className="text-sm font-medium">
-                  {rec.job.salary_min.toLocaleString()} - {rec.job.salary_max.toLocaleString()} {rec.job.currency}
-                </span>
+                <p className="text-gray-600 dark:text-gray-400 mb-1.5 text-sm font-medium truncate">
+                  {rec.job.employer_id?.name || rec.job.company_name || rec.job.employer_id?.company_name || 'Company'}
+                </p>
+                <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs mb-2">
+                  {rec.job?.description || rec.job?.short_description || 'No description available'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-3">
+              {(() => {
+                // Handle both decimal (0.85) and percentage (85) formats
+                const scoreValue = typeof rec.score === 'number' 
+                  ? (rec.score > 1 ? rec.score : Math.round(rec.score * 100))
+                  : 0;
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getScoreColor(scoreValue)}`}>
+                      <StarIcon className="w-3 h-3 mr-0.5" />
+                      {scoreValue}%
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {getScoreLabel(scoreValue)}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3 text-xs">
+              {rec.job.location && (
+                <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <MapPinIcon className="w-3 h-3 mr-0.5" />
+                  <span className="truncate max-w-[100px]">
+                    {typeof rec.job.location === 'string' 
+                      ? rec.job.location 
+                      : (rec.job.location.city || rec.job.location.address || 'Location')}
+                  </span>
+                </div>
+              )}
+              {rec.job.type && (
+                <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <BriefcaseIcon className="w-3 h-3 mr-0.5" />
+                  <span className="capitalize">{rec.job.type}</span>
+                </div>
+              )}
+              {(rec.job.deadline || rec.job.application_deadline || rec.job.expiry_date) && (() => {
+                const deadline = rec.job.deadline || rec.job.application_deadline || rec.job.expiry_date;
+                const deadlineDate = new Date(deadline);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                deadlineDate.setHours(0, 0, 0, 0);
+                const isPassed = deadlineDate < today;
+                
+                return (
+                  <div className={`flex items-center ${isPassed 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : 'text-green-600 dark:text-green-400'
+                  }`}>
+                    <ClockIcon className="w-3 h-3 mr-0.5" />
+                    <span className="text-xs">{new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {rec.job.skills && rec.job.skills.length > 0 && (
+              <div className="mb-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {rec.job.skills.slice(0, 3).map((skill, index) => (
+                    <span
+                      key={index}
+                      className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {rec.job.skills.length > 3 && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
+                      +{rec.job.skills.length - 3}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {rec.reasons && rec.reasons.length > 0 && (
+              <div className="mb-3">
+                <div className="flex items-start text-xs text-gray-600 dark:text-gray-400">
+                  <CheckCircleIcon className="w-3 h-3 text-green-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span className="line-clamp-1">{rec.reasons[0]}</span>
+                </div>
               </div>
             )}
           </div>
 
-          {rec.job.skills && rec.job.skills.length > 0 && (
-            <div className="mb-4">
-              <div className="flex flex-wrap gap-2">
-                {rec.job.skills.slice(0, 4).map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-xs font-medium"
-                  >
-                    {skill}
-                  </span>
-                ))}
-                {rec.job.skills.length > 4 && (
-                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-md text-xs">
-                    +{rec.job.skills.length - 4} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {rec.reasons && rec.reasons.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-start text-sm text-gray-600 dark:text-gray-400">
-                <CheckCircleIcon className="w-4 h-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="line-clamp-1">{rec.reasons[0]}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-gray-200 dark:border-gray-600">
             <Link
-              to={`/jobs/${rec.job._id}`}
-              className="px-4 py-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
+              to={`/jobs/${rec.job?._id || rec.job?.id}`}
+              className="w-full text-center px-3 py-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
             >
               View Details
             </Link>
-            {/* Only show Apply Now button for job seekers */}
             {user && user.role === 'seeker' && (
               <Link
-                to={`/jobs/${rec.job._id}`}
-                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                to={`/jobs/${rec.job?._id || rec.job?.id}`}
+                className="w-full text-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
               >
                 Apply Now
               </Link>

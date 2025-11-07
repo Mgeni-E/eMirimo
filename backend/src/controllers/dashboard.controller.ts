@@ -271,15 +271,17 @@ function isNonEmpty(value: any): boolean {
 function calculateProfileCompletion(user: any): number {
   const seeker = user?.job_seeker_profile || {};
   const skills = Array.isArray(user?.skills) ? user.skills : [];
+  
+  // Use professional_summary if available, otherwise fall back to bio (they serve the same purpose)
+  const professionalSummary = seeker?.professional_summary || user?.bio;
 
   const requiredFields: any[] = [
     user?.name,
     user?.email,
-    user?.bio,
+    user?.bio || professionalSummary, // Bio or professional_summary (counted once)
     user?.phone,
     user?.profile_image,
     skills,
-    seeker?.professional_summary,
     seeker?.work_experience,
     seeker?.education,
     seeker?.languages,
@@ -387,18 +389,32 @@ async function getLearningRecommendations(userId: string, limit: number) {
     if (RecommendationService?.getCourseRecommendations) {
       const recs = await RecommendationService.getCourseRecommendations(userId, limit);
       if (Array.isArray(recs) && recs.length > 0) {
-        return recs.map((r: any) => r.course || r).slice(0, limit);
+        // Return recommendation objects with course and matchScore
+        return recs.map((r: any) => ({
+          course: r.course || r.resource || r,
+          matchScore: r.matchScore || r.relevanceScore || 0.6,
+          reasons: r.reasons || [],
+          skillsGap: r.skillsGap || []
+        })).slice(0, limit);
       }
     }
-  } catch {}
+  } catch (error) {
+    console.error('Error getting course recommendations:', error);
+  }
 
-  // Return real learning resources from database
+  // Fallback: Return real learning resources from database
   const resources = await LearningResource.find({ is_active: true })
     .sort({ created_at: -1 })
     .limit(limit)
     .lean();
 
-  return resources || [];
+  // Format as recommendation objects
+  return (resources || []).map((resource: any) => ({
+    course: resource,
+    matchScore: 0.6,
+    reasons: [],
+    skillsGap: []
+  }));
 }
 
 async function getTopPerformingJobs(employerId: string) {

@@ -15,7 +15,7 @@ import {
   BookOpenIcon
 } from '../../components/icons';
 import { JobRecommendations } from '../jobs/JobRecommendations';
-import { PlatformAnalyticsChart } from '../../components/PlatformAnalyticsChart';
+import { LearningRecommendations } from '../learning/LearningRecommendations';
 
 interface DashboardStats {
   totalApplications: number;
@@ -349,111 +349,49 @@ export function SeekerDashboard() {
         </div>
       </div>
 
-      {/* AI-Powered Job Recommendations */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 p-8 my-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-              <StarIcon className="w-6 h-6 text-white" />
-            </div>
+      {/* Recommended Jobs */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recommendedForYou')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t('aiPoweredMatches')}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Recommended for You</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Jobs matched to your profile and preferences</p>
             </div>
+            <Link 
+              to="/jobs" 
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center"
+            >
+              View all
+              <ArrowRightIcon className="w-4 h-4 ml-1" />
+            </Link>
           </div>
-          <Link to="/jobs" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-            {t('viewAllJobs')}
-          </Link>
         </div>
-        <JobRecommendations />
-      </div>
-
-      {/* Learning Resources Quick Access */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 my-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('learningResources')}</h3>
-          <Link to="/learning" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-            {t('viewAllResources')}
-          </Link>
-        </div>
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <DocumentIcon className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-          </div>
-          <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('boostYourSkills')}</h4>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{t('accessPersonalizedLearning')}</p>
-          <Link 
-            to="/learning" 
-            className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-          >
-            {t('exploreLearningResources')}
-            <ArrowRightIcon className="w-4 h-4 ml-2" />
-          </Link>
+        <div className="p-6">
+          <JobRecommendations />
         </div>
       </div>
 
-      {/* AI Recommendations */}
-      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg shadow-sm border border-purple-200 dark:border-purple-700 p-8 my-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <LightBulbIcon className="w-6 h-6 text-white" />
-            </div>
+      {/* Learning Resources */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('aiRecommendations')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t('personalizedForProfile')}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Learning Resources</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Courses and materials to enhance your skills</p>
             </div>
+            <Link 
+              to="/learning" 
+              className="text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors flex items-center"
+            >
+              View all
+              <ArrowRightIcon className="w-4 h-4 ml-1" />
+            </Link>
           </div>
-          <Link to="/recommendations" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-            {t('viewAll')}
-          </Link>
         </div>
-        <div className="text-center py-8">
-          <h4 className="text-xl font-medium text-gray-900 dark:text-white mb-4">{t('getPersonalizedRecommendations')}</h4>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{t('aiPoweredJobCourse')}</p>
-          <Link 
-            to="/recommendations" 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
-          >
-            <LightBulbIcon className="w-5 h-5 mr-2" />
-            {t('viewAiRecommendations')}
-            <ArrowRightIcon className="w-4 h-4 ml-2" />
-          </Link>
+        <div className="p-6">
+          <LearningRecommendations />
         </div>
       </div>
-
-      {/* Learning & Development */}
-      <div className="bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 rounded-lg shadow-sm border border-green-200 dark:border-green-700 p-8 my-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg flex items-center justify-center">
-              <BookOpenIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('learningDevelopment')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t('enhanceSkillsCurated')}</p>
-            </div>
-          </div>
-          <Link to="/learning" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-            {t('viewAll')}
-          </Link>
-        </div>
-        <div className="text-center py-8">
-          <h4 className="text-xl font-medium text-gray-900 dark:text-white mb-4">{t('upskillForSuccess')}</h4>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{t('accessCoursesTutorials')}</p>
-          <Link 
-            to="/learning" 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
-          >
-            <BookOpenIcon className="w-5 h-5 mr-2" />
-            {t('startLearning')}
-            <ArrowRightIcon className="w-4 h-4 ml-2" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Platform Analytics Charts */}
-      <PlatformAnalyticsChart />
     </DashboardLayout>
   );
 }

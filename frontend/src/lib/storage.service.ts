@@ -1,8 +1,7 @@
 /**
  * Storage Service
  * Abstracts file uploads to different storage providers
- * - Cloudinary: For images (profile pictures, cover images)
- * - Firebase Storage: For documents (CVs, Resumes, PDFs, DOCs)
+ * - Cloudinary: For images (profile pictures, cover images) and documents (CVs, Resumes, PDFs, DOCs)
  */
 
 export type StorageProvider = 'cloudinary' | 'firebase';
@@ -22,12 +21,8 @@ export async function uploadFile(
   if (category === 'image') {
     return uploadImageToCloudinary(file, options);
   } else {
-    // Documents: Use Firebase Storage (when configured) or Cloudinary (fallback)
-    return uploadDocumentToFirebase(file, options).catch(() => {
-      // Fallback to Cloudinary if Firebase is not configured
-      console.warn('Firebase Storage not configured, falling back to Cloudinary');
-      return uploadDocumentToCloudinary(file, options);
-    });
+    // Documents: Use Cloudinary directly (supports PDFs, DOCs, etc.)
+    return uploadDocumentToCloudinary(file, options);
   }
 }
 
@@ -39,10 +34,11 @@ export async function uploadImageToCloudinary(
   options?: { folder?: string; onProgress?: (progress: number) => void }
 ): Promise<string> {
   const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
-  const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+  // Use image preset if specified, otherwise fall back to default preset
+  const preset = import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
   
   if (!cloud || !preset) {
-    throw new Error('Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET');
+    throw new Error('Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET (or VITE_CLOUDINARY_IMAGE_PRESET)');
   }
 
   const url = `https://api.cloudinary.com/v1_1/${cloud}/upload`;
@@ -176,25 +172,29 @@ export async function uploadDocumentToFirebase(
 }
 
 /**
- * Upload document to Cloudinary (fallback for when Firebase is not available)
+ * Upload document to Cloudinary
+ * Supports PDFs, DOCs, DOCX, and other document formats
  */
 export async function uploadDocumentToCloudinary(
   file: File,
   options?: { folder?: string; onProgress?: (progress: number) => void }
 ): Promise<string> {
   const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
-  const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
+  // Use document preset if specified, otherwise fall back to default preset
+  const preset = import.meta.env.VITE_CLOUDINARY_DOCUMENT_PRESET || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
   
   if (!cloud || !preset) {
-    throw new Error('Cloudinary is not configured');
+    throw new Error('Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_DOCUMENT_PRESET (or VITE_CLOUDINARY_UPLOAD_PRESET)');
   }
 
   // Determine resource type based on file type
   const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-  let resourceType = 'auto';
+  let resourceType = 'raw'; // Default to 'raw' for documents
   
-  // For PDF, DOC, DOCX files, use 'raw' resource type
-  if (fileExtension === '.pdf' || fileExtension === '.doc' || fileExtension === '.docx') {
+  // For PDF, DOC, DOCX, TXT files, use 'raw' resource type (required for documents)
+  // Cloudinary requires 'raw' resource type for non-image files like PDFs
+  const documentExtensions = ['.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt'];
+  if (documentExtensions.includes(fileExtension)) {
     resourceType = 'raw';
   }
 
@@ -204,17 +204,44 @@ export async function uploadDocumentToCloudinary(
   form.append('upload_preset', preset);
   form.append('resource_type', resourceType);
   
-  if (options?.folder) {
-    form.append('folder', options.folder);
-  } else {
-    form.append('folder', 'cv_resumes');
+  // Set folder - use provided folder or default to emirimo/documents to match preset
+  const folder = options?.folder || 'emirimo/documents';
+  form.append('folder', folder);
+  
+  // CRITICAL: For raw files (PDFs, documents), we must ensure no transformations are applied
+  // Cloudinary supports PDF uploads, but they must be uploaded as resource_type: raw
+  // The preset should have Resource Type = Raw and NO transformation settings
+  // We explicitly do NOT send any transformation parameters (format, eager, etc.)
+  // 
+  // If you get "Invalid extension in transformation: raw" error, check your preset:
+  // 1. Go to Cloudinary Dashboard → Settings → Upload → Upload Presets
+  // 2. Edit your 'emirimo-documents' preset
+  // 3. Ensure Resource Type = Raw (not Image/Auto)
+  // 4. Remove ALL transformation settings (eager, eager_async, transformations, etc.)
+  // 5. Set Format = raw (if field exists) as a resource type, NOT as a transformation
+  // 6. Save the preset
+
+  // Note: Cloudinary doesn't support progress tracking via fetch API
+  // Progress tracking would require XMLHttpRequest, but for simplicity we use fetch
+  // If progress is needed, we can implement XHR version later
+  if (options?.onProgress) {
+    // Simulate progress for better UX (Cloudinary doesn't provide real-time progress via fetch)
+    options.onProgress(50); // Show 50% during upload
   }
 
   const res = await fetch(url, { method: 'POST', body: form });
   
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    const errorMsg = errorData.error?.message || `Failed to upload document: ${res.status} ${res.statusText}`;
+    console.error('Cloudinary upload error:', errorData);
+    
+    let errorMsg = errorData.error?.message || errorData.message || `Failed to upload document: ${res.status} ${res.statusText}`;
+    
+    // Provide helpful error message for common preset configuration issues
+    if (errorMsg.includes('Invalid extension in transformation') || errorMsg.includes('transformation')) {
+      errorMsg = `Cloudinary preset configuration error: ${errorMsg}. Please check your 'emirimo-documents' preset in Cloudinary Dashboard. Ensure Resource Type = Raw and remove all transformation settings.`;
+    }
+    
     throw new Error(errorMsg);
   }
 
@@ -222,6 +249,10 @@ export async function uploadDocumentToCloudinary(
   
   if (!data.secure_url) {
     throw new Error('Cloudinary upload succeeded but no URL returned');
+  }
+
+  if (options?.onProgress) {
+    options.onProgress(100); // Complete
   }
 
   return data.secure_url;
@@ -241,9 +272,15 @@ export function isFirebaseConfigured(): boolean {
  * Check if Cloudinary is configured
  */
 export function isCloudinaryConfigured(): boolean {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const imagePreset = import.meta.env.VITE_CLOUDINARY_IMAGE_PRESET;
+  const documentPreset = import.meta.env.VITE_CLOUDINARY_DOCUMENT_PRESET;
+  const fallbackPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  
+  // Cloudinary is configured if we have cloud name and at least one preset
   return !!(
-    import.meta.env.VITE_CLOUDINARY_CLOUD_NAME &&
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    cloudName && 
+    (imagePreset || documentPreset || fallbackPreset)
   );
 }
 

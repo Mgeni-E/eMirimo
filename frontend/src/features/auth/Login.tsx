@@ -1,11 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/store';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '../../components/icons';
 import { useNotification } from '../../contexts/NotificationContext';
+
+const REMEMBER_ME_KEY = 'remembered_email';
+const REMEMBER_ME_CHECKED_KEY = 'remember_me_checked';
 
 export function Login(){
   const nav = useNavigate();
@@ -17,6 +20,18 @@ export function Login(){
   const [error, setError] = useState('');
   const [errorDetails, setErrorDetails] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Load remembered email on component mount
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem(REMEMBER_ME_KEY);
+    const rememberMeChecked = localStorage.getItem(REMEMBER_ME_CHECKED_KEY) === 'true';
+    
+    if (rememberedEmail && rememberMeChecked) {
+      setForm(prev => ({ ...prev, email: rememberedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
   const submit = async (e:React.FormEvent)=>{
     e.preventDefault();
@@ -31,6 +46,16 @@ export function Login(){
       
       // Store token
       localStorage.setItem('token', data.token);
+      
+      // Handle "Remember Me" - save email to localStorage (NOT password for security)
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, form.email);
+        localStorage.setItem(REMEMBER_ME_CHECKED_KEY, 'true');
+      } else {
+        // Clear remembered email if checkbox is unchecked
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(REMEMBER_ME_CHECKED_KEY);
+      }
       
       // Update auth state with user data and token
       setUser({ ...userData, token });
@@ -115,14 +140,17 @@ export function Login(){
           </div>
         )}
         
-        <form onSubmit={submit} className="space-y-6">
+        <form onSubmit={submit} name="login-form" className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('email')}
             </label>
             <input 
+              id="email"
+              name="email"
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400" 
               type="email" 
+              autoComplete="username"
               placeholder={t('email')}
               value={form.email} 
               onChange={e=>setForm({...form,email:e.target.value})}
@@ -131,13 +159,16 @@ export function Login(){
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('password')}
             </label>
             <div className="relative">
               <input 
+                id="password"
+                name="password"
                 className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400" 
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder={t('password')}
                 value={form.password} 
                 onChange={e=>setForm({...form,password:e.target.value})}
@@ -155,6 +186,29 @@ export function Login(){
                 )}
               </button>
             </div>
+          </div>
+          
+          {/* Remember Me Checkbox */}
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => {
+                const isChecked = e.target.checked;
+                setRememberMe(isChecked);
+                // Clear saved email if user unchecks the box
+                if (!isChecked) {
+                  localStorage.removeItem(REMEMBER_ME_KEY);
+                  localStorage.removeItem(REMEMBER_ME_CHECKED_KEY);
+                }
+              }}
+              className="h-4 w-4 text-accent-600 focus:ring-accent-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+              {t('rememberMe') || 'Remember Me'}
+            </label>
           </div>
           
           <button 

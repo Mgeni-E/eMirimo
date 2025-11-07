@@ -18,6 +18,18 @@ interface CourseRecommendation {
 export class RecommendationService {
   
   /**
+   * Helper function to normalize skills (handle both string and object formats)
+   */
+  private static normalizeSkills(skills: any[]): string[] {
+    if (!Array.isArray(skills)) return [];
+    return skills.map((s: any) => {
+      if (typeof s === 'string') return s.toLowerCase().trim();
+      if (s && typeof s === 'object' && s.name) return s.name.toLowerCase().trim();
+      return '';
+    }).filter((skill: string) => skill.length > 0);
+  }
+  
+  /**
    * Analyze user profile comprehensively for better recommendations
    */
   private static analyzeUserProfile(user: any): {
@@ -300,8 +312,8 @@ export class RecommendationService {
 
     // Skills match (35% weight) - More important for Rwanda job market
     if (user.skills && job.skills) {
-      const userSkills = user.skills.map((s: string) => s.toLowerCase());
-      const jobSkills = job.skills.map((s: string) => s.toLowerCase());
+      const userSkills = this.normalizeSkills(user.skills);
+      const jobSkills = this.normalizeSkills(job.skills);
       const matchingSkills = userSkills.filter((skill: string) => 
         jobSkills.some((jobSkill: string) => 
           jobSkill.includes(skill) || skill.includes(jobSkill)
@@ -418,8 +430,8 @@ export class RecommendationService {
 
     // Skills match (40% weight)
     if (user.skills && job.skills) {
-      const userSkills = user.skills.map((s: string) => s.toLowerCase());
-      const jobSkills = job.skills.map((s: string) => s.toLowerCase());
+      const userSkills = this.normalizeSkills(user.skills);
+      const jobSkills = this.normalizeSkills(job.skills);
       const matchingSkills = userSkills.filter((skill: string) => 
         jobSkills.some((jobSkill: string) => 
           jobSkill.includes(skill) || skill.includes(jobSkill)
@@ -479,14 +491,16 @@ export class RecommendationService {
     missingSkills: string[];
     jobSkills: string[];
   } {
-    const userSkills = (user.skills || []).map((s: string) => s.toLowerCase());
+    // Handle skills that can be strings or objects with name property
+    const userSkills = this.normalizeSkills(user.skills || []);
+    
     const allJobSkills: string[] = [];
     const missingSkills: string[] = [];
     
     // Collect all skills from potential jobs
     for (const job of potentialJobs) {
       if (job.skills) {
-        allJobSkills.push(...job.skills.map((s: string) => s.toLowerCase()));
+        allJobSkills.push(...this.normalizeSkills(job.skills));
       }
     }
     
@@ -528,8 +542,8 @@ export class RecommendationService {
 
     // Skills gap analysis (50% weight) - Most important for Rwanda job market
     if (user.skills && course.skills) {
-      const userSkills = user.skills.map((s: string) => s.toLowerCase());
-      const courseSkills = course.skills.map((s: string) => s.toLowerCase());
+      const userSkills = this.normalizeSkills(user.skills);
+      const courseSkills = this.normalizeSkills(course.skills);
       
       // Find skills the user doesn't have but the course teaches
       const missingSkills = courseSkills.filter((skill: string) => 
@@ -600,7 +614,7 @@ export class RecommendationService {
     // Technical skills bonus for Rwanda job market
     const rwandaTechSkills = ['programming', 'web development', 'mobile development', 'data analysis', 'digital marketing'];
     if (course.skills) {
-      const courseSkills = course.skills.map((s: string) => s.toLowerCase());
+      const courseSkills = this.normalizeSkills(course.skills);
       const rwandaRelevantSkills = courseSkills.filter((skill: string) => 
         rwandaTechSkills.some((rwandaSkill: string) => skill.includes(rwandaSkill))
       );
@@ -686,8 +700,8 @@ export class RecommendationService {
 
     // Skills gap analysis
     if (user.skills && course.skills) {
-      const userSkills = user.skills.map((s: string) => s.toLowerCase());
-      const courseSkills = course.skills.map((s: string) => s.toLowerCase());
+      const userSkills = this.normalizeSkills(user.skills);
+      const courseSkills = this.normalizeSkills(course.skills);
       
       // Find skills the user doesn't have but the course teaches
       const missingSkills = courseSkills.filter((skill: string) => 
@@ -833,13 +847,14 @@ export class RecommendationService {
    * Calculate category relevance for courses
    */
   private static calculateCategoryRelevance(user: any, category: string): number {
-    const userSkills = user.skills || [];
+    const userSkills = this.normalizeSkills(user.skills || []);
     const userExperience = user.work_experience || [];
     
     // Map categories to relevant skills/experience
     const categoryMappings: { [key: string]: string[] } = {
       'technical': ['programming', 'development', 'coding', 'software', 'tech'],
       'soft-skills': ['communication', 'leadership', 'management', 'teamwork'],
+      'soft_skills': ['communication', 'leadership', 'management', 'teamwork'],
       'career': ['career', 'professional', 'business'],
       'interview': ['interview', 'interviewing', 'preparation'],
       'resume': ['resume', 'cv', 'application'],
@@ -850,7 +865,7 @@ export class RecommendationService {
     let matchCount = 0;
     
     for (const term of relevantTerms) {
-      if (userSkills.some((skill: string) => skill.toLowerCase().includes(term))) {
+      if (userSkills.some((skill: string) => skill.includes(term))) {
         matchCount++;
       }
     }

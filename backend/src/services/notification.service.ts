@@ -51,14 +51,31 @@ export class NotificationService {
       // Get AI course recommendations
       const recommendations = await RecommendationService.getCourseRecommendations(userId, 3);
       
-      // Send notifications for top recommendations
+      // Send email and notifications for top recommendations
+      const { sendCourseRecommendationEmail } = await import('./email.service.js');
+      
       for (const rec of recommendations.slice(0, 2)) { // Send top 2 recommendations
-        await createCourseRecommendationNotification(
-          userId,
-          rec.course.title,
-          rec.course._id.toString(),
-          rec.skillsGap
-        );
+        try {
+          // Send email notification
+          await sendCourseRecommendationEmail(
+            user.email,
+            user.name,
+            rec.course,
+            rec.matchScore,
+            rec.reasons || [],
+            rec.skillsGap || []
+          );
+          
+          // Create in-app notification
+          await createCourseRecommendationNotification(
+            userId,
+            rec.course.title,
+            rec.course._id.toString(),
+            rec.skillsGap
+          );
+        } catch (error) {
+          console.error(`Error sending course recommendation to ${user.email}:`, error);
+        }
       }
 
       console.log(`Sent ${recommendations.length} course recommendations to user ${userId}`);

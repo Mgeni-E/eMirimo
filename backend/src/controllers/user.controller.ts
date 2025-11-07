@@ -81,14 +81,16 @@ function isNonEmpty(value: any): boolean {
 }
 
 function computeProfileCompletion({ doc, seeker, skills }: { doc: any; seeker: any; skills: string[] }): number {
+  // Use professional_summary if available, otherwise fall back to bio (they serve the same purpose)
+  const professionalSummary = seeker?.professional_summary || doc?.bio;
+  
   const requiredFields: any[] = [
     doc?.name,
     doc?.email,
-    doc?.bio,
+    doc?.bio || professionalSummary, // Bio or professional_summary (counted once)
     doc?.phone,
     doc?.profile_image,
     skills,
-    seeker?.professional_summary,
     seeker?.work_experience,
     seeker?.education,
     seeker?.languages,
@@ -275,6 +277,34 @@ export const updateProfile = async (req: Request, res: Response) => {
     delete updates.refreshTokenExpiry;
     delete updates.id; // Remove frontend-generated id
     delete updates._id; // Remove MongoDB _id
+    
+    // Remove cross-role fields to prevent data contamination
+    // If user is a seeker, remove employer-specific fields
+    if (currentUser.role === 'seeker') {
+      delete updates.company_name;
+      delete updates.company_description;
+      delete updates.company_website;
+      delete updates.company_size;
+      delete updates.industry;
+      delete updates.position;
+      delete updates.department;
+      delete updates.hiring_authority;
+      delete updates.can_post_jobs;
+      delete updates.can_view_applications;
+      delete updates.can_schedule_interviews;
+      delete updates.employer_profile;
+    }
+    // If user is an employer, remove seeker-specific fields
+    else if (currentUser.role === 'employer') {
+      delete updates.education;
+      delete updates.work_experience;
+      delete updates.certifications;
+      delete updates.languages;
+      delete updates.job_preferences;
+      delete updates.cv_url;
+      delete updates.skills; // Skills are primarily for seekers
+      delete updates.job_seeker_profile;
+    }
     
     const normalized: any = { updated_at: new Date() };
 

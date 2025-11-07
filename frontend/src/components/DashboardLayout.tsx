@@ -1,7 +1,7 @@
 import { useAuth } from '../lib/store';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MenuIcon, CloseIcon } from './icons';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -17,11 +17,32 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  // Fetch user profile image
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (!user) return;
+      try {
+        const { api } = await import('../lib/api');
+        const response = await api.get('/users/me');
+        if (response.data?.user?.profile_image) {
+          setProfileImage(response.data.user.profile_image);
+        } else {
+          setProfileImage(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile image:', error);
+      }
+    };
+    fetchProfileImage();
+    // Also refresh when location changes (e.g., after profile update)
+  }, [user, location.pathname]);
 
   if (!user) {
     return (
@@ -137,15 +158,27 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt={user.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                  onError={(e) => {
+                    // Hide image and show fallback initial on error
+                    setProfileImage(null);
+                  }}
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {user.name}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                  {user.role}
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {user.role === 'seeker' ? 'Job Seeker' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </p>
               </div>
             </div>
