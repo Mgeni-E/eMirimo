@@ -592,30 +592,30 @@ export const uploadCV = async (req: Request, res: Response) => {
           // Legacy: Try to parse from URL (may fail if Cloudinary requires auth)
           const { fileData: base64Data, fileName: legacyFileName } = req.body;
           if (base64Data && legacyFileName) {
-            // Convert base64 back to Buffer, then to ArrayBuffer
+          // Convert base64 back to Buffer, then to ArrayBuffer
             const buffer = Buffer.from(base64Data, 'base64');
-            const arrayBuffer = buffer.buffer.slice(
-              buffer.byteOffset,
-              buffer.byteOffset + buffer.byteLength
-            );
-            
+          const arrayBuffer = buffer.buffer.slice(
+            buffer.byteOffset,
+            buffer.byteOffset + buffer.byteLength
+          );
+          
             parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer, legacyFileName);
             console.log('✅ Parsed CV data from base64 buffer:', {
-              name: parsedData.name,
-              skills: parsedData.skills?.length || 0,
-              education: parsedData.education?.length || 0,
-              work_experience: parsedData.work_experience?.length || 0,
-              certifications: parsedData.certifications?.length || 0,
-              languages: parsedData.languages?.length || 0
-            });
-          } else {
+            name: parsedData.name,
+            skills: parsedData.skills?.length || 0,
+            education: parsedData.education?.length || 0,
+            work_experience: parsedData.work_experience?.length || 0,
+            certifications: parsedData.certifications?.length || 0,
+            languages: parsedData.languages?.length || 0
+          });
+        } else {
             // Fallback: try to parse from URL
-            try {
-              parsedData = await CVParserService.parseCVFromURL(cvUrl);
-              console.log('Parsed CV data from URL:', parsedData);
-            } catch (urlError) {
+          try {
+            parsedData = await CVParserService.parseCVFromURL(cvUrl);
+            console.log('Parsed CV data from URL:', parsedData);
+          } catch (urlError) {
               console.warn('Failed to parse from URL:', urlError);
-              // Continue without auto-fill
+            // Continue without auto-fill
             }
           }
         }

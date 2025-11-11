@@ -29,7 +29,10 @@ interface JobRecommendation {
     };
   };
   score: number;
+  matchScore?: number;
   reasons: string[];
+  areasOfImprovement?: string[];
+  keywordBoost?: boolean;
 }
 
 export function JobRecommendations() {
@@ -78,7 +81,10 @@ export function JobRecommendations() {
         return {
           job: rec.job || rec,
           score: rec.score || rec.matchScore || 0,
-          reasons: rec.reasons || []
+          matchScore: rec.matchScore || rec.score || 0,
+          reasons: rec.reasons || [],
+          areasOfImprovement: rec.areasOfImprovement || [],
+          keywordBoost: rec.keywordBoost || false
         };
       }).filter((rec: any) => {
         // Only filter out if job is completely missing or invalid
@@ -269,6 +275,22 @@ export function JobRecommendations() {
                   <CheckCircleIcon className="w-3 h-3 text-green-500 mr-1 mt-0.5 flex-shrink-0" />
                   <span className="line-clamp-1">{rec.reasons[0]}</span>
                 </div>
+              </div>
+            )}
+
+            {rec.areasOfImprovement && rec.areasOfImprovement.length > 0 && (
+              <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 mb-1.5">
+                  💡 Areas to Improve:
+                </div>
+                <ul className="space-y-1">
+                  {rec.areasOfImprovement.slice(0, 3).map((improvement, idx) => (
+                    <li key={idx} className="text-xs text-yellow-700 dark:text-yellow-400 flex items-start">
+                      <span className="mr-1.5">•</span>
+                      <span className="line-clamp-2">{improvement}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

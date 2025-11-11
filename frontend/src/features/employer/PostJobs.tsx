@@ -12,6 +12,7 @@ import {
   CheckIcon,
   ClockIcon,
   UsersIcon,
+  XIcon,
 } from '../../components/icons';
 
 interface Job {
@@ -42,13 +43,16 @@ export function MyJobs() {
     title: '',
     description: '',
     type: 'full-time',
-    skills: [] as string[],
     location: '',
-    salary: '',
+    salary_min: '',
+    salary_max: '',
+    salary_currency: 'RWF',
     job_category: '',
     experience_level: '',
     expiry_date: '',
     work_location: 'onsite' as 'remote' | 'hybrid' | 'onsite',
+    required_skills: [] as string[],
+    key_responsibilities: [] as string[],
     requirements: [] as string[],
     benefits: [] as string[]
   });
@@ -61,13 +65,16 @@ export function MyJobs() {
     title: '',
     description: '',
     type: 'full-time',
-    skills: [] as string[],
     location: '',
-    salary: '',
+    salary_min: '',
+    salary_max: '',
+    salary_currency: 'RWF',
     job_category: '',
     experience_level: '',
     expiry_date: '',
     work_location: 'onsite' as 'remote' | 'hybrid' | 'onsite',
+    required_skills: [] as string[],
+    key_responsibilities: [] as string[],
     requirements: [] as string[],
     benefits: [] as string[]
   });
@@ -148,19 +155,55 @@ export function MyJobs() {
         }
       }
       
+      // Extract skills from required_skills and preferred_skills
+      const allSkills: string[] = [];
+      if (jobData.required_skills && Array.isArray(jobData.required_skills)) {
+        allSkills.push(...jobData.required_skills.map((s: any) => typeof s === 'string' ? s : s.name).filter(Boolean));
+      }
+      if (jobData.preferred_skills && Array.isArray(jobData.preferred_skills)) {
+        allSkills.push(...jobData.preferred_skills.map((s: any) => typeof s === 'string' ? s : s.name).filter(Boolean));
+      }
+      
+      // Extract requirements
+      const requirements: string[] = [];
+      if (jobData.requirements && Array.isArray(jobData.requirements)) {
+        requirements.push(...jobData.requirements.map((r: any) => typeof r === 'string' ? r : r.description).filter(Boolean));
+      }
+      
+      // Extract benefits
+      const benefits: string[] = [];
+      if (jobData.benefits && Array.isArray(jobData.benefits)) {
+        benefits.push(...jobData.benefits.map((b: any) => typeof b === 'string' ? b : b.name).filter(Boolean));
+      }
+      
+      // Parse salary
+      let salaryMin = '';
+      let salaryMax = '';
+      let salaryCurrency = 'RWF';
+      if (jobData.salary) {
+        if (typeof jobData.salary === 'object') {
+          salaryMin = jobData.salary.min?.toString() || '';
+          salaryMax = jobData.salary.max?.toString() || '';
+          salaryCurrency = jobData.salary.currency || 'RWF';
+        }
+      }
+      
       setEditJobData({
         title: jobData.title || '',
-        description: jobData.description || '',
+        description: jobData.description || jobData.short_description || '',
         type: jobData.job_type || jobData.type || 'full-time',
-        skills: [],
         location: locationStr,
-        salary: salaryStr,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        salary_currency: salaryCurrency,
         job_category: jobData.category || jobData.job_category || '',
         experience_level: jobData.experience_level || '',
         expiry_date: expiryDate,
         work_location: jobData.work_location || 'onsite',
-        requirements: [],
-        benefits: []
+        required_skills: allSkills,
+        key_responsibilities: jobData.key_responsibilities || [],
+        requirements: requirements,
+        benefits: benefits
       });
       setShowEditModal(true);
       setError(null);
@@ -181,18 +224,35 @@ export function MyJobs() {
     try {
       // Prepare job data for submission
       const jobData: any = {
-        ...editJobData,
-        // Convert expiry_date to application_deadline if provided
+        title: editJobData.title,
+        description: editJobData.description,
+        job_type: editJobData.type,
+        location: editJobData.location,
+        job_category: editJobData.job_category,
+        experience_level: editJobData.experience_level,
+        work_location: editJobData.work_location || 'onsite',
         application_deadline: editJobData.expiry_date ? new Date(editJobData.expiry_date).toISOString() : undefined,
-        // Ensure work_location is set
-        work_location: editJobData.work_location || 'onsite'
+        // Convert string arrays to required format for backend
+        required_skills: editJobData.required_skills
+          .filter(s => s.trim() !== '')
+          .map(name => ({ name: name.trim(), level: 'intermediate', is_mandatory: true })),
+        requirements: editJobData.requirements
+          .filter(r => r.trim() !== '')
+          .map(description => ({ type: 'other', description: description.trim(), is_mandatory: true })),
+        benefits: editJobData.benefits
+          .filter(b => b.trim() !== '')
+          .map(name => ({ category: 'work_life', name: name.trim(), description: '' })),
       };
       
-      // Remove empty arrays and empty strings
-      if (jobData.skills.length === 0) delete jobData.skills;
-      if (jobData.requirements.length === 0) delete jobData.requirements;
-      if (jobData.benefits.length === 0) delete jobData.benefits;
-      if (!jobData.salary) delete jobData.salary;
+      // Handle salary
+      if (editJobData.salary_min && editJobData.salary_max) {
+        jobData.salary = {
+          min: parseFloat(editJobData.salary_min.replace(/,/g, '')),
+          max: parseFloat(editJobData.salary_max.replace(/,/g, '')),
+          currency: editJobData.salary_currency || 'RWF',
+          period: 'monthly'
+        };
+      }
       
       const response = await api.put(`/jobs/${editingJob.id}`, jobData);
       
@@ -215,6 +275,25 @@ export function MyJobs() {
     }
   };
 
+  // Helper function to reset new job form
+  const resetNewJobForm = () => ({
+    title: '',
+    description: '',
+    type: 'full-time',
+    location: '',
+    salary_min: '',
+    salary_max: '',
+    salary_currency: 'RWF',
+    job_category: '',
+    experience_level: '',
+    expiry_date: '',
+    work_location: 'onsite' as 'remote' | 'hybrid' | 'onsite',
+    required_skills: [] as string[],
+    key_responsibilities: [] as string[],
+    requirements: [] as string[],
+    benefits: [] as string[]
+  });
+
   const handleCreateJob = async () => {
     setSubmitting(true);
     setError(null);
@@ -223,38 +302,68 @@ export function MyJobs() {
     try {
       // Prepare job data for submission
       const jobData: any = {
-        ...newJob,
-        // Convert expiry_date to application_deadline if provided
+        title: newJob.title,
+        description: newJob.description,
+        job_type: newJob.type,
+        location: newJob.location,
+        job_category: newJob.job_category,
+        experience_level: newJob.experience_level,
+        work_location: newJob.work_location || 'onsite',
         application_deadline: newJob.expiry_date ? new Date(newJob.expiry_date).toISOString() : undefined,
-        // Ensure work_location is set
-        work_location: newJob.work_location || 'onsite'
+        // Convert string arrays to required format for backend
+        required_skills: newJob.required_skills
+          .filter(s => s.trim() !== '')
+          .map(name => ({ name: name.trim(), level: 'intermediate', is_mandatory: true })),
+        requirements: newJob.requirements
+          .filter(r => r.trim() !== '')
+          .map(description => ({ type: 'other', description: description.trim(), is_mandatory: true })),
+        benefits: newJob.benefits
+          .filter(b => b.trim() !== '')
+          .map(name => ({ category: 'work_life', name: name.trim(), description: '' })),
       };
       
-      // Remove empty arrays and empty strings
-      if (jobData.skills.length === 0) delete jobData.skills;
-      if (jobData.requirements.length === 0) delete jobData.requirements;
-      if (jobData.benefits.length === 0) delete jobData.benefits;
-      if (!jobData.salary) delete jobData.salary;
+      // Handle salary
+      if (newJob.salary_min && newJob.salary_max) {
+        jobData.salary = {
+          min: parseFloat(newJob.salary_min.replace(/,/g, '')),
+          max: parseFloat(newJob.salary_max.replace(/,/g, '')),
+          currency: newJob.salary_currency || 'RWF',
+          period: 'monthly'
+        };
+      }
+
+      // Build description with structured content
+      let fullDescription = newJob.description;
+
+      if (newJob.key_responsibilities.length > 0) {
+        fullDescription += '\n\n**Key Responsibilities:**\n';
+        newJob.key_responsibilities.forEach(resp => {
+          fullDescription += `- ${resp}\n`;
+        });
+      }
+
+      if (newJob.required_skills.length > 0) {
+        fullDescription += '\n\n**Required Skills:**\n';
+        newJob.required_skills.forEach(skill => {
+          fullDescription += `- ${skill}\n`;
+        });
+      }
+
+      if (newJob.benefits.length > 0) {
+        fullDescription += '\n\n**What We Offer:**\n';
+        newJob.benefits.forEach(benefit => {
+          fullDescription += `- ${benefit}\n`;
+        });
+      }
+
+      jobData.description = fullDescription;
       
       const response = await api.post('/jobs', jobData);
       
       // Success
       setSuccess(true);
       setShowCreateModal(false);
-      setNewJob({
-        title: '',
-        description: '',
-        type: 'full-time',
-        skills: [],
-        location: '',
-        salary: '',
-        job_category: '',
-        experience_level: '',
-        expiry_date: '',
-        work_location: 'onsite',
-        requirements: [],
-        benefits: []
-      });
+      setNewJob(resetNewJobForm());
       
       // Refresh jobs list after a short delay
       setTimeout(() => {
@@ -543,7 +652,6 @@ export function MyJobs() {
                     value={newJob.title}
                     onChange={(e) => setNewJob(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., Senior Software Engineer"
                   />
                 </div>
                 
@@ -572,21 +680,36 @@ export function MyJobs() {
                     value={newJob.location}
                     onChange={(e) => setNewJob(prev => ({ ...prev, location: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., Kigali, Rwanda"
                   />
                 </div>
                 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Salary Range
                   </label>
+                  <div className="grid grid-cols-3 gap-4">
                   <input
                     type="text"
-                    value={newJob.salary}
-                    onChange={(e) => setNewJob(prev => ({ ...prev, salary: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 2,500,000 - 3,500,000 RWF"
-                  />
+                      value={newJob.salary_min}
+                      onChange={(e) => setNewJob(prev => ({ ...prev, salary_min: e.target.value }))}
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={newJob.salary_max}
+                      onChange={(e) => setNewJob(prev => ({ ...prev, salary_max: e.target.value }))}
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    <select
+                      value={newJob.salary_currency}
+                      onChange={(e) => setNewJob(prev => ({ ...prev, salary_currency: e.target.value }))}
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="RWF">RWF</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div>
@@ -666,8 +789,175 @@ export function MyJobs() {
                   onChange={(e) => setNewJob(prev => ({ ...prev, description: e.target.value }))}
                   rows={10}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Describe the role, responsibilities, required skills, requirements, and benefits..."
                 />
+              </div>
+
+              {/* Key Responsibilities */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Key Responsibilities (One per line - paste all at once)
+                </label>
+                <textarea
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white mb-2"
+                  onBlur={(e) => {
+                    const text = e.target.value;
+                    if (text.trim()) {
+                      const items = text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                      setNewJob(prev => ({ ...prev, key_responsibilities: items }));
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {newJob.key_responsibilities.length} responsibility(ies) added
+                </p>
+                {newJob.key_responsibilities.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {newJob.key_responsibilities.map((resp, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700/50 px-3 py-1 rounded">
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">{resp}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = newJob.key_responsibilities.filter((_, i) => i !== index);
+                            setNewJob(prev => ({ ...prev, key_responsibilities: updated }));
+                          }}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Required Skills */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Required Skills (One per line - paste all at once)
+                </label>
+                <textarea
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white mb-2"
+                  onBlur={(e) => {
+                    const text = e.target.value;
+                    if (text.trim()) {
+                      const items = text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                      setNewJob(prev => ({ ...prev, required_skills: items }));
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {newJob.required_skills.length} skill(s) added
+                </p>
+                {newJob.required_skills.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {newJob.required_skills.map((skill, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700/50 px-3 py-1 rounded">
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = newJob.required_skills.filter((_, i) => i !== index);
+                            setNewJob(prev => ({ ...prev, required_skills: updated }));
+                          }}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Requirements (Education, Experience, Certifications, Languages) - One per line
+                </label>
+                <textarea
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white mb-2"
+                  onBlur={(e) => {
+                    const text = e.target.value;
+                    if (text.trim()) {
+                      const items = text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                      setNewJob(prev => ({ ...prev, requirements: items }));
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {newJob.requirements.length} requirement(s) added
+                </p>
+                {newJob.requirements.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {newJob.requirements.map((req, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700/50 px-3 py-1 rounded">
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">{req}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = newJob.requirements.filter((_, i) => i !== index);
+                            setNewJob(prev => ({ ...prev, requirements: updated }));
+                          }}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Benefits & Perks (One per line - paste all at once)
+                </label>
+                <textarea
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white mb-2"
+                  onBlur={(e) => {
+                    const text = e.target.value;
+                    if (text.trim()) {
+                      const items = text.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.length > 0);
+                      setNewJob(prev => ({ ...prev, benefits: items }));
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  {newJob.benefits.length} benefit(s)/offer(s) added
+                </p>
+                {newJob.benefits.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {newJob.benefits.map((benefit, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm bg-gray-50 dark:bg-gray-700/50 px-3 py-1 rounded">
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">{benefit}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = newJob.benefits.filter((_, i) => i !== index);
+                            setNewJob(prev => ({ ...prev, benefits: updated }));
+                          }}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -731,7 +1021,6 @@ export function MyJobs() {
                     value={editJobData.title}
                     onChange={(e) => setEditJobData(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., Senior Software Engineer"
                   />
                 </div>
                 
@@ -760,7 +1049,6 @@ export function MyJobs() {
                     value={editJobData.location}
                     onChange={(e) => setEditJobData(prev => ({ ...prev, location: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., Kigali, Rwanda"
                   />
                 </div>
                 
@@ -773,7 +1061,6 @@ export function MyJobs() {
                     value={editJobData.salary}
                     onChange={(e) => setEditJobData(prev => ({ ...prev, salary: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., 2,500,000 - 3,500,000 RWF"
                   />
                 </div>
                 
@@ -854,7 +1141,6 @@ export function MyJobs() {
                   onChange={(e) => setEditJobData(prev => ({ ...prev, description: e.target.value }))}
                   rows={10}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Describe the role, responsibilities, required skills, requirements, and benefits..."
                 />
               </div>
             </div>

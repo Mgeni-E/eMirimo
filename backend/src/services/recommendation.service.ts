@@ -6,6 +6,8 @@ interface JobRecommendation {
   job: any;
   matchScore: number;
   reasons: string[];
+  areasOfImprovement?: string[];
+  keywordBoost?: boolean;
 }
 
 interface CourseRecommendation {
@@ -225,14 +227,27 @@ export class RecommendationService {
       const recommendations: JobRecommendation[] = [];
 
       for (const job of jobs) {
-        const matchScore = this.calculateEnhancedJobMatchScore(user, job, profileAnalysis);
+        let matchScore = this.calculateEnhancedJobMatchScore(user, job, profileAnalysis);
         const reasons = this.getEnhancedJobMatchReasons(user, job, matchScore, profileAnalysis);
 
-        if (matchScore > 0.25) { // Lower threshold for Rwanda job market
+        // Check for keyword-based boost
+        const keywordBoost = this.checkKeywordMatch(user, job);
+        if (keywordBoost) {
+          // Boost score by 20% if keywords match
+          matchScore = Math.min(matchScore * 1.2, 1.0);
+        }
+        
+        // Calculate areas of improvement
+        const areasOfImprovement = this.calculateAreasOfImprovement(user, job, profileAnalysis);
+
+        // Lower threshold by 30%: 0.25 * 0.7 = 0.175
+        if (matchScore > 0.175 || keywordBoost) {
           recommendations.push({
             job,
             matchScore,
-            reasons
+            reasons,
+            areasOfImprovement,
+            keywordBoost: keywordBoost || false
           });
         }
       }
@@ -311,9 +326,21 @@ export class RecommendationService {
     let factors = 0;
 
     // Skills match (35% weight) - More important for Rwanda job market
-    if (user.skills && job.skills) {
+    // Check both required_skills and preferred_skills (new format) and legacy skills field
+    const jobRequiredSkills = job.required_skills || [];
+    const jobPreferredSkills = job.preferred_skills || [];
+    const jobLegacySkills = job.skills || [];
+    
+    // Combine all job skills (required + preferred + legacy)
+    const allJobSkills = [
+      ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobLegacySkills
+    ].filter(Boolean);
+    
+    if (user.skills && allJobSkills.length > 0) {
       const userSkills = this.normalizeSkills(user.skills);
-      const jobSkills = this.normalizeSkills(job.skills);
+      const jobSkills = this.normalizeSkills(allJobSkills);
       const matchingSkills = userSkills.filter((skill: string) => 
         jobSkills.some((jobSkill: string) => 
           jobSkill.includes(skill) || skill.includes(jobSkill)
@@ -429,9 +456,19 @@ export class RecommendationService {
     let factors = 0;
 
     // Skills match (40% weight)
-    if (user.skills && job.skills) {
+    // Combine required_skills, preferred_skills, and legacy skills
+    const jobRequiredSkills = job.required_skills || [];
+    const jobPreferredSkills = job.preferred_skills || [];
+    const jobLegacySkills = job.skills || [];
+    const allJobSkills = [
+      ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobLegacySkills
+    ].filter(Boolean);
+    
+    if (user.skills && allJobSkills.length > 0) {
       const userSkills = this.normalizeSkills(user.skills);
-      const jobSkills = this.normalizeSkills(job.skills);
+      const jobSkills = this.normalizeSkills(allJobSkills);
       const matchingSkills = userSkills.filter((skill: string) => 
         jobSkills.some((jobSkill: string) => 
           jobSkill.includes(skill) || skill.includes(jobSkill)
@@ -499,8 +536,17 @@ export class RecommendationService {
     
     // Collect all skills from potential jobs
     for (const job of potentialJobs) {
-      if (job.skills) {
-        allJobSkills.push(...this.normalizeSkills(job.skills));
+      // Combine required_skills, preferred_skills, and legacy skills
+      const jobRequiredSkills = job.required_skills || [];
+      const jobPreferredSkills = job.preferred_skills || [];
+      const jobLegacySkills = job.skills || [];
+      const allJobSkillsForThisJob = [
+        ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+        ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+        ...jobLegacySkills
+      ].filter(Boolean);
+      if (allJobSkillsForThisJob.length > 0) {
+        allJobSkills.push(...this.normalizeSkills(allJobSkillsForThisJob));
       }
     }
     
@@ -891,11 +937,22 @@ export class RecommendationService {
     }
     
     // Skills-based reasons
-    if (user.skills && job.skills) {
-      const matchingSkills = user.skills.filter((skill: string) => 
-        job.skills.some((jobSkill: string) => 
-          jobSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(jobSkill.toLowerCase())
+    // Combine required_skills, preferred_skills, and legacy skills
+    const jobRequiredSkills = job.required_skills || [];
+    const jobPreferredSkills = job.preferred_skills || [];
+    const jobLegacySkills = job.skills || [];
+    const allJobSkills = [
+      ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobLegacySkills
+    ].filter(Boolean);
+    
+    if (user.skills && allJobSkills.length > 0) {
+      const userSkills = this.normalizeSkills(user.skills);
+      const jobSkills = this.normalizeSkills(allJobSkills);
+      const matchingSkills = userSkills.filter((skill: string) => 
+        jobSkills.some((jobSkill: string) => 
+          jobSkill.includes(skill) || skill.includes(jobSkill)
         )
       );
       
@@ -959,11 +1016,22 @@ export class RecommendationService {
     }
     
     // Add specific reasons based on match factors
-    if (user.skills && job.skills) {
-      const matchingSkills = user.skills.filter((skill: string) => 
-        job.skills.some((jobSkill: string) => 
-          jobSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(jobSkill.toLowerCase())
+    // Combine required_skills, preferred_skills, and legacy skills
+    const jobRequiredSkills = job.required_skills || [];
+    const jobPreferredSkills = job.preferred_skills || [];
+    const jobLegacySkills = job.skills || [];
+    const allJobSkills = [
+      ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobLegacySkills
+    ].filter(Boolean);
+    
+    if (user.skills && allJobSkills.length > 0) {
+      const userSkills = this.normalizeSkills(user.skills);
+      const jobSkills = this.normalizeSkills(allJobSkills);
+      const matchingSkills = userSkills.filter((skill: string) => 
+        jobSkills.some((jobSkill: string) => 
+          jobSkill.includes(skill) || skill.includes(jobSkill)
         )
       );
       
@@ -1010,5 +1078,211 @@ export class RecommendationService {
     }
     
     return reasons;
+  }
+
+  /**
+   * Check if job has keywords that match user profile (for broad recommendations)
+   * If keywords match, job is recommended to all related job seekers
+   */
+  private static checkKeywordMatch(user: any, job: any): boolean {
+    // Extract keywords from job (title, description, skills, category)
+    const jobText = `${job.title || ''} ${job.description || ''} ${job.short_description || ''} ${job.category || ''}`.toLowerCase();
+    // Combine required_skills, preferred_skills, and legacy skills
+    const jobRequiredSkills = job.required_skills || [];
+    const jobPreferredSkills = job.preferred_skills || [];
+    const jobLegacySkills = job.skills || [];
+    const allJobSkills = [
+      ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
+      ...jobLegacySkills
+    ].filter(Boolean);
+    const jobSkills = this.normalizeSkills(allJobSkills);
+    const jobKeywords = [...jobSkills, ...jobText.split(/\s+/).filter(word => word.length > 3)];
+    
+    // Extract keywords from user profile
+    const userSkills = this.normalizeSkills(user.skills || []);
+    const userEducation = (user.education || []).map((edu: any) => 
+      `${edu.degree || ''} ${edu.field_of_study || ''}`.toLowerCase()
+    ).join(' ');
+    const userText = `${user.bio || ''} ${userEducation}`.toLowerCase();
+    const userKeywords = [...userSkills, ...userText.split(/\s+/).filter(word => word.length > 3)];
+    
+    // Check for keyword matches
+    // If at least 2 keywords match, consider it a keyword boost
+    let matchCount = 0;
+    for (const jobKeyword of jobKeywords) {
+      if (userKeywords.some(userKeyword => 
+        userKeyword.includes(jobKeyword) || 
+        jobKeyword.includes(userKeyword) ||
+        this.areSimilarKeywords(userKeyword, jobKeyword)
+      )) {
+        matchCount++;
+        if (matchCount >= 2) {
+          return true;
+        }
+      }
+    }
+    
+    // Also check for common industry keywords
+    const commonKeywords = [
+      'business', 'marketing', 'sales', 'operations', 'management',
+      'technology', 'software', 'development', 'programming', 'tech',
+      'finance', 'accounting', 'banking', 'financial',
+      'education', 'teaching', 'training', 'academic',
+      'healthcare', 'medical', 'health', 'hospital',
+      'communication', 'media', 'journalism', 'content',
+      'engineering', 'design', 'architecture', 'construction',
+      'customer', 'service', 'support', 'client',
+      'project', 'coordination', 'planning', 'strategy',
+      'data', 'analysis', 'analytics', 'research'
+    ];
+    
+    const jobHasCommonKeyword = commonKeywords.some(keyword => 
+      jobText.includes(keyword) || jobSkills.some((skill: string) => skill.includes(keyword))
+    );
+    const userHasCommonKeyword = commonKeywords.some(keyword => 
+      userText.includes(keyword) || userSkills.some((skill: string) => skill.includes(keyword))
+    );
+    
+    // If both job and user have matching common keywords, boost recommendation
+    if (jobHasCommonKeyword && userHasCommonKeyword) {
+      const matchingCommonKeywords = commonKeywords.filter(keyword => 
+        (jobText.includes(keyword) || jobSkills.some((skill: string) => skill.includes(keyword))) &&
+        (userText.includes(keyword) || userSkills.some((skill: string) => skill.includes(keyword)))
+      );
+      
+      if (matchingCommonKeywords.length >= 1) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Check if two keywords are similar (fuzzy matching)
+   */
+  private static areSimilarKeywords(keyword1: string, keyword2: string): boolean {
+    const k1 = keyword1.toLowerCase().trim();
+    const k2 = keyword2.toLowerCase().trim();
+    
+    // Exact match
+    if (k1 === k2) return true;
+    
+    // One contains the other
+    if (k1.includes(k2) || k2.includes(k1)) return true;
+    
+    // Check for common variations
+    const variations: { [key: string]: string[] } = {
+      'programming': ['coding', 'development', 'software'],
+      'marketing': ['advertising', 'promotion', 'branding'],
+      'management': ['admin', 'administration', 'coordination'],
+      'communication': ['communications', 'interpersonal'],
+      'business': ['commerce', 'trade', 'enterprise'],
+      'technology': ['tech', 'it', 'ict'],
+      'data': ['analytics', 'analysis', 'research'],
+      'customer': ['client', 'consumer', 'user'],
+      'project': ['program', 'initiative', 'venture']
+    };
+    
+    for (const [base, variants] of Object.entries(variations)) {
+      if ((k1.includes(base) || variants.some(v => k1.includes(v))) &&
+          (k2.includes(base) || variants.some(v => k2.includes(v)))) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Calculate areas of improvement for job seeker to get recommended
+   */
+  private static calculateAreasOfImprovement(user: any, job: any, profileAnalysis: any): string[] {
+    const improvements: string[] = [];
+    
+    // Check missing skills
+    const userSkills = this.normalizeSkills(user.skills || []);
+    const jobRequiredSkills = this.normalizeSkills(job.required_skills || job.skills || []);
+    const missingSkills = jobRequiredSkills.filter((jobSkill: string) => 
+      !userSkills.some((userSkill: string) => 
+        userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
+      )
+    );
+    
+    if (missingSkills.length > 0) {
+      improvements.push(`Add these skills to your profile: ${missingSkills.slice(0, 3).join(', ')}`);
+    }
+    
+    // Check experience level
+    const jobExperienceLevel = job.experience_level || 'mid';
+    const userExperienceYears = profileAnalysis.experienceYears;
+    
+    if (jobExperienceLevel === 'mid' && userExperienceYears < 1) {
+      improvements.push('Gain at least 1-2 years of work experience');
+    } else if (jobExperienceLevel === 'senior' && userExperienceYears < 3) {
+      improvements.push(`Gain more experience (currently ${userExperienceYears} years, target: 3+ years)`);
+    } else if (jobExperienceLevel === 'entry' && userExperienceYears > 3) {
+      improvements.push('Consider highlighting your willingness to take entry-level roles');
+    }
+    
+    // Check education requirements
+    const jobRequirements = (job.requirements || []).map((req: any) => 
+      typeof req === 'string' ? req : req.description || ''
+    ).join(' ').toLowerCase();
+    
+    const hasDegreeRequirement = jobRequirements.includes('bachelor') || 
+                                 jobRequirements.includes('degree') || 
+                                 jobRequirements.includes('university');
+    
+    if (hasDegreeRequirement && profileAnalysis.educationLevel < 3) {
+      improvements.push('Consider pursuing a Bachelor\'s degree or equivalent');
+    }
+    
+    // Check language requirements
+    const jobText = `${job.description || ''} ${job.requirements || []}`.toLowerCase();
+    const requiresEnglish = jobText.includes('english') || jobText.includes('fluent english');
+    const requiresKinyarwanda = jobText.includes('kinyarwanda') || jobText.includes('rwanda');
+    
+    if (requiresEnglish && !profileAnalysis.rwandaContext.languageSkills.includes('English')) {
+      improvements.push('Improve your English proficiency');
+    }
+    
+    if (requiresKinyarwanda && !profileAnalysis.rwandaContext.languageSkills.includes('Kinyarwanda')) {
+      improvements.push('Add Kinyarwanda language skills to your profile');
+    }
+    
+    // Check location preference
+    const jobLocation = this.getLocationString(job.location);
+    const userLocation = profileAnalysis.rwandaContext.location?.toLowerCase() || '';
+    
+    if (jobLocation.includes('kigali') && !userLocation.includes('kigali')) {
+      improvements.push('Consider updating your location preference to include Kigali');
+    }
+    
+    // Check for incomplete profile
+    if (!user.bio || user.bio.length < 50) {
+      improvements.push('Complete your profile bio (at least 50 characters)');
+    }
+    
+    if (!user.skills || user.skills.length < 3) {
+      improvements.push('Add more skills to your profile (at least 3-5 relevant skills)');
+    }
+    
+    if (!user.work_experience || user.work_experience.length === 0) {
+      improvements.push('Add work experience to your profile');
+    }
+    
+    // Check certifications
+    const jobTextLower = jobText;
+    const requiresCertification = jobTextLower.includes('certification') || 
+                                 jobTextLower.includes('certified') ||
+                                 jobTextLower.includes('certificate');
+    
+    if (requiresCertification && (!user.certifications || user.certifications.length === 0)) {
+      improvements.push('Consider obtaining relevant professional certifications');
+    }
+    
+    return improvements.slice(0, 5); // Limit to top 5 improvements
   }
 }

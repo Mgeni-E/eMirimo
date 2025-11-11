@@ -256,10 +256,10 @@ export function SeekerProfile() {
         || response.data?.user?.job_seeker_profile?.documents?.resume_url
         || response.data?.cvUrl
         || response.data?.cv_url;
-      
+
       // Immediately update profile with CV URL so download button appears instantly
       if (cvUrl) {
-        setProfile(prev => ({ ...prev, cv_url: cvUrl }));
+      setProfile(prev => ({ ...prev, cv_url: cvUrl }));
         console.log('✅ CV URL set immediately:', cvUrl);
       } else {
         console.warn('⚠️ CV URL not found in response:', response.data);
@@ -267,7 +267,7 @@ export function SeekerProfile() {
 
       // Refresh profile data to get auto-filled fields (this will also ensure CV URL is persisted)
       await fetchProfile();
-      
+
       // Ensure CV URL is still set after fetchProfile (preserve it if backend didn't return it yet)
       if (cvUrl) {
         setProfile(prev => {
@@ -323,13 +323,13 @@ export function SeekerProfile() {
       
       if (!newWindow) {
         // Popup blocked - fallback to direct download
-        const link = document.createElement('a');
+      const link = document.createElement('a');
         link.href = profile.cv_url;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       }
       
       setMessage('✅ Opening CV/Resume in new tab...');

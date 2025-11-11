@@ -43,7 +43,7 @@ export async function uploadFile(
       }
     } else {
       // Firebase not configured, use Cloudinary
-      return uploadDocumentToCloudinary(file, options);
+    return uploadDocumentToCloudinary(file, options);
     }
   }
 }
@@ -114,20 +114,20 @@ export async function uploadDocumentToFirebase(
     const { initializeApp, getApps } = await import('firebase/app');
     const { getStorage, ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
 
-    // Initialize Firebase if not already initialized
-    let app;
+  // Initialize Firebase if not already initialized
+  let app;
     const apps = getApps();
     if (apps.length === 0) {
-      app = initializeApp(firebaseConfig);
+    app = initializeApp(firebaseConfig);
     } else {
       app = apps[0];
-    }
+  }
 
-    const storage = getStorage(app);
-    
+  const storage = getStorage(app);
+  
     // Create file path with folder structure
     // Use user-specific folder if user is authenticated, otherwise use general folder
-    const timestamp = Date.now();
+  const timestamp = Date.now();
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const baseFolder = options?.folder || 'emirimo/documents';
     
@@ -136,36 +136,36 @@ export async function uploadDocumentToFirebase(
     const userId = options?.userId || 'anonymous';
     const folder = userId !== 'anonymous' ? `${baseFolder}/${userId}` : baseFolder;
     const fileName = `${folder}/${timestamp}_${sanitizedFileName}`;
-    const storageRef = ref(storage, fileName);
+  const storageRef = ref(storage, fileName);
 
-    // Upload file with progress tracking
-    const uploadTask = uploadBytesResumable(storageRef, file);
+  // Upload file with progress tracking
+  const uploadTask = uploadBytesResumable(storageRef, file);
 
-    return new Promise((resolve, reject) => {
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          // Track upload progress
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          if (options?.onProgress) {
-            options.onProgress(progress);
-          }
-        },
-        (error) => {
-          console.error('Firebase upload error:', error);
-          reject(new Error(`Firebase upload failed: ${error.message}`));
-        },
-        async () => {
-          // Upload completed successfully
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(downloadURL);
-          } catch (error: any) {
-            reject(new Error(`Failed to get download URL: ${error.message}`));
-          }
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        // Track upload progress
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        if (options?.onProgress) {
+          options.onProgress(progress);
         }
-      );
-    });
+      },
+      (error) => {
+          console.error('Firebase upload error:', error);
+        reject(new Error(`Firebase upload failed: ${error.message}`));
+      },
+      async () => {
+        // Upload completed successfully
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        } catch (error: any) {
+          reject(new Error(`Failed to get download URL: ${error.message}`));
+        }
+      }
+    );
+  });
   } catch (error: any) {
     if (error.message?.includes('Cannot find module')) {
       throw new Error('Firebase SDK is not installed. Please install firebase package: npm install firebase');
