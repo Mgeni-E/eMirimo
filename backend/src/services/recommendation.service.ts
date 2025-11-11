@@ -1254,7 +1254,9 @@ export class RecommendationService {
     
     // Check location preference
     const jobLocation = this.getLocationString(job.location);
-    const userLocation = profileAnalysis.rwandaContext.location?.toLowerCase() || '';
+    const userLocation = typeof profileAnalysis.rwandaContext.location === 'string' 
+      ? profileAnalysis.rwandaContext.location.toLowerCase()
+      : (profileAnalysis.rwandaContext.location?.country || profileAnalysis.rwandaContext.location?.street || '').toLowerCase();
     
     if (jobLocation.includes('kigali') && !userLocation.includes('kigali')) {
       improvements.push('Consider updating your location preference to include Kigali');

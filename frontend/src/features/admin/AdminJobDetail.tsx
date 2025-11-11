@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
-  ArrowLeftIcon,
   CheckCircleIcon,
   XCircleIcon,
   EditIcon,
@@ -169,8 +168,7 @@ export function AdminJobDetail() {
             to="/admin/jobs"
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
           >
-            <ArrowLeftIcon className="w-4 h-4 mr-2" />
-            Back to Jobs
+            Go to Jobs
           </Link>
         </div>
       </DashboardLayout>
@@ -182,18 +180,9 @@ export function AdminJobDetail() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link 
-              to="/admin/jobs"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            >
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to Jobs
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
-              <p className="text-gray-600 dark:text-gray-400">{job.company_name || job.company || job.employer_id?.name || 'Unknown Company'}</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{job.title}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{job.company_name || job.company || job.employer_id?.name || 'Unknown Company'}</p>
           </div>
           
           <div className="flex items-center space-x-3">

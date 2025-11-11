@@ -61,6 +61,9 @@ export function MyJobs() {
   const [success, setSuccess] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   const [editJobData, setEditJobData] = useState({
     title: '',
     description: '',
@@ -212,6 +215,45 @@ export function MyJobs() {
       console.error('Failed to load job details:', err);
       setError('Failed to load job details. Please try again.');
     }
+  };
+
+  const handleDeleteClick = (job: Job) => {
+    setJobToDelete(job);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete) return;
+    
+    setDeletingJobId(jobToDelete.id);
+    setError(null);
+    
+    try {
+      await api.delete(`/jobs/${jobToDelete.id}`);
+      
+      // Remove job from list
+      setJobs(prev => prev.filter(job => job.id !== jobToDelete.id));
+      
+      // Close confirmation dialog
+      setShowDeleteConfirm(false);
+      setJobToDelete(null);
+      
+      // Show success message
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      console.error('Failed to delete job:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to delete job. Please try again.';
+      setError(errorMessage);
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setDeletingJobId(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setJobToDelete(null);
   };
 
   const handleUpdateJob = async () => {
@@ -562,7 +604,7 @@ export function MyJobs() {
               const isPassed = deadlineDate < today;
               
               return (
-                <div className={`flex items-center text-sm mb-3 ${isPassed 
+                <div className={`flex items-center text-sm mb-2 ${isPassed 
                   ? 'text-red-600 dark:text-red-400' 
                   : 'text-green-600 dark:text-green-400'
                 }`}>
@@ -578,6 +620,18 @@ export function MyJobs() {
                 </div>
               );
             })()}
+            
+            {/* Stats Row */}
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
+              <div className="flex items-center gap-1">
+                <UsersIcon className="w-3.5 h-3.5" />
+                <span>{job.applicationsCount || 0} {job.applicationsCount === 1 ? 'application' : 'applications'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <EyeIcon className="w-3.5 h-3.5" />
+                <span>{job.views || 0} {job.views === 1 ? 'view' : 'views'}</span>
+              </div>
+            </div>
             
             {/* Action Icons */}
             <div className="flex items-center justify-end gap-2 mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -620,8 +674,9 @@ export function MyJobs() {
               
               {/* Delete Icon */}
               <button 
-                onClick={() => {/* TODO: Implement delete */}}
-                className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                onClick={() => handleDeleteClick(job)}
+                disabled={deletingJobId === job.id}
+                className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Delete"
               >
                 <TrashIcon className="w-5 h-5" />
@@ -1178,6 +1233,45 @@ export function MyJobs() {
                   className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Updating...' : 'Update Job'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && jobToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Delete Job Posting
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to delete <strong className="text-gray-900 dark:text-white">"{jobToDelete.title}"</strong>? This action cannot be undone.
+              </p>
+              
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                  <p className="text-red-800 dark:text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelDelete}
+                  disabled={deletingJobId === jobToDelete.id}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={deletingJobId === jobToDelete.id}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deletingJobId === jobToDelete.id ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

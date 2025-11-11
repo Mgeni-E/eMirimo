@@ -8,7 +8,9 @@ import {
   getInterviews,
   getHiringPipeline,
   updateCandidateStage,
-  updateInterviewStatus
+  updateInterviewStatus,
+  getShortlistedCandidates,
+  scheduleInterview
 } from '../controllers/employer.controller.js';
 
 export const router = Router();
@@ -29,6 +31,8 @@ router.put('/applications/:id/status', updateApplicationStatus);
 
 // Interviews management
 router.get('/interviews', getInterviews);
+router.get('/interviews/shortlisted', getShortlistedCandidates);
+router.post('/interviews/schedule', scheduleInterview);
 router.put('/interviews/:id/status', updateInterviewStatus);
 
 // Hiring pipeline

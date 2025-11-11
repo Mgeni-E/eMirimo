@@ -290,16 +290,41 @@ export function EmployerHiringPipeline() {
                   stageCandidates.map((candidate) => (
                     <div key={candidate.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="flex items-start space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {candidate.avatar ? (
-                            <img 
-                              src={candidate.avatar} 
-                              alt={candidate.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            candidate.name.charAt(0).toUpperCase()
-                          )}
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm relative overflow-hidden">
+                          {(() => {
+                            const profileImage = candidate.avatar || candidate.profile_image;
+                            const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
+                            
+                            if (hasValidImage) {
+                              return (
+                                <>
+                                  <img 
+                                    src={profileImage} 
+                                    alt={candidate.name}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to initial if image fails to load
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const parent = target.parentElement;
+                                      if (parent) {
+                                        const fallback = parent.querySelector('.avatar-fallback');
+                                        if (fallback) {
+                                          (fallback as HTMLElement).style.display = 'flex';
+                                        }
+                                      }
+                                    }}
+                                  />
+                                  <span className="avatar-fallback hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-500 to-primary-600">
+                                    {candidate.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </>
+                              );
+                            }
+                            return (
+                              <span>{candidate.name.charAt(0).toUpperCase()}</span>
+                            );
+                          })()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h5 className="text-sm font-medium text-gray-900 dark:text-white truncate">

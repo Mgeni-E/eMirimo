@@ -29,6 +29,7 @@ import { MyJobs } from './features/employer/PostJobs';
 import { EmployerApplications } from './features/employer/EmployerApplications';
 import { EmployerInterviews } from './features/employer/EmployerInterviews';
 import { EmployerHiringPipeline } from './features/employer/EmployerHiringPipeline';
+import { JobSeekerDetail } from './features/employer/JobSeekerDetail';
 import { Learning } from './features/learning/Learning';
 import { LearningDetail } from './features/learning/LearningDetail';
 import { Recommendations } from './features/recommendations/Recommendations';
@@ -67,6 +68,7 @@ function AppContent() {
           <Route path="/profile" element={<AuthGuard><Profile/></AuthGuard>} />
           <Route path="/employer/jobs" element={<AuthGuard><MyJobs/></AuthGuard>} />
           <Route path="/employer/applications" element={<AuthGuard><EmployerApplications/></AuthGuard>} />
+          <Route path="/employer/applications/:applicationId" element={<AuthGuard><JobSeekerDetail/></AuthGuard>} />
           <Route path="/employer/interviews" element={<AuthGuard><EmployerInterviews/></AuthGuard>} />
           <Route path="/employer/pipeline" element={<AuthGuard><EmployerHiringPipeline/></AuthGuard>} />
           

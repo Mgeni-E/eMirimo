@@ -134,17 +134,19 @@ export const login = async (req:Request,res:Response)=>{
   
   const user = await User.findOne({ email });
   if(!user) {
+    // For security, use generic message to prevent user enumeration
     return res.status(401).json({
-      error: 'Authentication failed',
-      message: 'No account found with this email address. Please check your email or register for a new account.'
+      error: 'Invalid credentials',
+      message: 'The email or password you entered is incorrect. Please check your credentials and try again.'
     });
   }
   
   const ok = await bcrypt.compare(password, user.password_hash);
   if(!ok) {
+    // For security, use generic message to prevent user enumeration
     return res.status(401).json({
-      error: 'Authentication failed',
-      message: 'Incorrect password. Please check your password and try again.'
+      error: 'Invalid credentials',
+      message: 'The email or password you entered is incorrect. Please check your credentials and try again.'
     });
   }
   

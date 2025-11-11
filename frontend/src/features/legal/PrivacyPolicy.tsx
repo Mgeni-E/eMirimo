@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeftIcon } from '../../components/icons';
 
 export function PrivacyPolicy() {
 
@@ -7,13 +5,6 @@ export function PrivacyPolicy() {
     <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-12">
       {/* Header */}
       <div className="mb-8">
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 font-medium mb-4 transition-colors"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Back to Home
-        </Link>
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Privacy Policy
         </h1>

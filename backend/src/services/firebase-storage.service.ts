@@ -50,7 +50,7 @@ export function initializeFirebase(): admin.app.App {
         credential: admin.credential.cert(serviceAccount),
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
-      console.log('✅ Firebase Admin SDK initialized from service account file:', serviceAccountPath);
+      console.log('✅ Firebase initialized');
     }
     // Option 2: Base64 encoded JSON (for deployment/CI)
     else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
@@ -61,7 +61,7 @@ export function initializeFirebase(): admin.app.App {
         credential: admin.credential.cert(serviceAccount),
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
-      console.log('✅ Firebase Admin SDK initialized from base64 encoded key');
+      console.log('✅ Firebase initialized');
     }
     // Option 3: Individual environment variables
     else if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
@@ -73,7 +73,7 @@ export function initializeFirebase(): admin.app.App {
         }),
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
-      console.log('✅ Firebase Admin SDK initialized from environment variables');
+      console.log('✅ Firebase initialized');
     } else {
       throw new Error('Firebase Admin SDK not configured. Please set FIREBASE_SERVICE_ACCOUNT_KEY_PATH, FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, or FIREBASE_PROJECT_ID with FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY');
     }

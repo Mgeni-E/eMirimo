@@ -27,8 +27,9 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 sm:p-8 lg:p-10">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-md mx-auto box-border">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 sm:p-6 md:p-8 box-border">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center font-display">
           {t('forgotPassword')}
         </h1>
@@ -74,6 +75,7 @@ export function ForgotPassword() {
             {t('backToLogin')}
           </Link>
         </p>
+        </div>
       </div>
     </div>
   );

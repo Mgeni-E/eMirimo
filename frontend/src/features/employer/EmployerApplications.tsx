@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
@@ -57,6 +58,7 @@ interface ApplicationStats {
 }
 
 export function EmployerApplications() {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [stats, setStats] = useState<ApplicationStats>({
     total: 0,
@@ -343,96 +345,77 @@ export function EmployerApplications() {
             </div>
           ) : (
             sortedApplications.map((application) => (
-              <div key={application._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
+              <div key={application._id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 flex-1">
                     {/* Candidate Avatar */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {(application.seeker_id as any)?.profile_image ? (
-                        <img 
-                          src={(application.seeker_id as any).profile_image} 
-                          alt={(application.seeker_id as any)?.name || 'Candidate'}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        ((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()
-                      )}
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 relative overflow-hidden">
+                      {(() => {
+                        const profileImage = (application.seeker_id as any)?.profile_image;
+                        const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
+                        
+                        if (hasValidImage) {
+                          return (
+                            <>
+                              <img 
+                                src={profileImage} 
+                                alt={(application.seeker_id as any)?.name || 'Candidate'}
+                                className="w-10 h-10 rounded-full object-cover"
+                                onError={(e) => {
+                                  // Fallback to initial if image fails to load
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    const fallback = parent.querySelector('.avatar-fallback');
+                                    if (fallback) {
+                                      (fallback as HTMLElement).style.display = 'flex';
+                                    }
+                                  }
+                                }}
+                              />
+                              <span className="avatar-fallback hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-500 to-primary-600">
+                                {((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()}
+                              </span>
+                            </>
+                          );
+                        }
+                        return (
+                          <span>{((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()}</span>
+                        );
+                      })()}
                     </div>
                     
-                    {/* Application Details */}
+                    {/* Application Details - Simplified */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {(application.seeker_id as any)?.name || 'Unknown Candidate'}
-                        </h4>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                          {getStatusIcon(application.status)}
-                          <span className="ml-1 capitalize">{application.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
-                        </span>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Applied for <span className="font-medium">{(application.job_id as any)?.title || 'Job'}</span> at {(application.job_id as any)?.company_name || (application.job_id as any)?.company || 'Company'}
+                      <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                        {(application.seeker_id as any)?.name || 'Unknown Candidate'}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {(application.job_id as any)?.title || 'Job'}{' '}
+                        {((application.job_id as any)?.company_name || (application.job_id as any)?.company) && (
+                          <>at {(application.job_id as any)?.company_name || (application.job_id as any)?.company}</>
+                        )}
                       </p>
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>{((application.seeker_id as any)?.work_experience?.length || 0)} years experience</span>
-                        <span>•</span>
-                        <span>Applied {new Date(application.applied_at).toLocaleDateString()}</span>
-                      </div>
-                      
-                      {/* Skills */}
-                      {(application.seeker_id as any)?.skills && ((application.seeker_id as any).skills || []).length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {((application.seeker_id as any).skills || []).slice(0, 5).map((skill: any, index: number) => (
-                            <span 
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-md"
-                            >
-                              {typeof skill === 'string' ? skill : skill?.name || skill}
-                            </span>
-                          ))}
-                          {((application.seeker_id as any).skills || []).length > 5 && (
-                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-md">
-                              +{((application.seeker_id as any).skills || []).length - 5} more
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                   
-                  {/* Actions */}
-                  <div className="flex items-center space-x-2 ml-4">
-                    <button className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                      View Resume
+                  {/* Status and Actions */}
+                  <div className="flex items-center space-x-3 ml-4 flex-shrink-0">
+                    {/* Application Status */}
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
+                      {getStatusIcon(application.status)}
+                      <span className="ml-1 capitalize">{application.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</span>
+                    </span>
+                    
+                    {/* View Details Button */}
+                    <button 
+                      onClick={() => navigate(`/employer/applications/${application._id}`)}
+                      className="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      <EyeIcon className="w-4 h-4 inline mr-1" />
+                      View Details
                     </button>
-                    
-                    {application.status === 'applied' && (
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => updateApplicationStatus(application._id, 'shortlisted')}
-                          className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                        >
-                          Shortlist
-                        </button>
-                        <button 
-                          onClick={() => updateApplicationStatus(application._id, 'rejected')}
-                          className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                    
-                    {application.status === 'shortlisted' && (
-                      <button 
-                        onClick={() => updateApplicationStatus(application._id, 'interview')}
-                        className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        Schedule Interview
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>

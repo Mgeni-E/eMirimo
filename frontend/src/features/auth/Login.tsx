@@ -75,26 +75,35 @@ export function Login(){
       }
     } catch (err: any) {
       const errorData = err.response?.data;
-      let errorTitle = t('loginFailed');
-      let errorMessage = t('unexpectedError');
+      let errorTitle = t('loginFailed') || 'Login Failed';
+      let errorMessage = t('unexpectedError') || 'An unexpected error occurred. Please try again.';
       
-      if (errorData) {
-        if (errorData.error === 'Invalid credentials') {
-          errorTitle = t('invalidCredentials');
-          errorMessage = t('checkEmailPassword');
-        } else if (errorData.error === 'User not found') {
-          errorTitle = t('accountNotFound');
-          errorMessage = t('noAccountFound');
-        } else if (errorData.error === 'Account not verified') {
-          errorTitle = t('accountNotVerified');
-          errorMessage = t('verifyAccount');
+      // Handle network errors
+      if (!err.response) {
+        errorTitle = t('connectionFailed') || 'Connection Failed';
+        errorMessage = t('unableToConnect') || 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (errorData) {
+        // Handle specific error cases
+        if (errorData.error === 'Invalid credentials' || errorData.error === 'Authentication failed') {
+          errorTitle = t('invalidCredentials') || 'Invalid Credentials';
+          errorMessage = errorData.message || t('checkEmailPassword') || 'The email or password you entered is incorrect. Please check your credentials and try again.';
+        } else if (errorData.error === 'Invalid email format') {
+          errorTitle = 'Invalid Email Format';
+          errorMessage = errorData.message || 'Please provide a valid email address.';
+        } else if (errorData.error === 'Login failed') {
+          errorTitle = t('loginFailed') || 'Login Failed';
+          errorMessage = errorData.message || 'Please provide both email and password.';
+        } else if (errorData.error === 'Account deactivated') {
+          errorTitle = 'Account Deactivated';
+          errorMessage = errorData.message || 'Your account has been deactivated. Please contact support for assistance.';
+        } else if (errorData.error === 'Account pending approval') {
+          errorTitle = 'Account Pending Approval';
+          errorMessage = errorData.message || 'Your account is pending approval. Please wait for admin approval or contact support.';
         } else {
-          errorTitle = errorData.error || t('loginFailed');
-          errorMessage = errorData.message || t('unexpectedError');
+          // Use backend error message if available, otherwise use generic message
+          errorTitle = errorData.error || t('loginFailed') || 'Login Failed';
+          errorMessage = errorData.message || t('unexpectedError') || 'An unexpected error occurred. Please try again.';
         }
-      } else {
-        errorTitle = t('connectionFailed');
-        errorMessage = t('unableToConnect');
       }
       
       setError(errorTitle);
@@ -104,7 +113,7 @@ export function Login(){
         type: 'error',
         title: errorTitle,
         message: errorMessage,
-        duration: 15000 // 15 seconds for critical login errors
+        duration: 8000 // 8 seconds for login errors
       });
     } finally {
       setLoading(false);
@@ -112,28 +121,29 @@ export function Login(){
   };
 
   return (
-    <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 sm:p-8 lg:p-10">
+    <div className="min-h-screen flex items-center justify-center pt-2 pb-8 px-4">
+      <div className="w-full max-w-md mx-auto box-border">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-5 sm:p-6 md:p-8 box-border">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
           {t('signIn')}
         </h1>
         
         {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
                   {error}
                 </h3>
                 {errorDetails && (
-                  <div className="mt-1 text-sm text-red-700 dark:text-red-300">
+                  <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
                     {errorDetails}
-                  </div>
+                  </p>
                 )}
               </div>
             </div>
@@ -232,6 +242,7 @@ export function Login(){
               {t('createAccount')}
             </Link>
           </p>
+        </div>
         </div>
       </div>
     </div>

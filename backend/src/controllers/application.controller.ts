@@ -216,8 +216,8 @@ export const myApplications = async (req: any, res: Response) => {
 export const getEmployerApplications = async (req: any, res: Response) => {
   try {
     const applications = await Application.find({ employer_id: req.user.uid })
-      .populate('job_id', 'title company location')
-      .populate('seeker_id', 'name email skills work_experience education')
+      .populate('job_id', 'title company_name company location')
+      .populate('seeker_id', 'name email profile_image skills work_experience education')
       .sort({ applied_at: -1 })
       .lean();
 
@@ -313,8 +313,11 @@ export const getApplicationDetails = async (req: any, res: Response) => {
     const { application_id } = req.params;
     
     const application = await Application.findById(application_id)
-      .populate('job_id', 'title description requirements company location salary')
-      .populate('seeker_id', 'name email skills work_experience education cv_url')
+      .populate('job_id', 'title description requirements company location salary company_name')
+      .populate({
+        path: 'seeker_id',
+        select: 'name email profile_image phone bio address skills job_seeker_profile cv_url social_links'
+      })
       .populate('employer_id', 'name email');
 
     if (!application) {
@@ -322,14 +325,39 @@ export const getApplicationDetails = async (req: any, res: Response) => {
     }
 
     // Check if user has permission to view this application
-    if ((application.seeker_id as any)._id.toString() !== req.user.uid && 
-        (application.employer_id as any)._id.toString() !== req.user.uid) {
+    const seekerId = (application.seeker_id as any)?._id?.toString();
+    const employerId = (application.employer_id as any)?._id?.toString();
+    
+    if (seekerId !== req.user.uid && employerId !== req.user.uid) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Get resume URL from application or user profile
+    // Prefer Firebase URLs over Cloudinary URLs
+    let resumeUrl = application.resume_url || (application.seeker_id as any)?.cv_url;
+    
+    // If resume URL is from Cloudinary, try to get Firebase URL from user profile
+    if (resumeUrl && resumeUrl.includes('cloudinary.com')) {
+      const seeker = application.seeker_id as any;
+      // Check if user has a Firebase URL in their profile
+      const firebaseUrl = seeker?.cv_url?.includes('storage.googleapis.com') 
+        ? seeker.cv_url 
+        : seeker?.job_seeker_profile?.documents?.resume_url?.includes('storage.googleapis.com')
+          ? seeker.job_seeker_profile.documents.resume_url
+          : null;
+      
+      // Prefer Firebase URL if available
+      if (firebaseUrl) {
+        resumeUrl = firebaseUrl;
+      }
     }
 
     res.json({
       success: true,
-      application
+      application: {
+        ...application.toObject(),
+        resume_url: resumeUrl
+      }
     });
   } catch (error) {
     console.error('Get application details error:', error);

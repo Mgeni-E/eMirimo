@@ -218,72 +218,72 @@ export function SeekerDashboard() {
         </div>
       )}
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 3xl:grid-cols-4 gap-6 mb-8 py-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5 lg:gap-6 mb-6 sm:mb-8 py-2 sm:py-4">
         <div 
           onClick={() => navigate('/applications')}
-          className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-soft border border-blue-200 dark:border-blue-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl shadow-soft border border-blue-200 dark:border-blue-700 p-4 sm:p-5 md:p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.totalApplications}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{t('applicationsSent')}</div>
+              <div className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900 dark:text-white">{stats.totalApplications}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('applicationsSent')}</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-              <ApplicationsIcon className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <ApplicationsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/applications')}
-          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl shadow-soft border border-green-200 dark:border-green-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl shadow-soft border border-green-200 dark:border-green-700 p-4 sm:p-5 md:p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.interviewsScheduled}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{t('interviewsScheduled')}</div>
+              <div className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900 dark:text-white">{stats.interviewsScheduled}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('interviewsScheduled')}</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-              <ClockIcon className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/profile')}
-          className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl shadow-soft border border-purple-200 dark:border-purple-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl shadow-soft border border-purple-200 dark:border-purple-700 p-4 sm:p-5 md:p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.profileCompletion}%</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{t('profileComplete')}</div>
+              <div className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900 dark:text-white">{stats.profileCompletion}%</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('profileComplete')}</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg flex items-center justify-center">
-              <CheckIcon className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <CheckIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
         </div>
         
         <div 
           onClick={() => navigate('/jobs')}
-          className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl shadow-soft border border-orange-200 dark:border-orange-700 p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-105"
+          className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl shadow-soft border border-orange-200 dark:border-orange-700 p-4 sm:p-5 md:p-6 hover:shadow-medium transition-all cursor-pointer hover:scale-[1.02] sm:hover:scale-105"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.newOpportunities}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{t('newOpportunities')}</div>
+              <div className="text-xl sm:text-2xl md:text-2xl font-semibold text-gray-900 dark:text-white">{stats.newOpportunities}</div>
+              <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{t('newOpportunities')}</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
-              <StarIcon className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <StarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 3xl:grid-cols-2 gap-6 mb-8 py-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-8 py-2 sm:py-4">
         {/* Job Search */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('jobSearch')}</h3>
             <Link to="/jobs" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
@@ -307,7 +307,7 @@ export function SeekerDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recentActivity')}</h3>
             <Link to="/applications" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">

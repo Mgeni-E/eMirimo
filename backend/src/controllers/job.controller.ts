@@ -452,37 +452,71 @@ export const update = async (req:any,res:Response)=>{
 };
 
 export const deleteJob = async (req:any,res:Response)=>{
-  const { id } = req.params;
-  const userId = (req as any).user.uid;
-  const userRole = (req as any).user.role;
-  
-  const job = await Job.findById(id);
-  if (!job) {
-    return res.status(404).json({ error: 'Job not found' });
+  try {
+    const { id } = req.params;
+    const userId = (req as any).user.uid;
+    const userRole = (req as any).user.role;
+    
+    const job = await Job.findById(id);
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    // Admin can delete any job, employer can only delete their own
+    if (userRole !== 'admin' && job.employer_id.toString() !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: You can only delete your own jobs' });
+    }
+    
+    // Delete related applications
+    const { Application } = await import('../models/Application.js');
+    await Application.deleteMany({ job_id: id });
+    
+    // Delete the job
+    await Job.findByIdAndDelete(id);
+    
+    res.json({ message: 'Job deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    res.status(500).json({ error: 'Failed to delete job', message: error instanceof Error ? error.message : 'Unknown error' });
   }
-  
-  // Admin can delete any job, employer can only delete their own
-  if (userRole !== 'admin' && job.employer_id.toString() !== userId) {
-    return res.status(403).json({ error: 'Unauthorized: You can only delete your own jobs' });
-  }
-  
-  await Job.findByIdAndDelete(id);
-  res.json({ message: 'Job deleted successfully' });
 };
 
 export const getMyJobs = async (req:any,res:Response)=>{
-  const employer_id = (req as any).user.uid;
-  const { status } = req.query;
-  
-  const filter: any = { employer_id };
-  if (status === 'active') filter.is_active = true;
-  if (status === 'inactive') filter.is_active = false;
-  
-  const jobs = await Job.find(filter)
-    .sort({ created_at: -1 })
-    .lean();
-  
-  res.json(jobs);
+  try {
+    const employer_id = (req as any).user.uid;
+    const { status } = req.query;
+    
+    const filter: any = { employer_id };
+    if (status === 'active') filter.is_active = true;
+    if (status === 'inactive') filter.is_active = false;
+    
+    const jobs = await Job.find(filter)
+      .sort({ created_at: -1 })
+      .lean();
+    
+    // Get application counts and views for each job
+    const { Application } = await import('../models/Application.js');
+    const jobsWithStats = await Promise.all(
+      jobs.map(async (job: any) => {
+        const applicationsCount = await Application.countDocuments({ job_id: job._id });
+        // Get views count from job if available, otherwise default to 0
+        const viewsCount = job.views_count || job.views || 0;
+        
+        return {
+          ...job,
+          applications_count: applicationsCount,
+          applicationsCount: applicationsCount, // Also include camelCase for frontend compatibility
+          views_count: viewsCount,
+          views: viewsCount // Also include camelCase for frontend compatibility
+        };
+      })
+    );
+    
+    res.json(jobsWithStats);
+  } catch (error) {
+    console.error('Error fetching my jobs:', error);
+    res.status(500).json({ error: 'Failed to fetch jobs' });
+  }
 };
 
 export const getRecommendations = async (req:any,res:Response)=>{

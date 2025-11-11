@@ -15,7 +15,6 @@ import {
   UserGroupIcon,
   ChatBubbleLeftRightIcon,
   DocumentIcon,
-  ArrowLeftIcon,
   UserIcon,
   CalendarIcon,
   EyeIcon,
@@ -154,8 +153,7 @@ export function LearningDetail() {
             to="/learning"
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to Learning
+            Go to Learning
           </Link>
         </div>
       </div>
@@ -167,14 +165,6 @@ export function LearningDetail() {
       <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link
-            to="/learning"
-            className="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors mb-4"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to Learning
-          </Link>
-          
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
             <div className="flex items-start justify-between mb-6">
               <div className="flex-1">

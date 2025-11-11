@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   UserIcon,
-  ArrowLeftIcon,
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -186,12 +185,6 @@ export function AdminUserDetail() {
       <DashboardLayout>
         <div className="text-center py-12">
           <p className="text-red-600 dark:text-red-400">{error || 'User not found'}</p>
-          <button 
-            onClick={() => navigate('/admin/users')}
-            className="mt-4 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-          >
-            ← Back to Users
-          </button>
         </div>
       </DashboardLayout>
     );
@@ -202,17 +195,9 @@ export function AdminUserDetail() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => navigate('/admin/users')}
-              className="p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <ArrowLeftIcon className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Details</h1>
-              <p className="text-gray-600 dark:text-gray-400">Manage user account and permissions</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">User Details</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage user account and permissions</p>
           </div>
           
           <div className="flex items-center space-x-3">

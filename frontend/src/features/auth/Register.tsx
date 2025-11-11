@@ -48,25 +48,34 @@ export function Register(){
     } catch (err: any) {
       const errorData = err.response?.data;
       let errorTitle = 'Registration Failed';
-      let errorMessage = 'An unexpected error occurred';
+      let errorMessage = 'An unexpected error occurred. Please try again.';
       
-      if (errorData) {
-        if (errorData.error === 'Email already exists') {
-          errorTitle = 'Email Already Registered';
-          errorMessage = 'An account with this email already exists. Please try logging in or use a different email.';
-        } else if (errorData.error === 'Invalid email format') {
-          errorTitle = 'Invalid Email Format';
-          errorMessage = 'Please enter a valid email address.';
-        } else if (errorData.error === 'Password too weak') {
-          errorTitle = 'Password Too Weak';
-          errorMessage = 'Please choose a stronger password with at least 8 characters.';
-        } else {
-          errorTitle = errorData.error || 'Registration Failed';
-          errorMessage = errorData.message || 'An unexpected error occurred';
-        }
-      } else {
+      // Handle network errors
+      if (!err.response) {
         errorTitle = 'Connection Failed';
         errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (errorData) {
+        // Handle specific error cases
+        if (errorData.error === 'Email already registered' || errorData.error === 'Email already exists') {
+          errorTitle = 'Email Already Registered';
+          errorMessage = errorData.message || 'An account with this email address already exists. Please use a different email or try logging in.';
+        } else if (errorData.error === 'Invalid email format') {
+          errorTitle = 'Invalid Email Format';
+          errorMessage = errorData.message || 'Please provide a valid email address.';
+        } else if (errorData.error === 'Password too weak') {
+          errorTitle = 'Password Too Weak';
+          errorMessage = errorData.message || 'Password must be at least 6 characters long.';
+        } else if (errorData.error === 'Registration failed') {
+          errorTitle = 'Registration Failed';
+          errorMessage = errorData.message || 'Please provide all required fields.';
+        } else if (errorData.error === 'Invalid role') {
+          errorTitle = 'Invalid Role';
+          errorMessage = errorData.message || 'Please select a valid role.';
+        } else {
+          // Use backend error message if available, otherwise use generic message
+          errorTitle = errorData.error || 'Registration Failed';
+          errorMessage = errorData.message || 'An unexpected error occurred. Please try again.';
+        }
       }
       
       setError(errorTitle);
@@ -76,7 +85,7 @@ export function Register(){
         type: 'error',
         title: errorTitle,
         message: errorMessage,
-        duration: 12000 // 12 seconds for registration errors
+        duration: 8000 // 8 seconds for registration errors
       });
     } finally {
       setLoading(false);
@@ -84,28 +93,29 @@ export function Register(){
   };
 
   return (
-    <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 sm:p-8 lg:p-10">
+    <div className="min-h-screen flex items-center justify-center py-8 px-4">
+      <div className="w-full max-w-md mx-auto box-border">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 sm:p-6 md:p-8 box-border">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8 text-center font-display">
           {t('createAccount')}
         </h1>
         
         {error && (
-          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="flex items-start">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
                   {error}
                 </h3>
                 {errorDetails && (
-                  <div className="mt-1 text-sm text-red-700 dark:text-red-300">
+                  <p className="text-sm text-red-700 dark:text-red-300 leading-relaxed">
                     {errorDetails}
-                  </div>
+                  </p>
                 )}
               </div>
             </div>
@@ -224,12 +234,13 @@ export function Register(){
           </button>
         </form>
         
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           {t('alreadyHaveAccount')}{' '}
-          <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+          <Link to="/login" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium">
             {t('login')}
           </Link>
         </p>
+        </div>
       </div>
     </div>
   );
