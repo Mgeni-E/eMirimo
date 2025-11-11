@@ -121,7 +121,7 @@ export function Login(){
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center pt-2 pb-8 px-4">
+    <div className="min-h-screen flex items-center justify-center -mt-16 pb-8 px-4">
       <div className="w-full max-w-md mx-auto box-border">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-5 sm:p-6 md:p-8 box-border">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
