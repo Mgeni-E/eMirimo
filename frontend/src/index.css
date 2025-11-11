@@ -68,10 +68,131 @@ html.light body {
 
 /* Smooth transitions for theme changes */
 * {
+  box-sizing: border-box;
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 /* Ensure proper theme inheritance */
 html {
   transition: color-scheme 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Responsive utilities for better scaling on large screens */
+@media (min-width: 1920px) {
+  html {
+    font-size: 16px;
+  }
+  
+  /* Extend containers to use nearly full Full HD screen width (1920px) */
+  .max-w-7xl,
+  .max-w-8xl,
+  .max-w-9xl {
+    max-width: 1800px !important; /* Use 1800px out of 1920px, leaving 120px for margins */
+  }
+  
+  .max-w-6xl {
+    max-width: 1600px !important; /* Larger for stats sections */
+  }
+  
+  .max-w-5xl {
+    max-width: 1400px !important;
+  }
+  
+  .max-w-4xl {
+    max-width: 1200px !important;
+  }
+  
+  .max-w-3xl {
+    max-width: 1000px !important; /* Wider for CTA sections */
+  }
+  
+  .max-w-2xl {
+    max-width: 800px !important;
+  }
+  
+  /* Increase padding on Full HD for better spacing */
+  .px-12,
+  .px-16,
+  .px-20 {
+    padding-left: 4rem !important; /* 64px */
+    padding-right: 4rem !important;
+  }
+  
+  /* Make main content areas use full width with proper padding */
+  main.max-w-7xl,
+  main.max-w-8xl,
+  main.max-w-9xl {
+    max-width: 1800px !important;
+    padding-left: 4rem !important;
+    padding-right: 4rem !important;
+  }
+  
+  /* Extend header navigation */
+  nav.max-w-7xl,
+  nav.max-w-8xl,
+  nav.max-w-9xl {
+    max-width: 1800px !important;
+    padding-left: 4rem !important;
+    padding-right: 4rem !important;
+  }
+  
+  /* Extend footer */
+  footer .max-w-7xl,
+  footer .max-w-8xl,
+  footer .max-w-9xl {
+    max-width: 1800px !important;
+    padding-left: 4rem !important;
+    padding-right: 4rem !important;
+  }
+  
+  /* Ensure dashboard content uses full width */
+  .flex-1.p-4,
+  .flex-1.p-6,
+  .flex-1.p-8,
+  .flex-1.p-12,
+  .flex-1.p-16,
+  .flex-1.p-20 {
+    padding-left: 5rem !important;
+    padding-right: 5rem !important;
+  }
+  
+  /* Make sure all content containers expand */
+  .w-full.max-w-full {
+    max-width: 100% !important;
+  }
+  
+  /* Ensure dashboard content uses remaining space properly */
+  .flex-1.flex.flex-col {
+    min-width: 0; /* Allow flex item to shrink */
+  }
+  
+  /* Sidebar menu items aligned with profile picture center - middle ground */
+  nav.flex-1 {
+    padding-left: 1.25rem !important; /* Between left and original - aligns with profile center */
+    padding-right: 1.25rem !important;
+  }
+  
+  /* Menu item text alignment - aligned with profile picture middle */
+  nav a.block {
+    padding-left: 1.25rem !important; /* Aligns text with profile picture center */
+    padding-right: 1.25rem !important;
+  }
+  
+  /* User info header alignment - profile picture centered */
+  .px-5.xl\:px-6 {
+    padding-left: 1.25rem !important; /* Aligns with menu items below */
+    padding-right: 1.5rem !important;
+  }
+  
+  /* Logout button alignment - matches menu items */
+  .px-4.xl\:px-5 {
+    padding-left: 1rem !important;
+    padding-right: 1.25rem !important;
+  }
+}
+
+/* Prevent horizontal overflow */
+body {
+  overflow-x: hidden;
+  width: 100%;
 }

@@ -1,7 +1,14 @@
 /**
- * Storage Service
- * Abstracts file uploads to different storage providers
- * - Cloudinary: For images (profile pictures, cover images) and documents (CVs, Resumes, PDFs, DOCs)
+ * Storage Service - FRONTEND ONLY
+ * 
+ * IMPORTANT: This service is ONLY for images (profile pictures).
+ * Documents (CVs, Resumes) are handled by the BACKEND which uses Firebase Admin SDK.
+ * 
+ * Storage Strategy:
+ * - Images (profile pictures, cover images): Cloudinary ONLY (via this service)
+ * - Documents (CVs, Resumes, PDFs): Backend → Firebase Storage (NOT via this service)
+ * 
+ * For CV/Resume uploads, use the backend API endpoint: POST /api/users/me/cv
  */
 
 export type StorageProvider = 'cloudinary' | 'firebase';
@@ -9,6 +16,8 @@ export type FileCategory = 'image' | 'document';
 
 /**
  * Upload file to appropriate storage based on file category
+ * - Images: Always use Cloudinary
+ * - Documents: Use Firebase Storage if configured, otherwise fallback to Cloudinary
  */
 export async function uploadFile(
   file: File,
@@ -16,13 +25,26 @@ export async function uploadFile(
   options?: {
     folder?: string;
     onProgress?: (progress: number) => void;
+    userId?: string;
   }
 ): Promise<string> {
   if (category === 'image') {
+    // Images: Always use Cloudinary
     return uploadImageToCloudinary(file, options);
   } else {
-    // Documents: Use Cloudinary directly (supports PDFs, DOCs, etc.)
-    return uploadDocumentToCloudinary(file, options);
+    // Documents: Use Firebase Storage if configured, otherwise fallback to Cloudinary
+    if (isFirebaseConfigured()) {
+      try {
+        return await uploadDocumentToFirebase(file, options);
+      } catch (error: any) {
+        console.warn('Firebase upload failed, falling back to Cloudinary:', error.message);
+        // Fallback to Cloudinary if Firebase fails
+        return uploadDocumentToCloudinary(file, options);
+      }
+    } else {
+      // Firebase not configured, use Cloudinary
+      return uploadDocumentToCloudinary(file, options);
+    }
   }
 }
 
@@ -73,7 +95,7 @@ export async function uploadImageToCloudinary(
  */
 export async function uploadDocumentToFirebase(
   file: File,
-  options?: { folder?: string; onProgress?: (progress: number) => void }
+  options?: { folder?: string; onProgress?: (progress: number) => void; userId?: string }
 ): Promise<string> {
   // Check if Firebase is configured
   const firebaseConfig = {
@@ -87,88 +109,69 @@ export async function uploadDocumentToFirebase(
     throw new Error('Firebase Storage is not configured. Please set Firebase environment variables.');
   }
 
-  // Dynamic import of Firebase SDK (only load when needed)
-  // Use a function to create the import dynamically to prevent Vite from analyzing it
-  const loadFirebase = async () => {
-    try {
-      // Use string concatenation to make this truly dynamic
-      const appPath = 'firebase' + '/' + 'app';
-      const storagePath = 'firebase' + '/' + 'storage';
-      
-      // @ts-ignore - Dynamic imports that Vite shouldn't analyze statically
-      const [firebaseApp, firebaseStorage] = await Promise.all([
-        import(appPath),
-        import(storagePath)
-      ]);
-      
-      return {
-        initializeApp: firebaseApp.initializeApp,
-        getApps: firebaseApp.getApps,
-        getStorage: firebaseStorage.getStorage,
-        ref: firebaseStorage.ref,
-        uploadBytesResumable: firebaseStorage.uploadBytesResumable,
-        getDownloadURL: firebaseStorage.getDownloadURL,
-      };
-    } catch (error: any) {
+  // Import Firebase SDK
+  try {
+    const { initializeApp, getApps } = await import('firebase/app');
+    const { getStorage, ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
+
+    // Initialize Firebase if not already initialized
+    let app;
+    const apps = getApps();
+    if (apps.length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = apps[0];
+    }
+
+    const storage = getStorage(app);
+    
+    // Create file path with folder structure
+    // Use user-specific folder if user is authenticated, otherwise use general folder
+    const timestamp = Date.now();
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const baseFolder = options?.folder || 'emirimo/documents';
+    
+    // Try to get current user ID for user-specific folders
+    // Note: You may need to pass userId as an option if available
+    const userId = options?.userId || 'anonymous';
+    const folder = userId !== 'anonymous' ? `${baseFolder}/${userId}` : baseFolder;
+    const fileName = `${folder}/${timestamp}_${sanitizedFileName}`;
+    const storageRef = ref(storage, fileName);
+
+    // Upload file with progress tracking
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          // Track upload progress
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (options?.onProgress) {
+            options.onProgress(progress);
+          }
+        },
+        (error) => {
+          console.error('Firebase upload error:', error);
+          reject(new Error(`Firebase upload failed: ${error.message}`));
+        },
+        async () => {
+          // Upload completed successfully
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (error: any) {
+            reject(new Error(`Failed to get download URL: ${error.message}`));
+          }
+        }
+      );
+    });
+  } catch (error: any) {
+    if (error.message?.includes('Cannot find module')) {
       throw new Error('Firebase SDK is not installed. Please install firebase package: npm install firebase');
     }
-  };
-
-  const {
-    initializeApp,
-    getApps,
-    getStorage,
-    ref,
-    uploadBytesResumable,
-    getDownloadURL,
-  } = await loadFirebase();
-
-  // Initialize Firebase if not already initialized
-  let app;
-  try {
-    app = initializeApp(firebaseConfig);
-  } catch (error: any) {
-    // App might already be initialized
-    if (error.code !== 'app/already-initialized') {
-      throw error;
-    }
-    app = getApps()[0];
+    throw error;
   }
-
-  const storage = getStorage(app);
-  
-  // Create file path
-  const timestamp = Date.now();
-  const fileName = `${options?.folder || 'documents'}/${timestamp}_${file.name}`;
-  const storageRef = ref(storage, fileName);
-
-  // Upload file with progress tracking
-  const uploadTask = uploadBytesResumable(storageRef, file);
-
-  return new Promise((resolve, reject) => {
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        // Track upload progress
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        if (options?.onProgress) {
-          options.onProgress(progress);
-        }
-      },
-      (error) => {
-        reject(new Error(`Firebase upload failed: ${error.message}`));
-      },
-      async () => {
-        // Upload completed successfully
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        } catch (error: any) {
-          reject(new Error(`Failed to get download URL: ${error.message}`));
-        }
-      }
-    );
-  });
 }
 
 /**

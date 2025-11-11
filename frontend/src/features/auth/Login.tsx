@@ -112,8 +112,8 @@ export function Login(){
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-8">
+    <div className="w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-6 sm:p-8 lg:p-10">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
           {t('signIn')}
         </h1>

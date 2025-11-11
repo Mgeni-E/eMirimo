@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { CVParserService } from '../services/cvParser.service.js';
+import { uploadFileToFirebase, isFirebaseConfigured } from '../services/firebase-storage.service.js';
+import { uploadDocumentToCloudinary, isCloudinaryConfigured } from '../services/cloudinary-storage.service.js';
 
 // Helper: sanitize address strings to prevent repeated tokens like "Rwanda, Rwanda"
 function sanitizeAddressString(raw: string): string {
@@ -49,7 +51,7 @@ function mapUserToSeekerDTO(doc: any) {
     phone: doc.phone ?? '',
     address: addressString,
     profile_image: doc.profile_image ?? '',
-    cv_url: doc.cv_url ?? '',
+    cv_url: doc.cv_url ?? doc.job_seeker_profile?.documents?.resume_url ?? '',
     skills,
     // seeker nested fields flattened for frontend
     education: Array.isArray(seeker.education) ? seeker.education : [],
@@ -509,10 +511,53 @@ export const uploadProfileImage = async (req: Request, res: Response) => {
 export const uploadCV = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.uid;
-    const { cvUrl, fileData, fileName, fileType, autoFill = true } = req.body;
+    const file = req.file; // From multer middleware
+    const { autoFill = 'true' } = req.body; // Default to true, but can be overridden
     
-    if (!cvUrl) {
-      return res.status(400).json({ error: 'CV URL is required' });
+    // Support both new (file upload) and legacy (URL) methods for backward compatibility
+    let cvUrl: string;
+    
+    if (file) {
+      // NEW APPROACH: Direct file upload via multer
+      // Validate file
+      if (file.size > 10 * 1024 * 1024) {
+        return res.status(400).json({ error: 'File size exceeds 10MB limit' });
+      }
+
+      // Get current user to preserve existing data
+      const currentUser = await User.findById(userId);
+      if (!currentUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Upload to Firebase Storage (or Cloudinary fallback)
+      try {
+        if (isFirebaseConfigured()) {
+          cvUrl = await uploadFileToFirebase(file, userId, 'emirimo/documents');
+        } else if (isCloudinaryConfigured()) {
+          cvUrl = await uploadDocumentToCloudinary(file, userId);
+        } else {
+          return res.status(500).json({ 
+            error: 'No storage service configured. Please configure Firebase or Cloudinary.' 
+          });
+        }
+      } catch (uploadError: any) {
+        console.error('Storage upload failed:', uploadError);
+        // Try fallback if Firebase fails
+        if (isFirebaseConfigured() && isCloudinaryConfigured()) {
+          console.log('Falling back to Cloudinary...');
+          cvUrl = await uploadDocumentToCloudinary(file, userId);
+        } else {
+          throw uploadError;
+        }
+      }
+    } else {
+      // LEGACY APPROACH: URL provided in body (for backward compatibility)
+      const { cvUrl: providedUrl, fileData, fileName } = req.body;
+      if (!providedUrl) {
+        return res.status(400).json({ error: 'CV file or URL is required' });
+      }
+      cvUrl = providedUrl;
     }
     
     // Get current user to preserve existing data
@@ -523,20 +568,18 @@ export const uploadCV = async (req: Request, res: Response) => {
 
     // Parse CV and extract data if autoFill is enabled
     let parsedData: any = null;
-    if (autoFill) {
+    const shouldAutoFill = autoFill === 'true' || autoFill === true;
+    
+    if (shouldAutoFill) {
       try {
-        // If file data is provided (base64), parse from buffer instead of URL
-        // This avoids Cloudinary access issues
-        if (fileData && fileName) {
-          // Convert base64 back to Buffer, then to ArrayBuffer
-          const buffer = Buffer.from(fileData, 'base64');
-          // Create ArrayBuffer from Buffer
-          const arrayBuffer = buffer.buffer.slice(
-            buffer.byteOffset,
-            buffer.byteOffset + buffer.byteLength
+        // Parse from file buffer if available (preferred method)
+        if (file) {
+          const arrayBuffer = file.buffer.buffer.slice(
+            file.buffer.byteOffset,
+            file.buffer.byteOffset + file.buffer.byteLength
           );
           
-          parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer, fileName);
+          parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer, file.originalname);
           console.log('✅ Parsed CV data from file buffer:', {
             name: parsedData.name,
             skills: parsedData.skills?.length || 0,
@@ -546,13 +589,34 @@ export const uploadCV = async (req: Request, res: Response) => {
             languages: parsedData.languages?.length || 0
           });
         } else {
-          // Fallback: try to parse from URL (may fail if Cloudinary requires auth)
-          try {
-            parsedData = await CVParserService.parseCVFromURL(cvUrl);
-            console.log('Parsed CV data from URL:', parsedData);
-          } catch (urlError) {
-            console.warn('Failed to parse from URL, but file data was not provided:', urlError);
-            // Continue without auto-fill
+          // Legacy: Try to parse from URL (may fail if Cloudinary requires auth)
+          const { fileData: base64Data, fileName: legacyFileName } = req.body;
+          if (base64Data && legacyFileName) {
+            // Convert base64 back to Buffer, then to ArrayBuffer
+            const buffer = Buffer.from(base64Data, 'base64');
+            const arrayBuffer = buffer.buffer.slice(
+              buffer.byteOffset,
+              buffer.byteOffset + buffer.byteLength
+            );
+            
+            parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer, legacyFileName);
+            console.log('✅ Parsed CV data from base64 buffer:', {
+              name: parsedData.name,
+              skills: parsedData.skills?.length || 0,
+              education: parsedData.education?.length || 0,
+              work_experience: parsedData.work_experience?.length || 0,
+              certifications: parsedData.certifications?.length || 0,
+              languages: parsedData.languages?.length || 0
+            });
+          } else {
+            // Fallback: try to parse from URL
+            try {
+              parsedData = await CVParserService.parseCVFromURL(cvUrl);
+              console.log('Parsed CV data from URL:', parsedData);
+            } catch (urlError) {
+              console.warn('Failed to parse from URL:', urlError);
+              // Continue without auto-fill
+            }
           }
         }
       } catch (parseError) {

@@ -151,11 +151,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       )}
 
       {/* Left Sidebar */}
-      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col transform transition-transform duration-300 ease-in-out ${
+      <div className={`fixed lg:static inset-y-0 left-0 z-50 w-80 xl:w-96 2xl:w-[320px] 3xl:w-[360px] bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col transform transition-transform duration-300 ease-in-out ${
         isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         {/* User Info Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-5 xl:px-6 2xl:px-6 3xl:px-7 py-6 xl:py-6 2xl:py-6 3xl:py-8 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               {profileImage ? (
@@ -193,7 +193,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 px-4 xl:px-5 2xl:px-5 3xl:px-6 py-4 xl:py-6 2xl:py-6 3xl:py-6 space-y-2">
           {filteredMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -201,7 +201,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-4 py-3 rounded-lg transition-all duration-200 ${
+                className={`block px-4 xl:px-5 2xl:px-5 3xl:px-6 py-3 rounded-lg transition-all duration-200 ${
                   isActive
                     ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 border-l-4 border-primary-600'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400'
@@ -215,10 +215,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-4 xl:px-5 2xl:px-5 3xl:px-6 py-4 xl:py-6 2xl:py-6 3xl:py-6 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 font-medium"
+            className="w-full px-4 xl:px-5 2xl:px-5 3xl:px-6 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 font-medium"
           >
             {t('logout')}
           </button>
@@ -228,7 +228,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Top Bar */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 lg:px-6 py-4">
+        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-4">
           <div className="flex items-center justify-between">
             <div>
               {/* Only show welcome banner on main dashboard pages, not on admin sub-pages */}
@@ -265,8 +265,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Dashboard Content */}
-        <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="w-full">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-12 2xl:p-16 3xl:p-20 overflow-y-auto">
+          <div className="w-full max-w-full">
             {children}
           </div>
         </div>

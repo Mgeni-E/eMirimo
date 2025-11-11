@@ -6,10 +6,10 @@ export function Home() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-20">
+    <div className="space-y-12 sm:space-y-16 lg:space-y-20 xl:space-y-24">
       {/* Hero Section */}
-      <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-6">
+      <section className="py-12 sm:py-16 lg:py-20 xl:py-24 bg-white dark:bg-gray-900">
+        <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left Content */}
             <div className="text-left">
@@ -121,8 +121,8 @@ export function Home() {
       </section>
 
       {/* Statistics Section */}
-      <section className="py-16 bg-white dark:bg-gray-800 rounded-3xl shadow-xl">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="py-12 sm:py-16 lg:py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-xl">
+        <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20">
           <h2 className="text-4xl font-bold text-center text-gray-900 dark:text-white mb-12 font-display">
             {t('statsTitle')}
           </h2>
@@ -144,9 +144,9 @@ export function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="text-center py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl text-white relative overflow-hidden">
+      <section className="text-center py-12 sm:py-16 lg:py-20 xl:py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-primary-600/10 to-blue-600/10"></div>
-        <div className="relative max-w-3xl mx-auto px-6">
+        <div className="relative w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20">
           <h2 className="text-5xl font-bold mb-6 font-display">
             {t('ctaTitle')}
           </h2>

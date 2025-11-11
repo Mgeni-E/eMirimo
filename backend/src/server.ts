@@ -6,9 +6,20 @@ import { initializeSocketService } from './services/socket.service.js';
 import { JobPostingHooks } from './hooks/jobPosting.hooks.js';
 import { ScheduledJobsService } from './services/scheduledJobs.service.js';
 import { initializeModels } from './models/index.js';
+import { initializeFirebase } from './services/firebase-storage.service.js';
 
 // Validate environment configuration (silently)
 validateEnv();
+
+// Initialize Firebase Admin SDK (if configured)
+try {
+  if (config.FIREBASE_PROJECT_ID || config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
+    initializeFirebase();
+  }
+} catch (error: any) {
+  console.warn('⚠️  Firebase Admin SDK not initialized:', error.message);
+  console.warn('   Document uploads will use Cloudinary fallback if configured');
+}
 
 mongoose.connect(config.MONGO_URI).then(async ()=>{
   console.log('✅ Database connected');

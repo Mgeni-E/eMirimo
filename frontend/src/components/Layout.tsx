@@ -86,7 +86,7 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-50">
-        <nav className="mx-auto max-w-7xl px-6 py-4">
+        <nav className="mx-auto w-full max-w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-4 lg:py-6">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="text-2xl font-semibold text-gray-900 dark:text-white hover:text-accent-600 dark:hover:text-accent-400 transition-colors">
@@ -274,14 +274,14 @@ export const Layout = ({children}:{children:React.ReactNode}) => {
         </nav>
       </header>
 
-      <main className="flex-1 mx-auto max-w-7xl px-4 py-8 w-full">
+      <main className="flex-1 mx-auto w-full max-w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-8 lg:py-12">
         {children}
       </main>
 
       {/* Footer - Only show on specific pages */}
       {shouldShowFooter && (
         <footer className="bg-gray-900 dark:bg-gray-950 text-white py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20">
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-1">
               <h3 className="text-2xl font-bold text-primary-400 dark:text-primary-300 font-display mb-4">eMirimo</h3>

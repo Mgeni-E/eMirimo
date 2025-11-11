@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from '../../components/icons';
 export function PrivacyPolicy() {
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-12">
       {/* Header */}
       <div className="mb-8">
         <Link 

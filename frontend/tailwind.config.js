@@ -50,6 +50,14 @@ export default {
         '18': '4.5rem',
         '88': '22rem',
       },
+      maxWidth: {
+        '8xl': '88rem',   // 1408px
+        '9xl': '96rem',   // 1536px
+        'fullhd': '120rem', // 1920px - Full HD width
+      },
+      screens: {
+        '3xl': '1920px',  // Full HD breakpoint
+      },
       borderRadius: {
         'xl': '0.75rem',
         '2xl': '1rem',

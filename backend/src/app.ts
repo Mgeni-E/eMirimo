@@ -17,6 +17,7 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // For multipart/form-data
 app.use(express.raw({ type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'], limit: '10mb' }));
 app.use(cookieParser());
 app.use(rateLimit({ windowMs: 15*60*1000, max: 300 }));

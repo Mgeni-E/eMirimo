@@ -230,6 +230,8 @@ Thumbs.db
 config/secrets.json
 config/production.json
 config/development.json
+config/firebase-service-account.json
+config/*-firebase-adminsdk-*.json
 
 # Logs
 logs
@@ -347,3 +349,5 @@ Thumbs.db
 config/secrets.json
 config/production.json
 config/development.json
+config/firebase-service-account.json
+config/*-firebase-adminsdk-*.json

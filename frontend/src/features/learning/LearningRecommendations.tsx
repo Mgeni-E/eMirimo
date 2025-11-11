@@ -155,19 +155,20 @@ export function LearningRecommendations() {
         return (
           <div
             key={resource._id || resource.id || index}
-            className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200 flex flex-col"
+            className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-all duration-200 flex flex-col relative"
           >
+            {/* Recommended Badge - Top Right */}
+            <span className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gradient-to-r from-green-500 to-teal-500 text-white flex-shrink-0 whitespace-nowrap z-10 shadow-sm">
+              <StarIcon className="w-2.5 h-2.5 mr-1" />
+              Recommended
+            </span>
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-1">
+                <div className="flex-1 min-w-0 pr-24">
+                  <div className="mb-1.5">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-1 pr-2">
                       {resource.title}
                     </h3>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-500 to-teal-500 text-white flex-shrink-0">
-                      <StarIcon className="w-2.5 h-2.5 mr-0.5" />
-                      Rec
-                    </span>
                   </div>
                   {resource.author && (
                     <p className="text-gray-600 dark:text-gray-400 mb-1.5 text-sm font-medium truncate">

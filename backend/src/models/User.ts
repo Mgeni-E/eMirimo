@@ -67,6 +67,19 @@ const UserSchema = new Schema({
       message: 'Cover image must be a valid URL or empty'
     }
   },
+  cv_url: {
+    type: String,
+    default: '',
+    validate: {
+      validator: function(v: string) {
+        // Allow empty string, null, or undefined
+        if (!v || v.trim() === '') return true;
+        // Allow any valid HTTP/HTTPS URL (Firebase Storage, Cloudinary, etc.)
+        return /^https?:\/\/.+/.test(v);
+      },
+      message: 'CV URL must be a valid HTTP/HTTPS URL or empty'
+    }
+  },
   
   // Location & Contact
   address: {

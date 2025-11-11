@@ -215,20 +215,7 @@ export function SeekerProfile() {
     }
   };
 
-  // Use storage service for document uploads (Cloudinary for PDFs and documents)
-  const uploadCVToCloudinary = async (file: File): Promise<string> => {
-    const { uploadFile } = await import('../../lib/storage.service');
-    return uploadFile(file, 'document', { 
-      folder: 'emirimo/documents',
-      onProgress: (progress) => {
-        // Optional: Show upload progress
-        if (progress === 100) {
-          console.log('CV upload completed');
-        }
-      }
-    });
-  };
-
+  // Use storage service for document uploads (Firebase for documents, Cloudinary for images)
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -244,42 +231,55 @@ export function SeekerProfile() {
       return;
     }
 
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage('Error: File size must be less than 10MB');
+      setTimeout(() => setMessage(''), 5000);
+      return;
+    }
+
     setUploadingCV(true);
     setMessage('');
     
     try {
-      // Step 1: Read file as ArrayBuffer for parsing
-      const fileBuffer = await file.arrayBuffer();
+      // NEW APPROACH: Send file directly to backend via FormData
+      // Backend will handle upload to Firebase Storage (or Cloudinary fallback) and parsing
+      const formData = new FormData();
+      formData.append('cv', file);
+      formData.append('autoFill', 'true');
+
+      // Axios automatically sets Content-Type to multipart/form-data for FormData
+      const response = await api.post('/users/me/cv', formData);
+
+      // Get CV URL from response - check multiple possible locations
+      const cvUrl = response.data?.user?.cv_url 
+        || response.data?.user?.job_seeker_profile?.documents?.resume_url
+        || response.data?.cvUrl
+        || response.data?.cv_url;
       
-      // Step 2: Upload CV to Cloudinary first to get URL
-      const cvUrl = await uploadCVToCloudinary(file);
-      
-      // Step 3: Send file buffer to backend for parsing, along with the Cloudinary URL
-      // Convert ArrayBuffer to base64 for JSON transmission (chunked to avoid stack overflow)
-      const uint8Array = new Uint8Array(fileBuffer);
-      let binaryString = '';
-      const chunkSize = 8192; // Process in chunks
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, i + chunkSize);
-        binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+      // Immediately update profile with CV URL so download button appears instantly
+      if (cvUrl) {
+        setProfile(prev => ({ ...prev, cv_url: cvUrl }));
+        console.log('✅ CV URL set immediately:', cvUrl);
+      } else {
+        console.warn('⚠️ CV URL not found in response:', response.data);
       }
-      const base64File = btoa(binaryString);
-      
-      const response = await api.post('/users/me/cv', {
-        cvUrl,
-        fileData: base64File,
-        fileName: file.name,
-        fileType: file.type,
-        autoFill: true
-      });
 
-      // Step 4: Update profile state with CV URL
-      setProfile(prev => ({ ...prev, cv_url: cvUrl }));
-
-      // Step 5: Refresh profile data to get auto-filled fields
+      // Refresh profile data to get auto-filled fields (this will also ensure CV URL is persisted)
       await fetchProfile();
+      
+      // Ensure CV URL is still set after fetchProfile (preserve it if backend didn't return it yet)
+      if (cvUrl) {
+        setProfile(prev => {
+          // Always update with the CV URL from upload response to ensure it's set
+          if (cvUrl && (!prev.cv_url || prev.cv_url !== cvUrl)) {
+            return { ...prev, cv_url: cvUrl };
+          }
+          return prev;
+        });
+      }
 
-      // Step 6: Show success message with detailed parsed data info
+      // Show success message with detailed parsed data info
       const fieldsExtracted = response.data?.parsed?.fieldsExtracted || {};
       const extractedFields: string[] = [];
       
@@ -309,7 +309,7 @@ export function SeekerProfile() {
     }
   };
 
-  const handleDownloadCV = async () => {
+  const handleDownloadCV = () => {
     if (!profile.cv_url) {
       setMessage('Error: No CV/Resume uploaded');
       setTimeout(() => setMessage(''), 5000);
@@ -317,38 +317,26 @@ export function SeekerProfile() {
     }
 
     try {
-      // Fetch the file from Cloudinary URL
-      const response = await fetch(profile.cv_url);
-      if (!response.ok) {
-        throw new Error('Failed to download CV');
+      // Open PDF in new tab/window - browser will use built-in PDF viewer
+      // This bypasses CORS issues and allows user to view and download from the viewer
+      const newWindow = window.open(profile.cv_url, '_blank');
+      
+      if (!newWindow) {
+        // Popup blocked - fallback to direct download
+        const link = document.createElement('a');
+        link.href = profile.cv_url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
-
-      // Get the blob
-      const blob = await response.blob();
       
-      // Create a temporary URL for the blob
-      const url = window.URL.createObjectURL(blob);
-      
-      // Extract filename from URL or use default
-      const urlParts = profile.cv_url.split('/');
-      const fileName = urlParts[urlParts.length - 1].split('?')[0] || 'resume.pdf';
-      
-      // Create a temporary anchor element and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      setMessage('CV/Resume downloaded successfully');
+      setMessage('✅ Opening CV/Resume in new tab...');
       setTimeout(() => setMessage(''), 3000);
     } catch (error: any) {
-      console.error('Error downloading CV:', error);
-      setMessage('Error: Failed to download CV/Resume. Please try again.');
+      console.error('Error opening CV:', error);
+      setMessage(`Error: Failed to open CV/Resume. ${error.message || 'Please try again.'}`);
       setTimeout(() => setMessage(''), 5000);
     }
   };
@@ -372,7 +360,7 @@ export function SeekerProfile() {
           skills: Array.isArray(u.skills) ? u.skills : [],
           linkedin: u.linkedin ?? '',
           address: u.address ?? '',
-          cv_url: u.cv_url ?? '',
+          cv_url: u.cv_url ?? prev.cv_url ?? '', // Preserve existing CV URL if backend doesn't return one
           profile_image: u.profile_image ?? '',
           education: Array.isArray(u.education)
             ? u.education.map((edu: any) => {
@@ -603,6 +591,16 @@ export function SeekerProfile() {
             {t('profile')}
           </h1>
           <div className="flex items-center gap-3">
+            {profile.cv_url && (
+              <button
+                onClick={handleDownloadCV}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                title="View and download CV/Resume"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                View CV/Resume
+              </button>
+            )}
             <label className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
               <input
                 type="file"
@@ -614,16 +612,6 @@ export function SeekerProfile() {
               <UploadIcon className="w-4 h-4" />
               {uploadingCV ? 'Uploading...' : 'Upload CV/Resume'}
             </label>
-            {profile.cv_url && (
-              <button
-                onClick={handleDownloadCV}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                title="Download uploaded CV/Resume"
-              >
-                <DownloadIcon className="w-4 h-4" />
-                Download CV/Resume
-              </button>
-            )}
             <button
               onClick={handleSave}
               disabled={saving}
