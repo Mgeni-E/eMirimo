@@ -388,8 +388,10 @@ export const getAllApplications = async (req: any, res: Response) => {
 
     // Debug: Log first application to verify profile_image is populated
     if (applications.length > 0) {
-      console.log('First application seeker_id:', applications[0].seeker_id);
-      console.log('First application profile_image:', applications[0].seeker_id?.profile_image);
+      const firstApp = applications[0] as any;
+      console.log('First application seeker_id:', firstApp.seeker_id);
+      console.log('First application profile_image:', firstApp.seeker_id?.profile_image);
+      console.log('First application seeker_id keys:', firstApp.seeker_id ? Object.keys(firstApp.seeker_id) : 'null');
     }
 
     const total = await Application.countDocuments(filter);
