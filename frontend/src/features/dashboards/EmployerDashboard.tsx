@@ -52,7 +52,7 @@ export function EmployerDashboard() {
         const dashboardResponse = await api.get('/dashboard/employer');
         
         if (dashboardResponse.data.success) {
-          const { stats, jobs, applications, recentActivity, topJobs } = dashboardResponse.data.data;
+          const { stats, recentActivity } = dashboardResponse.data.data;
           
           setStats({
             activeJobs: stats?.activeJobs || 0,
