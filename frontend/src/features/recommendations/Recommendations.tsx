@@ -7,9 +7,7 @@ import {
   BriefcaseIcon,
   StarIcon,
   ClockIcon,
-  UserIcon,
-  AcademicCapIcon,
-  ChartBarIcon
+  AcademicCapIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
 

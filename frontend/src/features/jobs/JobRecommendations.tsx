@@ -297,14 +297,14 @@ export function JobRecommendations() {
 
           <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-gray-200 dark:border-gray-600">
             <Link
-              to={`/jobs/${rec.job?._id || rec.job?.id}`}
+              to={`/jobs/${rec.job?._id}`}
               className="w-full text-center px-3 py-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
             >
               View Details
             </Link>
             {user && user.role === 'seeker' && (
               <Link
-                to={`/jobs/${rec.job?._id || rec.job?.id}`}
+                to={`/jobs/${rec.job?._id}`}
                 className="w-full text-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-medium transition-all"
               >
                 Apply Now

@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../lib/store';
 import { api } from '../../lib/api';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
-  BuildingOfficeIcon,
-  MapPinIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  ExternalLinkIcon,
-  SaveIcon,
   UploadIcon
 } from '../../components/icons';
 
@@ -58,8 +51,6 @@ const industries = [
 ];
 
 export function EmployerProfile() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
   const [profile, setProfile] = useState<EmployerProfileData>({
     name: '',
     email: '',
@@ -146,12 +137,13 @@ export function EmployerProfile() {
     setMessage(null);
     try {
       // Prepare profile data for saving - filter out blob URLs
-      const profileToSave = { ...profile };
+      let profileToSave: any = { ...profile };
       
       // If profile_image is a blob URL, don't send it (user needs to upload to Cloudinary first)
       if (profileToSave.profile_image && profileToSave.profile_image.startsWith('blob:')) {
         // Remove blob URL - keep existing image or empty
-        delete profileToSave.profile_image;
+        const { profile_image, ...rest } = profileToSave;
+        profileToSave = rest;
         setMessage({ 
           text: 'Please upload your profile image using the Upload Image button before saving.', 
           type: 'error' 

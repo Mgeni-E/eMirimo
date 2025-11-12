@@ -4,14 +4,10 @@ import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/store';
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { ApplicationModal } from '../../components/ApplicationModal';
 import { 
-  MapPinIcon, 
   ClockIcon, 
-  CurrencyDollarIcon, 
   BuildingOfficeIcon,
-  StarIcon,
-  ArrowRightIcon
+  StarIcon
 } from '../../components/icons';
 
 export function Jobs(){
@@ -306,20 +302,6 @@ export function Jobs(){
             
             return jobsToDisplay;
           })().map(job=>{
-            // Format location
-            const formatLocation = (loc: any): string => {
-              if (!loc) return 'Location not specified';
-              if (typeof loc === 'string') return loc;
-              if (typeof loc === 'object') {
-                const parts: string[] = [];
-                if (loc.city) parts.push(loc.city);
-                if (loc.country) parts.push(loc.country);
-                if (parts.length > 0) return parts.join(', ');
-                if (loc.address) return loc.address;
-                return 'Location not specified';
-              }
-              return 'Location not specified';
-            };
 
             // Get company name
             const companyName = job.company_name || job.employer_id?.name || (job.employer_id as any)?.employer_profile?.company_name || 'Company';

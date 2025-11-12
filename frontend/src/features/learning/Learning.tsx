@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
-import { useAuth } from '../../lib/store';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   PlayIcon, 

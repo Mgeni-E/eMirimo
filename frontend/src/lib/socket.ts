@@ -150,7 +150,8 @@ export const socketService = new SocketService();
 
 // Hook for using socket in React components
 export const useSocket = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
+  const token = user?.token || localStorage.getItem('token');
 
   const connectSocket = () => {
     if (user && token) {

@@ -27,7 +27,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           pendingQueue.push((newToken) => {
             if (newToken) originalRequest.headers.Authorization = `Bearer ${newToken}`;
             resolve(api(originalRequest));
