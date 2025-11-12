@@ -277,11 +277,12 @@ export function JobDetail() {
                   <div className={`text-sm font-medium ${isDeadlinePassed(job.application_deadline) ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                     Deadline: {formatDate(job.application_deadline)}
                     {isDeadlinePassed(job.application_deadline) && (
-                    <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
-                      Closed
-                    </span>
-                  )}
-                </div>
+                      <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
+                        Closed
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
