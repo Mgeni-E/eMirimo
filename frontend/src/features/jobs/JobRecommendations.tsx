@@ -14,18 +14,28 @@ import {
 interface JobRecommendation {
   job: {
     _id: string;
+    id?: string;
     title: string;
     description: string;
-    location: string;
+    short_description?: string;
+    location: string | {
+      city?: string;
+      country?: string;
+      address?: string;
+    };
     type: string;
     skills: string[];
     salary_min: number;
     salary_max: number;
     currency: string;
     deadline: string;
+    application_deadline?: string;
+    expiry_date?: string;
+    company_name?: string;
     employer_id: {
       name: string;
       email: string;
+      company_name?: string;
     };
   };
   score: number;
@@ -184,7 +194,7 @@ export function JobRecommendations() {
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 mb-1.5 text-sm font-medium truncate">
-                  {rec.job.employer_id?.name || rec.job.company_name || rec.job.employer_id?.company_name || 'Company'}
+                  {rec.job.employer_id?.name || rec.job.company_name || (rec.job.employer_id as any)?.company_name || 'Company'}
                 </p>
                 <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs mb-2">
                   {rec.job?.description || rec.job?.short_description || 'No description available'}
@@ -219,7 +229,9 @@ export function JobRecommendations() {
                   <span className="truncate max-w-[100px]">
                     {typeof rec.job.location === 'string' 
                       ? rec.job.location 
-                      : (rec.job.location.city || rec.job.location.address || 'Location')}
+                      : (typeof rec.job.location === 'object' && rec.job.location !== null
+                          ? ((rec.job.location as any).city || (rec.job.location as any).address || 'Location')
+                          : 'Location')}
                   </span>
                 </div>
               )}
@@ -231,7 +243,9 @@ export function JobRecommendations() {
               )}
               {(rec.job.deadline || rec.job.application_deadline || rec.job.expiry_date) && (() => {
                 const deadline = rec.job.deadline || rec.job.application_deadline || rec.job.expiry_date;
+                if (!deadline) return null;
                 const deadlineDate = new Date(deadline);
+                if (isNaN(deadlineDate.getTime())) return null;
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 deadlineDate.setHours(0, 0, 0, 0);
@@ -243,7 +257,7 @@ export function JobRecommendations() {
                     : 'text-green-600 dark:text-green-400'
                   }`}>
                     <ClockIcon className="w-3 h-3 mr-0.5" />
-                    <span className="text-xs">{new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <span className="text-xs">{deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                   </div>
                 );
               })()}
