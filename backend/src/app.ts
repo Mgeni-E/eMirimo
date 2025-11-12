@@ -50,8 +50,21 @@ app.use(rateLimit({ windowMs: 15*60*1000, max: 300 }));
 // Logging middleware
 app.use(requestLogger);
 
-app.get('/health', (_req,res)=>res.json({ok:true,env:process.env.NODE_ENV}));
-app.get('/api/health', (_req,res)=>res.json({ok:true,env:process.env.NODE_ENV}));
+// Root route for Render health checks
+app.get('/', (_req, res) => res.json({ 
+  ok: true, 
+  service: 'eMirimo API',
+  version: '1.0.0',
+  env: process.env.NODE_ENV,
+  health: '/health',
+  api: '/api/health'
+}));
+
+// Health check endpoints
+app.get('/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV }));
+app.get('/api/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV }));
+
+// API routes
 app.use('/api', api);
 
 app.use(errorLogger);
