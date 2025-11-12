@@ -157,10 +157,6 @@ export function AdminJobs() {
     }
   };
 
-  const handleRefresh = async () => {
-    await loadJobs();
-  };
-
   const updateJobStatus = async (jobId: string, status: 'active' | 'inactive') => {
     try {
       setError(null);
