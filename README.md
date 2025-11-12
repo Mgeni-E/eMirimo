@@ -47,8 +47,6 @@ eMirimo is a comprehensive job management platform that connects Rwandan youth a
 - **Helmet** for security headers
 
 ### DevOps
-- **Docker** for containerization
-- **Nginx** for reverse proxy
 - **GitHub Actions** for CI/CD
 - **Jest & Vitest** for testing
 - **ESLint & Prettier** for code quality
@@ -103,48 +101,6 @@ eMirimo is a comprehensive job management platform that connects Rwandan youth a
    npm run dev
    ```
 
-### Docker Setup (Local Development)
-
-**Note**: For production deployment, use Vercel (frontend) and Render (backend). Docker is primarily for local development.
-
-1. **Using Docker Compose (Development)**
-   ```bash
-   # Start all services (MongoDB + Backend + Frontend)
-   docker-compose up -d
-   
-   # View logs
-   docker-compose logs -f
-   
-   # Stop all services
-   docker-compose down
-   
-   # Stop and remove volumes (clean slate)
-   docker-compose down -v
-   ```
-
-2. **Production Docker Compose (Self-hosted)**
-   ```bash
-   # For self-hosted production deployment
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
-
-3. **Individual Services**
-   ```bash
-   # Start only MongoDB
-   docker-compose up -d mongodb
-   
-   # Start only backend
-   docker-compose up -d backend
-   
-   # Start only frontend
-   docker-compose up -d frontend
-   ```
-
-**Services**:
-- MongoDB: `localhost:27017`
-- Backend API: `localhost:3002`
-- Frontend: `localhost:5173`
-
 ## 🧪 Testing
 
 ### Backend Tests
@@ -176,7 +132,7 @@ eMirimo is configured for deployment to:
 - **Database**: MongoDB Atlas
 
 **Note**: 
-- Backend uses Node.js runtime on Render, NOT Docker
+- Backend uses Node.js runtime on Render
 - Manual deployment via Render dashboard (no YAML files needed)
 
 ### Automated Deployment
@@ -200,7 +156,7 @@ The project includes GitHub Actions workflows for automatic deployment:
 
 2. **Render (Backend) - Manual Setup**
    - Create new Web Service
-   - **Important**: Select "Node" environment (NOT Docker)
+   - **Important**: Select "Node" environment
    - Connect GitHub repository
    - **Settings → Build & Deploy:**
      - **Root Directory**: `backend`
@@ -262,11 +218,6 @@ npm run build
 # Deploy dist/ folder to Vercel
 ```
 
-### Docker Deployment
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
 ## 📁 Project Structure
 
 ```
@@ -292,8 +243,6 @@ emirimo/
 │   └── vitest.config.ts
 ├── .github/
 │   └── workflows/         # CI/CD pipelines
-├── docker-compose.yml
-├── Dockerfile
 └── README.md
 ```
 
