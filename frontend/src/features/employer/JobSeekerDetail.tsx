@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
-  UserIcon,
   MailIcon,
   PhoneIcon,
   MapPinIcon,
@@ -13,8 +12,7 @@ import {
   CheckIcon,
   XIcon,
   ExternalLinkIcon,
-  CalendarIcon,
-  StarIcon
+  CalendarIcon
 } from '../../components/icons';
 import { useNotification } from '../../contexts/NotificationContext';
 
@@ -83,7 +81,6 @@ export function JobSeekerDetail() {
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showResumeModal, setShowResumeModal] = useState(false);
 
   useEffect(() => {
     if (applicationId) {
@@ -156,8 +153,7 @@ export function JobSeekerDetail() {
     // Get all possible resume URLs
     const urls = [
       application.resume_url,
-      application.seeker_id?.cv_url,
-      application.seeker_id?.job_seeker_profile?.documents?.resume_url
+      application.seeker_id?.cv_url
     ].filter(Boolean) as string[];
     
     // Prefer Firebase URLs (storage.googleapis.com) over Cloudinary URLs
