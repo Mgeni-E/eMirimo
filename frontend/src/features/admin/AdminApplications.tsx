@@ -19,6 +19,7 @@ interface Application {
     _id: string;
     name: string;
     email: string;
+    profile_image?: string;
     skills?: any[];
     work_experience?: any[];
     education?: any[];
