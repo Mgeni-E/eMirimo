@@ -98,18 +98,14 @@ export function AdminApplications() {
         console.log('First raw seeker_id profile_image:', data[0].seeker_id?.profile_image);
       }
       
-      // Normalize application data - preserve all fields exactly as they come from backend
-      // Just ensure consistent id fields, but don't modify seeker_id structure
+      // Normalize application data - minimal normalization, preserve everything from backend
+      // Just like AdminUsers does - spread the data and only normalize top-level id fields
       const normalizedApplications = data.map((app: any) => ({
         ...app,
         _id: app._id || app.id,
-        id: app.id || app._id,
-        // Preserve seeker_id exactly as populated by backend - don't modify it
-        seeker_id: app.seeker_id ? {
-          ...app.seeker_id,
-          // Only normalize _id, preserve everything else including profile_image
-          _id: app.seeker_id._id || app.seeker_id.id
-        } : app.seeker_id
+        id: app.id || app._id
+        // Don't touch seeker_id at all - use it exactly as backend sends it
+        // Backend already populates it with profile_image via .populate()
       }));
       
       console.log('Normalized applications:', normalizedApplications);
