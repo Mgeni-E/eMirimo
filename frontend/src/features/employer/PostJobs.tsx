@@ -126,16 +126,6 @@ export function MyJobs() {
       
       setEditingJob(job);
       
-      // Format salary for display
-      let salaryStr = '';
-      if (jobData.salary) {
-        if (typeof jobData.salary === 'string') {
-          salaryStr = jobData.salary;
-        } else if (typeof jobData.salary === 'object' && jobData.salary.min && jobData.salary.max) {
-          salaryStr = `${jobData.salary.min} - ${jobData.salary.max} ${jobData.salary.currency || 'RWF'}`;
-        }
-      }
-      
       // Format expiry date
       let expiryDate = '';
       if (jobData.expiry_date || jobData.application_deadline) {
@@ -296,7 +286,7 @@ export function MyJobs() {
         };
       }
       
-      const response = await api.put(`/jobs/${editingJob.id}`, jobData);
+      await api.put(`/jobs/${editingJob.id}`, jobData);
       
       // Success
       setSuccess(true);
@@ -400,7 +390,7 @@ export function MyJobs() {
 
       jobData.description = fullDescription;
       
-      const response = await api.post('/jobs', jobData);
+      await api.post('/jobs', jobData);
       
       // Success
       setSuccess(true);
@@ -421,26 +411,6 @@ export function MyJobs() {
     }
   };
 
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'draft': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'paused': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'full-time': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'part-time': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
-      case 'contract': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'internship': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
-  };
 
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1107,16 +1077,35 @@ export function MyJobs() {
                   />
                 </div>
                 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Salary Range
                   </label>
-                  <input
-                    type="text"
-                    value={editJobData.salary}
-                    onChange={(e) => setEditJobData(prev => ({ ...prev, salary: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  />
+                  <div className="grid grid-cols-3 gap-4">
+                    <input
+                      type="text"
+                      value={editJobData.salary_min}
+                      onChange={(e) => setEditJobData(prev => ({ ...prev, salary_min: e.target.value }))}
+                      placeholder="Min"
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      value={editJobData.salary_max}
+                      onChange={(e) => setEditJobData(prev => ({ ...prev, salary_max: e.target.value }))}
+                      placeholder="Max"
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    <select
+                      value={editJobData.salary_currency}
+                      onChange={(e) => setEditJobData(prev => ({ ...prev, salary_currency: e.target.value }))}
+                      className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="RWF">RWF</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div>
