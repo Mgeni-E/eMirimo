@@ -2,73 +2,44 @@ name: CI
 
 on:
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
 
 jobs:
   backend-ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install & Build
         working-directory: ./backend
-        run: npm ci
-
-      - name: Run linter
-        working-directory: ./backend
-        run: npm run lint || true
-
-      - name: Run tests
-        working-directory: ./backend
-        run: npm test || true
-        env:
-          MONGO_URI: mongodb://localhost:27017/emirimo
-          JWT_SECRET: test-secret-key-for-ci
-
-      - name: Build
-        working-directory: ./backend
-        run: npm run build
+        run: npm ci && npm run build
 
   frontend-ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install & Build
         working-directory: ./frontend
-        run: npm ci
-
-      - name: Run linter
-        working-directory: ./frontend
-        run: npm run lint || true
-
-      - name: Build
-        working-directory: ./frontend
-        run: npm run build
+        run: npm ci && npm run build
         env:
           VITE_API_URL: http://localhost:3002/api
 

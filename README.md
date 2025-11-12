@@ -172,8 +172,12 @@ npm run test:e2e
 
 eMirimo is configured for deployment to:
 - **Frontend**: Vercel (automatic deployment via GitHub Actions)
-- **Backend**: Render (automatic deployment via GitHub Actions)
+- **Backend**: Render with Node.js environment (manual dashboard setup)
 - **Database**: MongoDB Atlas
+
+**Note**: 
+- Backend uses Node.js runtime on Render, NOT Docker
+- Manual deployment via Render dashboard (no YAML files needed)
 
 ### Automated Deployment
 
@@ -184,12 +188,9 @@ The project includes GitHub Actions workflows for automatic deployment:
    - Triggers on changes to `frontend/**` directory
 
 2. **Backend** (`.github/workflows/deploy-backend.yml`)
-   - Automatically deploys to Render on push to `main`/`master`
+   - Builds and validates backend on push to `main`/`master`
+   - Render auto-deploys from GitHub integration
    - Triggers on changes to `backend/**` directory
-
-### Setup Instructions
-
-📖 **For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
 
 #### Quick Setup Steps:
 
@@ -197,12 +198,17 @@ The project includes GitHub Actions workflows for automatic deployment:
    - Create cluster and get connection string
    - Configure database user and IP whitelist
 
-2. **Render (Backend)**
+2. **Render (Backend) - Manual Setup**
    - Create new Web Service
+   - **Important**: Select "Node" environment (NOT Docker)
    - Connect GitHub repository
-   - Set root directory to `backend`
-   - Configure environment variables
-   - Get Service ID and API Key
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install && npm run build` ⚠️ Must include `npm run build`
+   - **Start Command**: `npm start`
+   - **Node Version**: `18` (set explicitly, not default)
+   - **Health Check Path**: `/health`
+   - Configure environment variables in dashboard
+   - Enable Auto-Deploy
 
 3. **Vercel (Frontend)**
    - Import GitHub repository
@@ -210,20 +216,22 @@ The project includes GitHub Actions workflows for automatic deployment:
    - Configure environment variables
    - Get Organization ID, Project ID, and Token
 
-4. **GitHub Secrets**
-   - Add all required secrets for automated deployment
-   - See DEPLOYMENT.md for complete list
+4. **GitHub Secrets** (for frontend deployment)
+   - `VERCEL_TOKEN` - Vercel API token
+   - `VERCEL_ORG_ID` - Vercel organization ID
+   - `VERCEL_PROJECT_ID` - Vercel project ID
+   - `VITE_API_URL` - Backend API URL (optional)
 
 ### Environment Variables
 
 #### Backend (Render)
 ```env
 NODE_ENV=production
-PORT=10000
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/emirimo
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
 JWT_EXPIRES=7d
 CORS_ORIGIN=https://your-frontend.vercel.app
+FRONTEND_URL=https://your-frontend.vercel.app
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com

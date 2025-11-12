@@ -20,6 +20,9 @@ export const config = {
   // CORS
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
   
+  // Frontend URL (for email links and redirects)
+  FRONTEND_URL: process.env.FRONTEND_URL || process.env.CORS_ORIGIN || 'http://localhost:5173',
+  
   // Email (optional)
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.gmail.com',
   EMAIL_PORT: process.env.EMAIL_PORT || '587',
