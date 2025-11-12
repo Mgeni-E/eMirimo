@@ -163,7 +163,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   src={profileImage}
                   alt={user.name}
                   className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 flex-shrink-0"
-                  onError={(e) => {
+                  onError={() => {
                     // Hide image and show fallback initial on error
                     setProfileImage(null);
                   }}

@@ -11,8 +11,7 @@ import {
   ChartBarIcon,
   TrendingUpIcon,
   TrendingDownIcon,
-  ArrowRightIcon,
-  RefreshIcon
+  ArrowRightIcon
 } from '../../components/icons';
 import { PlatformAnalyticsChart } from '../../components/PlatformAnalyticsChart';
 import { api } from '../../lib/api';
@@ -51,14 +50,9 @@ export function AdminDashboard() {
     applicationGrowth: 0
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
-  const [recentUsers, setRecentUsers] = useState<any[]>([]);
-  const [recentJobs, setRecentJobs] = useState<any[]>([]);
-  const [recentApplications, setRecentApplications] = useState<any[]>([]);
-  const [recentNotifications, setRecentNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -79,17 +73,15 @@ export function AdminDashboard() {
       
       // Listen for connection status
       socketService.getSocket()?.on('connect', () => {
-        setIsConnected(true);
         socketService.joinAdminDashboard();
       });
 
       socketService.getSocket()?.on('disconnect', () => {
-        setIsConnected(false);
+        // Connection lost
       });
 
       socketService.getSocket()?.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        setIsConnected(false);
       });
       
       // Listen for admin updates
@@ -195,10 +187,6 @@ export function AdminDashboard() {
     }
     setLastUpdated(new Date().toISOString());
   }, [loadDashboardData]);
-
-  const handleRefresh = async () => {
-    await loadDashboardData();
-  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {

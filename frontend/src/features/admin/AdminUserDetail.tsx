@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   UserIcon,
-  TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
@@ -11,9 +10,7 @@ import {
   MailIcon,
   PhoneIcon,
   MapPinIcon,
-  GlobeIcon,
-  EyeIcon,
-  EditIcon
+  GlobeIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
 

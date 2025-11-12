@@ -244,12 +244,12 @@ export function PlatformAnalyticsChart() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ role, percent }) => `${role}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: any) => `${props.role}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {chartData.roleDistribution.map((entry, index) => (
+                    {chartData.roleDistribution.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -287,12 +287,12 @@ export function PlatformAnalyticsChart() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ status, percent }) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: any) => `${props.status}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {chartData.jobStatusDistribution.map((entry, index) => (
+                    {chartData.jobStatusDistribution.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -330,12 +330,12 @@ export function PlatformAnalyticsChart() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ status, percent }) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                    label={(props: any) => `${props.status}: ${((props.percent || 0) * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"
                   >
-                    {chartData.applicationStatusDistribution.map((entry, index) => (
+                    {chartData.applicationStatusDistribution.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

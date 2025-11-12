@@ -9,8 +9,7 @@ import {
   XCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
-  InformationCircleIcon,
-  RefreshIcon
+  InformationCircleIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
 import { socketService } from '../../lib/socket';
@@ -34,7 +33,6 @@ export function AdminNotifications() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     loadNotifications();
@@ -54,17 +52,15 @@ export function AdminNotifications() {
       
       // Listen for connection status
       socketService.getSocket()?.on('connect', () => {
-        setIsConnected(true);
         socketService.getSocket()?.emit('join-admin-dashboard');
       });
 
       socketService.getSocket()?.on('disconnect', () => {
-        setIsConnected(false);
+        // Connection lost
       });
 
       socketService.getSocket()?.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        setIsConnected(false);
       });
       
       // Listen for admin updates
@@ -211,10 +207,6 @@ export function AdminNotifications() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRefresh = async () => {
-    await loadNotifications();
   };
 
   const markAsRead = async (notificationId: string) => {

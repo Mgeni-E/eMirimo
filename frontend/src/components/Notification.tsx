@@ -21,7 +21,7 @@ export function Notification({ id, type, title, message, duration = 5000, onClos
     const effectiveDuration = type === 'error' && duration > 8000 ? duration : duration;
     
     // Auto-hide notification (only if duration is reasonable)
-    let hideTimer: NodeJS.Timeout | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
     if (effectiveDuration < 15000) { // Don't auto-hide very long notifications
       hideTimer = setTimeout(() => {
         setIsVisible(false);

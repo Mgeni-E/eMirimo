@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
   ApplicationsIcon, 
-  FilterIcon,
   SearchIcon,
   EyeIcon,
   UserIcon,
   ClockIcon,
   CheckIcon,
-  XIcon,
   CalendarIcon
 } from '../../components/icons';
 

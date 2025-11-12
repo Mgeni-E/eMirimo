@@ -9,7 +9,6 @@ import {
   ShieldCheckIcon,
   CalendarIcon,
   CameraIcon,
-  RefreshIcon,
   CheckCircleIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
@@ -36,7 +35,6 @@ export function AdminProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -124,17 +122,15 @@ export function AdminProfile() {
         
         // Listen for connection status
         socketService.getSocket()?.on('connect', () => {
-          setIsConnected(true);
           socketService.getSocket()?.emit('join-admin-dashboard');
         });
 
         socketService.getSocket()?.on('disconnect', () => {
-          setIsConnected(false);
+          // Connection lost
         });
 
         socketService.getSocket()?.on('connect_error', (error) => {
           console.error('Socket connection error:', error);
-          setIsConnected(false);
         });
         
         // Listen for admin updates
@@ -201,10 +197,6 @@ export function AdminProfile() {
       console.error('Failed to update profile:', error);
       setError('Failed to update profile. Please try again.');
     }
-  };
-
-  const handleRefresh = async () => {
-    await loadProfile();
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
