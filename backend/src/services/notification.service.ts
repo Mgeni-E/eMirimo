@@ -152,7 +152,7 @@ export class NotificationService {
         if (jobRecommendation && jobRecommendation.matchScore > 0.6) {
           await createJobRecommendationNotification(
             seeker._id.toString(),
-            job.title,
+            job.title || 'Job',
             job._id.toString(),
             jobRecommendation.matchScore
           );
