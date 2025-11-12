@@ -30,14 +30,23 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       if (!user) return;
       try {
         const { api } = await import('../lib/api');
-        const response = await api.get('/users/me');
-        if (response.data?.user?.profile_image) {
-          setProfileImage(response.data.user.profile_image);
+        // Use admin profile endpoint for admins, regular endpoint for others
+        const endpoint = user.role === 'admin' ? '/admin/profile' : '/users/me';
+        const response = await api.get(endpoint);
+        
+        // Handle different response structures
+        const profileImg = user.role === 'admin' 
+          ? (response.data?.profilePicture || response.data?.profile_image)
+          : (response.data?.user?.profile_image);
+        
+        if (profileImg && typeof profileImg === 'string' && profileImg.trim() !== '') {
+          setProfileImage(profileImg);
         } else {
           setProfileImage(null);
         }
       } catch (error) {
         console.error('Failed to fetch profile image:', error);
+        setProfileImage(null);
       }
     };
     fetchProfileImage();
