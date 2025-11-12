@@ -89,7 +89,25 @@ export function AdminApplications() {
         ? (response.data.applications || [])
         : (Array.isArray(response.data) ? response.data : []);
       
-      setApplications(data);
+      // Normalize application data to ensure profile_image is accessible
+      const normalizedApplications = data.map((app: any) => ({
+        ...app,
+        _id: app._id || app.id,
+        id: app.id || app._id,
+        seeker_id: {
+          ...app.seeker_id,
+          _id: app.seeker_id?._id || app.seeker_id?.id,
+          profile_image: app.seeker_id?.profile_image || null
+        }
+      }));
+      
+      console.log('Normalized applications:', normalizedApplications);
+      if (normalizedApplications.length > 0) {
+        console.log('First application seeker_id:', normalizedApplications[0].seeker_id);
+        console.log('First application profile_image:', normalizedApplications[0].seeker_id?.profile_image);
+      }
+      
+      setApplications(normalizedApplications);
       
       // Calculate stats
       const stats = {
@@ -300,40 +318,29 @@ export function AdminApplications() {
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Candidate Avatar */}
                     <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg relative overflow-hidden">
-                      {(() => {
-                        const profileImage = (application.seeker_id as any)?.profile_image;
-                        const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
-                        
-                        if (hasValidImage) {
-                          return (
-                            <>
-                              <img
-                                src={profileImage}
-                                alt={(application.seeker_id as any)?.name || 'Candidate'}
-                                className="w-12 h-12 rounded-full object-cover"
-                                onError={(e) => {
-                                  // Fallback to initial if image fails to load
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent) {
-                                    const fallback = parent.querySelector('.avatar-fallback');
-                                    if (fallback) {
-                                      (fallback as HTMLElement).style.display = 'flex';
-                                    }
-                                  }
-                                }}
-                              />
-                              <span className="avatar-fallback hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-primary-500 to-primary-600 text-white font-bold text-lg">
-                                {((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()}
-                              </span>
-                            </>
-                          );
-                        }
-                        return (
-                          <span>{((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()}</span>
-                        );
-                      })()}
+                      {application.seeker_id?.profile_image ? (
+                        <img 
+                          src={application.seeker_id.profile_image} 
+                          alt={application.seeker_id?.name || 'Candidate'}
+                          className="w-12 h-12 rounded-full object-cover"
+                          onError={(e) => {
+                            // Fallback to initial if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg';
+                              fallback.textContent = (application.seeker_id?.name || 'C').charAt(0).toUpperCase();
+                              parent.insertBefore(fallback, target);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                          {(application.seeker_id?.name || 'C').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                     </div>
                     
                     {/* Application Details */}
