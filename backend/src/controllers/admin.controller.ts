@@ -374,7 +374,7 @@ export const getAllApplications = async (req: any, res: Response) => {
 
     const applications = await Application.find(filter)
       .populate('job_id', 'title company_name location salary')
-      .populate('seeker_id', 'name email skills work_experience education')
+      .populate('seeker_id', 'name email profile_image skills work_experience education')
       .populate('employer_id', 'name email')
       .sort({ applied_at: -1 })
       .limit(parseInt(limit as string))
