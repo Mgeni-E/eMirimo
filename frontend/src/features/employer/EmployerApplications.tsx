@@ -4,13 +4,11 @@ import { DashboardLayout } from '../../components/DashboardLayout';
 import { api } from '../../lib/api';
 import { 
   ApplicationsIcon, 
-  UserIcon,
   ClockIcon,
   CheckIcon,
   XIcon,
   EyeIcon,
   CalendarIcon,
-  FilterIcon,
   SearchIcon,
   SortAscendingIcon
 } from '../../components/icons';
@@ -32,7 +30,7 @@ interface Application {
     company: string;
     location: string;
   };
-  status: 'applied' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected';
+  status: 'applied' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected' | 'under_review' | 'interview_scheduled' | 'interview_completed' | 'offer_made' | 'withdrawn';
   applied_at: string;
   cover_letter?: string;
   resume_url?: string;
