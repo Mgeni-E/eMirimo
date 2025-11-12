@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '../../components/DashboardLayout';
-import { useAuth } from '../../lib/store';
 import { api } from '../../lib/api';
 import { 
   ApplicationsIcon, 
@@ -66,9 +65,6 @@ export function SeekerDashboard() {
 
           // Set real recent activities
           setActivities(recentActivity || []);
-          setApplications(applications || []);
-          setJobRecommendations(jobRecommendations || []);
-          setLearningRecommendations(learningRecommendations || []);
           
           return; // Success, exit early
         }
@@ -119,16 +115,14 @@ export function SeekerDashboard() {
         newOpportunities
       });
 
-      setApplications(applications);
-
       // Get real recent activities from applications
-      const recentActivities = applications.slice(0, 5).map((app: any) => ({
+      const recentActivities: RecentActivity[] = applications.slice(0, 5).map((app: any) => ({
         id: app.id || app._id,
         type: 'application' as const,
         title: `Applied to ${app.job_id?.title || app.job?.title || 'Job'}`,
         description: `Application status: ${app.status}`,
         timestamp: app.applied_at || app.created_at || new Date().toISOString(),
-        status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
+        status: (app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending') as 'success' | 'pending' | 'warning'
       }));
 
       setActivities(recentActivities);
