@@ -42,7 +42,7 @@ export function Home() {
             <div className="relative">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-soft border border-gray-200 dark:border-gray-700 p-8">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard')}</h3>
                   <div className="w-2 h-2 bg-accent-500 rounded-full"></div>
                 </div>
                 
@@ -50,29 +50,29 @@ export function Home() {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4">
                     <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">12</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Applications</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('applications')}</div>
                   </div>
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                     <div className="text-2xl font-bold text-green-600 dark:text-green-400">3</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Interviews</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('interviews')}</div>
                   </div>
                 </div>
 
                 {/* Recent Activity */}
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Recent Activity</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{t('recentActivity')}</h4>
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Applied to Software Engineer at TechCorp</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('appliedToSoftwareEngineer')}</div>
                     </div>
                     <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Interview scheduled for tomorrow</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('interviewScheduledTomorrow')}</div>
                     </div>
                     <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Profile 95% complete</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{t('profilePercentComplete', { percent: 95 })}</div>
                     </div>
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export function Home() {
                 {/* Progress Bar */}
                 <div className="mt-6">
                   <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    <span>Profile Completion</span>
+                    <span>{t('profileCompletion')}</span>
                     <span>95%</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">

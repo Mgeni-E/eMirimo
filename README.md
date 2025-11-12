@@ -103,22 +103,47 @@ eMirimo is a comprehensive job management platform that connects Rwandan youth a
    npm run dev
    ```
 
-### Docker Setup
+### Docker Setup (Local Development)
 
-1. **Using Docker Compose**
+**Note**: For production deployment, use Vercel (frontend) and Render (backend). Docker is primarily for local development.
+
+1. **Using Docker Compose (Development)**
    ```bash
+   # Start all services (MongoDB + Backend + Frontend)
    docker-compose up -d
+   
+   # View logs
+   docker-compose logs -f
+   
+   # Stop all services
+   docker-compose down
+   
+   # Stop and remove volumes (clean slate)
+   docker-compose down -v
    ```
 
-2. **Build and run individual containers**
+2. **Production Docker Compose (Self-hosted)**
    ```bash
-   # Build the application
-   docker build -t emirimo .
-   
-   # Run with MongoDB
-   docker run -d --name emirimo-mongodb -p 27017:27017 mongo:latest
-   docker run -d --name emirimo-app -p 5000:5000 --link emirimo-mongodb emirimo
+   # For self-hosted production deployment
+   docker-compose -f docker-compose.prod.yml up -d
    ```
+
+3. **Individual Services**
+   ```bash
+   # Start only MongoDB
+   docker-compose up -d mongodb
+   
+   # Start only backend
+   docker-compose up -d backend
+   
+   # Start only frontend
+   docker-compose up -d frontend
+   ```
+
+**Services**:
+- MongoDB: `localhost:27017`
+- Backend API: `localhost:3002`
+- Frontend: `localhost:5173`
 
 ## 🧪 Testing
 
@@ -143,39 +168,93 @@ npm run test:e2e
 
 ## 🚀 Deployment
 
-### Production Build
+### Quick Start
+
+eMirimo is configured for deployment to:
+- **Frontend**: Vercel (automatic deployment via GitHub Actions)
+- **Backend**: Render (automatic deployment via GitHub Actions)
+- **Database**: MongoDB Atlas
+
+### Automated Deployment
+
+The project includes GitHub Actions workflows for automatic deployment:
+
+1. **Frontend** (`.github/workflows/deploy-frontend.yml`)
+   - Automatically deploys to Vercel on push to `main`/`master`
+   - Triggers on changes to `frontend/**` directory
+
+2. **Backend** (`.github/workflows/deploy-backend.yml`)
+   - Automatically deploys to Render on push to `main`/`master`
+   - Triggers on changes to `backend/**` directory
+
+### Setup Instructions
+
+📖 **For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
+
+#### Quick Setup Steps:
+
+1. **MongoDB Atlas**
+   - Create cluster and get connection string
+   - Configure database user and IP whitelist
+
+2. **Render (Backend)**
+   - Create new Web Service
+   - Connect GitHub repository
+   - Set root directory to `backend`
+   - Configure environment variables
+   - Get Service ID and API Key
+
+3. **Vercel (Frontend)**
+   - Import GitHub repository
+   - Set root directory to `frontend`
+   - Configure environment variables
+   - Get Organization ID, Project ID, and Token
+
+4. **GitHub Secrets**
+   - Add all required secrets for automated deployment
+   - See DEPLOYMENT.md for complete list
+
+### Environment Variables
+
+#### Backend (Render)
+```env
+NODE_ENV=production
+PORT=10000
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/emirimo
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+JWT_EXPIRES=7d
+CORS_ORIGIN=https://your-frontend.vercel.app
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+```
+
+#### Frontend (Vercel)
+```env
+VITE_API_URL=https://your-backend.onrender.com/api
+VITE_APP_NAME=eMirimo
+VITE_APP_VERSION=1.0.0
+```
+
+### Manual Deployment
+
+#### Production Build
 ```bash
 # Backend
 cd backend
 npm run build
+npm start
 
 # Frontend
 cd frontend
 npm run build
+# Deploy dist/ folder to Vercel
 ```
 
 ### Docker Deployment
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Environment Variables
-
-#### Backend (.env)
-```env
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/emirimo
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES=15m
-CORS_ORIGIN=https://yourdomain.com
-REDIS_URL=redis://localhost:6379
-```
-
-#### Frontend (.env.local)
-```env
-VITE_API_BASE_URL=https://api.yourdomain.com
-VITE_APP_NAME=eMirimo
 ```
 
 ## 📁 Project Structure

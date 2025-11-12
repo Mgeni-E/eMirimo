@@ -1,15 +1,17 @@
+import { useTranslation } from 'react-i18next';
 
 export function PrivacyPolicy() {
+  const { t } = useTranslation();
 
   return (
     <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-12">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Privacy Policy
+          {t('privacyPolicy')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Last updated: {new Date().toLocaleDateString()}
+          {t('lastUpdated')}: {new Date().toLocaleDateString()}
         </p>
       </div>
 
@@ -17,7 +19,7 @@ export function PrivacyPolicy() {
       <div className="prose prose-lg max-w-none dark:prose-invert">
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            1. Information We Collect
+            1. {t('informationWeCollect')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -35,7 +37,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            2. How We Use Your Information
+            2. {t('howWeUseYourInformation')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>We use the information we collect to:</p>
@@ -52,7 +54,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            3. Information Sharing
+            3. {t('informationSharing')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -70,7 +72,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            4. Data Security
+            4. {t('dataSecurity')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -88,7 +90,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            5. Your Rights
+            5. {t('yourRights')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>You have the right to:</p>
@@ -104,7 +106,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            6. Cookies and Tracking
+            6. {t('cookiesAndTracking')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -116,7 +118,7 @@ export function PrivacyPolicy() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            7. Contact Us
+            7. {t('contactUs')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>

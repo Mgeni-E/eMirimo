@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
   LightBulbIcon,
@@ -63,6 +64,7 @@ interface PersonalizedDashboard {
 }
 
 export function Recommendations() {
+  const { t } = useTranslation();
   const [dashboard, setDashboard] = useState<PersonalizedDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function Recommendations() {
       setDashboard(response.data.data);
     } catch (error: any) {
       console.error('Failed to load recommendations:', error);
-      setError('Failed to load recommendations. Please try again.');
+      setError(t('failedLoadDashboardData'));
     } finally {
       setLoading(false);
     }
@@ -120,15 +122,15 @@ export function Recommendations() {
   if (error || !dashboard) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400">{error || 'No recommendations available'}</p>
-          <button 
-            onClick={loadRecommendations}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="text-center py-12">
+        <p className="text-red-600 dark:text-red-400">{error || t('noRecommendationsAvailable')}</p>
+        <button 
+          onClick={loadRecommendations}
+          className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+        >
+          {t('tryAgain')}
+        </button>
+      </div>
       </DashboardLayout>
     );
   }
@@ -139,12 +141,12 @@ export function Recommendations() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Recommendations</h1>
-            <p className="text-gray-600 dark:text-gray-400">Personalized job and course recommendations based on your profile</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('aiRecommendationsTitle')}</h1>
+            <p className="text-gray-600 dark:text-gray-400">{t('personalizedJobCourseRecommendations')}</p>
           </div>
           <div className="flex items-center space-x-2">
             <LightBulbIcon className="w-6 h-6 text-yellow-500" />
-            <span className="text-sm text-gray-600 dark:text-gray-400">Powered by AI</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">{t('poweredByAi')}</span>
           </div>
         </div>
 
@@ -156,7 +158,7 @@ export function Recommendations() {
                 <BriefcaseIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Job Matches</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('jobMatches')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.summary.totalJobMatches}</p>
               </div>
             </div>
@@ -168,7 +170,7 @@ export function Recommendations() {
                 <BookOpenIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Course Matches</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('courseMatches')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.summary.totalCourseMatches}</p>
               </div>
             </div>
@@ -180,7 +182,7 @@ export function Recommendations() {
                 <AcademicCapIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Skills to Learn</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('skillsToLearn')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.summary.skillsToLearn}</p>
               </div>
             </div>
@@ -190,7 +192,7 @@ export function Recommendations() {
         {/* Skills Gap */}
         {dashboard.skillsGap.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Skills Gap Analysis</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('skillsGapAnalysis')}</h3>
             <div className="flex flex-wrap gap-2">
               {dashboard.skillsGap.map((skill, index) => (
                 <span 
@@ -202,7 +204,7 @@ export function Recommendations() {
               ))}
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-3">
-              These are the skills you should focus on learning to advance your career.
+              {t('focusOnLearning')}
             </p>
           </div>
         )}
@@ -218,7 +220,7 @@ export function Recommendations() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
-              Job Recommendations ({dashboard.jobRecommendations.length})
+              {t('jobRecommendations')} ({dashboard.jobRecommendations.length})
             </button>
             <button
               onClick={() => setActiveTab('courses')}
@@ -228,7 +230,7 @@ export function Recommendations() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
-              Course Recommendations ({dashboard.courseRecommendations.length})
+              {t('courseRecommendations')} ({dashboard.courseRecommendations.length})
             </button>
           </nav>
         </div>
@@ -239,8 +241,8 @@ export function Recommendations() {
             {dashboard.jobRecommendations.length === 0 ? (
               <div className="text-center py-12">
                 <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No job recommendations available</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Complete your profile to get personalized recommendations</p>
+                <p className="text-gray-600 dark:text-gray-400">{t('noJobRecommendationsAvailable')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">{t('completeProfileForRecommendations')}</p>
               </div>
             ) : (
               dashboard.jobRecommendations.map((recommendation, index) => (
@@ -252,7 +254,7 @@ export function Recommendations() {
                           {recommendation.job.title}
                         </h3>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchColor(recommendation.matchScore)}`}>
-                          {formatMatchScore(recommendation.matchScore)}% match
+                          {formatMatchScore(recommendation.matchScore)}% {t('match')}
                         </span>
                       </div>
                       
@@ -276,7 +278,7 @@ export function Recommendations() {
                       </div>
                       
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">Why this matches you:</h4>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">{t('whyThisMatchesYou')}</h4>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                           {recommendation.reasons.map((reason, reasonIndex) => (
                             <li key={reasonIndex} className="flex items-center">
@@ -300,8 +302,8 @@ export function Recommendations() {
             {dashboard.courseRecommendations.length === 0 ? (
               <div className="text-center py-12">
                 <BookOpenIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No course recommendations available</p>
-                <p className="text-sm text-gray-500 dark:text-gray-500">Complete your profile to get personalized recommendations</p>
+                <p className="text-gray-600 dark:text-gray-400">{t('noRecommendationsAvailable')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">{t('completeProfileForRecommendations')}</p>
               </div>
             ) : (
               dashboard.courseRecommendations.map((recommendation, index) => (
@@ -313,7 +315,7 @@ export function Recommendations() {
                           {recommendation.course.title}
                         </h3>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchColor(recommendation.matchScore)}`}>
-                          {formatMatchScore(recommendation.matchScore)}% match
+                          {formatMatchScore(recommendation.matchScore)}% {t('match')}
                         </span>
                       </div>
                       
@@ -332,7 +334,7 @@ export function Recommendations() {
                       
                       {recommendation.skillsGap.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Skills you'll learn:</h4>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">{t('skillsYouWillLearn')}</h4>
                           <div className="flex flex-wrap gap-2">
                             {recommendation.skillsGap.slice(0, 5).map((skill, skillIndex) => (
                               <span 
@@ -347,7 +349,7 @@ export function Recommendations() {
                       )}
                       
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">Why this course is recommended:</h4>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">{t('whyThisCourseIsRecommended')}</h4>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                           {recommendation.reasons.map((reason, reasonIndex) => (
                             <li key={reasonIndex} className="flex items-center">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/store';
 import { DashboardLayout } from '../../components/DashboardLayout';
@@ -38,6 +39,7 @@ interface LearningResource {
 }
 
 export function Learning() {
+  const { t } = useTranslation();
   const [resources, setResources] = useState<LearningResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,10 +118,10 @@ export function Learning() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Learning & Development
+              {t('learningDevelopment')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Enhance your skills with curated learning resources
+              {t('enhanceSkillsCurated')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -134,7 +136,7 @@ export function Learning() {
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search courses, skills, or topics..."
+              placeholder={t('searchCoursesSkillsTopics')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
@@ -147,13 +149,13 @@ export function Learning() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
           >
-            <option value="all">All Categories</option>
-            <option value="technical">Technical Skills</option>
-            <option value="soft-skills">Soft Skills</option>
-            <option value="career">Career Development</option>
-            <option value="interview">Interview Prep</option>
-            <option value="resume">Resume Building</option>
-            <option value="networking">Networking</option>
+            <option value="all">{t('allCategories')}</option>
+            <option value="technical">{t('technicalSkills')}</option>
+            <option value="soft-skills">{t('softSkills')}</option>
+            <option value="career">{t('careerDevelopment')}</option>
+            <option value="interview">{t('interviewPrep')}</option>
+            <option value="resume">{t('resumeBuilding')}</option>
+            <option value="networking">{t('networking')}</option>
           </select>
 
           {/* Difficulty Filter */}
@@ -162,10 +164,10 @@ export function Learning() {
             onChange={(e) => setSelectedDifficulty(e.target.value)}
             className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
           >
-            <option value="all">All Levels</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            <option value="all">{t('allLevels')}</option>
+            <option value="beginner">{t('beginner')}</option>
+            <option value="intermediate">{t('intermediate')}</option>
+            <option value="advanced">{t('advanced')}</option>
           </select>
 
           {/* Type Filter */}
@@ -174,12 +176,12 @@ export function Learning() {
             onChange={(e) => setSelectedType(e.target.value)}
             className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
           >
-            <option value="all">All Types</option>
-            <option value="video">Videos</option>
-            <option value="article">Articles</option>
-            <option value="course">Courses</option>
-            <option value="tutorial">Tutorials</option>
-            <option value="guide">Guides</option>
+            <option value="all">{t('allTypes')}</option>
+            <option value="video">{t('videos')}</option>
+            <option value="article">{t('articles')}</option>
+            <option value="course">{t('courses')}</option>
+            <option value="tutorial">{t('tutorials')}</option>
+            <option value="guide">{t('guides')}</option>
           </select>
         </div>
       </div>
@@ -193,10 +195,10 @@ export function Learning() {
         <div className="text-center py-12">
           <BookOpenIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            No Learning Resources Found
+            {t('noLearningResourcesFound')}
           </h3>
           <p className="text-gray-600 dark:text-gray-400">
-            Try adjusting your search criteria or check back later for new content.
+            {t('tryAdjustingSearchCriteria')}
           </p>
         </div>
       ) : (
@@ -233,7 +235,7 @@ export function Learning() {
                   <div className="absolute bottom-4 left-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
                       <StarIcon className="w-3 h-3 mr-1" />
-                      Featured
+                      {t('featured')}
                     </span>
                   </div>
                 )}
@@ -282,15 +284,15 @@ export function Learning() {
                   <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                       <ClockIcon className="w-4 h-4" />
-                      <span>{resource.duration} min</span>
+                      <span>{resource.duration} {t('min')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <PlayIcon className="w-4 h-4" />
-                      <span>{resource.views} views</span>
+                      <span>{resource.views} {t('views')}</span>
                     </div>
                   </div>
                   <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
-                    Start Learning
+                    {t('startLearning')}
                   </button>
                 </div>
               </div>

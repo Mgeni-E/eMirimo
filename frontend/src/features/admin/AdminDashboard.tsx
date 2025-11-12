@@ -127,24 +127,24 @@ export function AdminDashboard() {
             ...(recentActivity.users || []).map((user: any) => ({
               id: user._id,
               type: 'user' as const,
-              title: 'New User Registration',
-              description: `${user.name} registered as ${user.role}`,
+              title: t('newUserRegistration'),
+              description: t('registeredAs', { name: user.name, role: user.role }),
               timestamp: user.created_at,
               user: user.name
             })),
             ...(recentActivity.jobs || []).map((job: any) => ({
               id: job._id,
               type: 'job' as const,
-              title: 'New Job Posted',
-              description: `${job.title} by ${job.employer_id?.name || 'Unknown'}`,
+              title: t('newJobPosted'),
+              description: t('jobByEmployer', { title: job.title, employer: job.employer_id?.name || 'Unknown' }),
               timestamp: job.created_at,
               user: job.employer_id?.name || 'Unknown'
             })),
             ...(recentActivity.applications || []).map((app: any) => ({
               id: app._id,
               type: 'application' as const,
-              title: 'New Application',
-              description: `${app.seeker_id?.name || 'Unknown'} applied for ${app.job_id?.title || 'Unknown'}`,
+              title: t('newApplication'),
+              description: t('appliedForJob', { name: app.seeker_id?.name || 'Unknown', job: app.job_id?.title || 'Unknown' }),
               timestamp: app.applied_at,
               user: app.seeker_id?.name || 'Unknown'
             }))
@@ -215,7 +215,7 @@ export function AdminDashboard() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+            <p className="text-gray-600 dark:text-gray-400">{t('loadingDashboard')}</p>
           </div>
         </div>
       </DashboardLayout>
@@ -248,7 +248,7 @@ export function AdminDashboard() {
       {/* Error Display */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-800 dark:text-red-200">{error}</p>
+          <p className="text-red-800 dark:text-red-200">{t('failedToLoadDashboardData')}</p>
         </div>
       )}
 
@@ -350,7 +350,7 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('quickActions')}</h3>
           </div>
           <div className="space-y-3">
             <Link 
@@ -360,8 +360,8 @@ export function AdminDashboard() {
               <div className="flex items-center">
                 <UsersIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Manage Users</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">View and manage all users</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{t('manageUsers')}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('viewManageAllUsers')}</p>
                 </div>
               </div>
               <ArrowRightIcon className="w-4 h-4 text-gray-400" />
@@ -374,8 +374,8 @@ export function AdminDashboard() {
               <div className="flex items-center">
                 <JobsIcon className="w-5 h-5 text-green-600 dark:text-green-400 mr-3" />
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Manage Jobs</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Review and manage job postings</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{t('manageJobs')}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('reviewManageJobPostings')}</p>
                 </div>
               </div>
               <ArrowRightIcon className="w-4 h-4 text-gray-400" />
@@ -388,8 +388,8 @@ export function AdminDashboard() {
               <div className="flex items-center">
                 <BellIcon className="w-5 h-5 text-orange-600 dark:text-orange-400 mr-3" />
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Notifications</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Manage system notifications</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{t('notifications')}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('manageSystemNotifications')}</p>
                 </div>
               </div>
               <ArrowRightIcon className="w-4 h-4 text-gray-400" />
@@ -399,9 +399,9 @@ export function AdminDashboard() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recentActivity')}</h3>
             <Link to="/admin/activity" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-              View All
+              {t('viewAll')}
             </Link>
           </div>
           <div className="space-y-4">

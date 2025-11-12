@@ -1,15 +1,17 @@
+import { useTranslation } from 'react-i18next';
 
 export function TermsAndConditions() {
+  const { t } = useTranslation();
 
   return (
     <div className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 3xl:px-20 py-12">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Terms and Conditions
+          {t('termsAndConditions')}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Last updated: {new Date().toLocaleDateString()}
+          {t('lastUpdated')}: {new Date().toLocaleDateString()}
         </p>
       </div>
 
@@ -17,7 +19,7 @@ export function TermsAndConditions() {
       <div className="prose prose-lg max-w-none dark:prose-invert">
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            1. Acceptance of Terms
+            1. {t('acceptanceOfTerms')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -30,7 +32,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            2. Description of Service
+            2. {t('descriptionOfService')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -49,7 +51,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            3. User Accounts
+            3. {t('userAccounts')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>To access certain features, you must create an account. You agree to:</p>
@@ -65,7 +67,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            4. User Conduct
+            4. {t('userConduct')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>You agree not to:</p>
@@ -82,7 +84,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            5. Content and Intellectual Property
+            5. {t('contentAndIntellectualProperty')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -95,7 +97,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            6. Job Applications and Mentorship
+            6. {t('jobApplicationsAndMentorship')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -112,7 +114,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            7. Privacy and Data Protection
+            7. {t('privacyAndDataProtection')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -124,7 +126,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            8. Service Availability
+            8. {t('serviceAvailability')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -137,7 +139,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            9. Limitation of Liability
+            9. {t('limitationOfLiability')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -150,7 +152,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            10. Termination
+            10. {t('termination')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -162,7 +164,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            11. Changes to Terms
+            11. {t('changesToTerms')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>
@@ -174,7 +176,7 @@ export function TermsAndConditions() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-            12. Contact Information
+            12. {t('contactInformation')}
           </h2>
           <div className="text-gray-700 dark:text-gray-300 space-y-4">
             <p>

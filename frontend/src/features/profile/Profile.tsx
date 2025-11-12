@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../lib/store';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { SeekerProfile } from './SeekerProfile';
 import { EmployerProfile } from './EmployerProfile';
 
 export function Profile() {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   // Render appropriate profile based on user role
@@ -20,10 +22,10 @@ export function Profile() {
     <DashboardLayout>
       <div className="text-center py-16">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 font-display">
-          Profile Management
+          {t('profileManagement')}
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Profile management for your role is not yet implemented.
+          {t('profileManagementNotImplemented')}
         </p>
       </div>
     </DashboardLayout>

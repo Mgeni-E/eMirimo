@@ -70,19 +70,19 @@ export function EmployerDashboard() {
           
           // Format recent activity timestamps
           const formatTimestamp = (timestamp: string | Date) => {
-            if (!timestamp) return 'Recently';
+            if (!timestamp) return t('recently');
             const date = new Date(timestamp);
-            if (isNaN(date.getTime())) return 'Recently';
+            if (isNaN(date.getTime())) return t('recently');
             const now = new Date();
             const diffMs = now.getTime() - date.getTime();
             const diffMins = Math.floor(diffMs / 60000);
             const diffHours = Math.floor(diffMs / 3600000);
             const diffDays = Math.floor(diffMs / 86400000);
             
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            if (diffMins < 1) return t('justNow');
+            if (diffMins < 60) return diffMins === 1 ? t('minuteAgo', { count: diffMins }) : t('minutesAgoPlural', { count: diffMins });
+            if (diffHours < 24) return diffHours === 1 ? t('hourAgo', { count: diffHours }) : t('hoursAgoPlural', { count: diffHours });
+            if (diffDays < 7) return diffDays === 1 ? t('dayAgo', { count: diffDays }) : t('daysAgoPlural', { count: diffDays });
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
           };
           
@@ -140,19 +140,19 @@ export function EmployerDashboard() {
 
       // Format timestamp helper
       const formatTimestamp = (timestamp: string | Date) => {
-        if (!timestamp) return 'Recently';
+        if (!timestamp) return t('recently');
         const date = new Date(timestamp);
-        if (isNaN(date.getTime())) return 'Recently';
+        if (isNaN(date.getTime())) return t('recently');
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
         
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-        if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        if (diffMins < 1) return t('justNow');
+        if (diffMins < 60) return diffMins === 1 ? t('minuteAgo', { count: diffMins }) : t('minutesAgoPlural', { count: diffMins });
+        if (diffHours < 24) return diffHours === 1 ? t('hourAgo', { count: diffHours }) : t('hoursAgoPlural', { count: diffHours });
+        if (diffDays < 7) return diffDays === 1 ? t('dayAgo', { count: diffDays }) : t('daysAgoPlural', { count: diffDays });
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
       };
 
@@ -161,16 +161,16 @@ export function EmployerDashboard() {
         ...jobs.slice(0, 5).map((job: any) => ({
           id: job.id || job._id,
           type: 'job' as const,
-          title: `Posted job: ${job.title}`,
-          description: job.is_active !== false ? 'Job is now live and accepting applications' : 'Job is inactive',
+          title: t('postedJob', { title: job.title }),
+          description: job.is_active !== false ? t('jobIsNowLiveAccepting') : t('jobIsInactive'),
           timestamp: formatTimestamp(job.created_at || job.createdAt || job.posted_at),
           status: job.is_active !== false ? 'success' : 'pending'
         })),
         ...applications.slice(0, 5).map((app: any) => ({
           id: app.id || app._id,
           type: 'application' as const,
-          title: `New application for ${app.job_id?.title || app.job?.title || 'Job'}`,
-          description: `Application from ${app.seeker_id?.name || app.seeker?.name || 'Unknown User'}`,
+          title: t('newApplicationFor', { job: app.job_id?.title || app.job?.title || 'Job' }),
+          description: t('applicationFrom', { name: app.seeker_id?.name || app.seeker?.name || 'Unknown User' }),
           timestamp: formatTimestamp(app.applied_at || app.created_at),
           status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
         }))
@@ -320,19 +320,19 @@ export function EmployerDashboard() {
         {/* Job Management */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Job Management</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('jobManagement')}</h3>
             <Link to="/employer/jobs" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
           <div className="space-y-3">
             <Link to="/employer/jobs" className="block w-full text-left px-4 py-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
-              <div className="font-medium text-primary-700 dark:text-primary-300">Post New Job</div>
-              <div className="text-sm text-primary-600 dark:text-primary-400">Create a new job listing</div>
+              <div className="font-medium text-primary-700 dark:text-primary-300">{t('postNewJob')}</div>
+              <div className="text-sm text-primary-600 dark:text-primary-400">{t('createNewJobListing')}</div>
             </Link>
             <Link to="/employer/jobs" className="block w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="font-medium text-gray-900 dark:text-white">List of Jobs</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">View and manage your job postings</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('listOfJobs')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('viewAndManageJobPostings')}</div>
             </Link>
           </div>
         </div>
@@ -340,9 +340,9 @@ export function EmployerDashboard() {
         {/* Recent Hiring Activity */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Hiring Activity</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('recentHiringActivity')}</h3>
             <Link to="/employer/applications" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-              View All
+              {t('viewAll')}
             </Link>
           </div>
           <div className="space-y-4">
@@ -368,8 +368,8 @@ export function EmployerDashboard() {
               ))
             ) : (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p className="text-sm">No recent activity</p>
-                <p className="text-xs mt-1">Your hiring activity will appear here</p>
+                <p className="text-sm">{t('noRecentActivity')}</p>
+                <p className="text-xs mt-1">{t('yourHiringActivityWillAppear')}</p>
               </div>
             )}
           </div>
@@ -381,23 +381,23 @@ export function EmployerDashboard() {
         {/* Applications Management */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Applications</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('applications')}</h3>
             <Link to="/employer/applications" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
           <div className="space-y-3">
             <Link to="/employer/applications" className="block w-full text-left px-4 py-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
-              <div className="font-medium text-primary-700 dark:text-primary-300">Review Applications</div>
-              <div className="text-sm text-primary-600 dark:text-primary-400">Screen and evaluate candidates</div>
+              <div className="font-medium text-primary-700 dark:text-primary-300">{t('reviewApplications')}</div>
+              <div className="text-sm text-primary-600 dark:text-primary-400">{t('screenAndEvaluateCandidates')}</div>
             </Link>
             <Link to="/employer/applications" className="block w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="font-medium text-gray-900 dark:text-white">Schedule Interviews</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Set up candidate interviews</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('scheduleInterviews')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('setUpCandidateInterviews')}</div>
             </Link>
             <Link to="/profile" className="block w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="font-medium text-gray-900 dark:text-white">Update Profile</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Manage your employer profile</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('updateProfile')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('manageYourEmployerProfile')}</div>
             </Link>
           </div>
         </div>
@@ -405,23 +405,23 @@ export function EmployerDashboard() {
         {/* Hiring Pipeline */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Hiring Pipeline</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('hiringPipeline')}</h3>
             <Link to="/employer/pipeline" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
               <ArrowRightIcon className="w-4 h-4" />
             </Link>
           </div>
           <div className="space-y-3">
             <Link to="/employer/pipeline" className="block w-full text-left px-4 py-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors">
-              <div className="font-medium text-primary-700 dark:text-primary-300">Manage Pipeline</div>
-              <div className="text-sm text-primary-600 dark:text-primary-400">Track candidates through hiring stages</div>
+              <div className="font-medium text-primary-700 dark:text-primary-300">{t('managePipeline')}</div>
+              <div className="text-sm text-primary-600 dark:text-primary-400">{t('trackCandidatesThroughStages')}</div>
             </Link>
             <Link to="/employer/pipeline" className="block w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="font-medium text-gray-900 dark:text-white">Interview Schedule</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">View upcoming interviews</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('interviewSchedule')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('viewUpcomingInterviews')}</div>
             </Link>
             <Link to="/employer/pipeline" className="block w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-              <div className="font-medium text-gray-900 dark:text-white">Make Hiring Decisions</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Finalize candidate selections</div>
+              <div className="font-medium text-gray-900 dark:text-white">{t('makeHiringDecisions')}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('finalizeCandidateSelections')}</div>
             </Link>
           </div>
         </div>
