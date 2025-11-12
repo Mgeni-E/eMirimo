@@ -120,24 +120,6 @@ export function EmployerApplications() {
     }
   };
 
-  const updateApplicationStatus = async (applicationId: string, status: string, notes?: string) => {
-    try {
-      const response = await api.patch(`/applications/${applicationId}/status`, {
-        status,
-        notes
-      });
-      
-      if (response.data.success) {
-        // Reload applications to get updated data
-        loadApplications();
-        alert('Application status updated successfully!');
-      }
-    } catch (error) {
-      console.error('Failed to update application status:', error);
-      alert('Failed to update application status');
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'applied': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300';
