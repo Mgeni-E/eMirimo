@@ -12,7 +12,32 @@ const app = express();
 
 app.use(helmet());
 app.use(cors({ 
-  origin: config.CORS_ORIGIN, 
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // List of allowed origins
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5174',
+      'https://e-mirimo.vercel.app',
+      'https://e-mirimo-git-main-elvins-projects-78a22d58.vercel.app',
+      config.CORS_ORIGIN
+    ].filter(Boolean);
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // In development, allow any localhost origin
+      if (config.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
   credentials: true 
 }));
 app.use(morgan('dev'));
