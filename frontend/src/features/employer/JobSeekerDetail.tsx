@@ -526,7 +526,7 @@ export function JobSeekerDetail() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Job Position</p>
                 <p className="text-gray-900 dark:text-white font-medium">{job.title}</p>
               </div>
-              {job.company || job.company_name && (
+              {(job.company || job.company_name) && (
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Company</p>
                   <p className="text-gray-900 dark:text-white font-medium">
