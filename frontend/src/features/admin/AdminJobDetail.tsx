@@ -17,7 +17,7 @@ interface JobDetail {
   company?: string; // Legacy support
   employer_id?: {
     name: string;
-    email: string;
+    email?: string;
   };
   location: string | {
     city?: string;
@@ -34,9 +34,6 @@ interface JobDetail {
   requirements: string[];
   benefits: string[];
   postedBy?: string;
-  employer_id?: {
-    name: string;
-  };
   createdAt: string;
   created_at?: string;
   expiresAt?: string;
@@ -208,7 +205,13 @@ export function AdminJobDetail() {
               <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">Location</span>
-                  <p className="text-base font-medium text-gray-900 dark:text-white">{job.location || 'Not specified'}</p>
+                  <p className="text-base font-medium text-gray-900 dark:text-white">
+                    {typeof job.location === 'string' 
+                      ? job.location 
+                      : job.location 
+                        ? `${job.location.city || ''}${job.location.city && job.location.country ? ', ' : ''}${job.location.country || ''}`.trim() || 'Not specified'
+                        : 'Not specified'}
+                  </p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">Salary</span>
