@@ -374,12 +374,23 @@ export const getAllApplications = async (req: any, res: Response) => {
 
     const applications = await Application.find(filter)
       .populate('job_id', 'title company_name location salary')
-      .populate('seeker_id', 'name email profile_image skills work_experience education')
+      .populate({
+        path: 'seeker_id',
+        select: 'name email profile_image skills work_experience education',
+        // Explicitly include profile_image even if empty
+        options: { lean: true }
+      })
       .populate('employer_id', 'name email')
       .sort({ applied_at: -1 })
       .limit(parseInt(limit as string))
       .skip(parseInt(offset as string))
       .lean();
+
+    // Debug: Log first application to verify profile_image is populated
+    if (applications.length > 0) {
+      console.log('First application seeker_id:', applications[0].seeker_id);
+      console.log('First application profile_image:', applications[0].seeker_id?.profile_image);
+    }
 
     const total = await Application.countDocuments(filter);
 
