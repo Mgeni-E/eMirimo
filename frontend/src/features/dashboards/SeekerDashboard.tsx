@@ -10,9 +10,7 @@ import {
   CheckIcon, 
   StarIcon,
   ArrowRightIcon,
-  DocumentIcon,
-  LightBulbIcon,
-  BookOpenIcon
+  DocumentIcon
 } from '../../components/icons';
 import { JobRecommendations } from '../jobs/JobRecommendations';
 import { LearningRecommendations } from '../learning/LearningRecommendations';
@@ -35,7 +33,6 @@ interface RecentActivity {
 
 export function SeekerDashboard() {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalApplications: 0,
@@ -44,9 +41,6 @@ export function SeekerDashboard() {
     newOpportunities: 0
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
-  const [applications, setApplications] = useState<any[]>([]);
-  const [jobRecommendations, setJobRecommendations] = useState<any[]>([]);
-  const [learningRecommendations, setLearningRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
