@@ -4,15 +4,13 @@ import { api } from '../../lib/api';
 import { 
   CalendarIcon, 
   ClockIcon,
-  UserIcon,
   VideoIcon,
   PhoneIcon,
   MapPinIcon,
   CheckIcon,
   XIcon,
   PlusIcon,
-  EditIcon,
-  TrashIcon
+  EditIcon
 } from '../../components/icons';
 
 interface Interview {
@@ -83,7 +81,6 @@ export function EmployerInterviews() {
   });
   const [loading, setLoading] = useState(true);
   const [showNewInterviewModal, setShowNewInterviewModal] = useState(false);
-  const [selectedInterview, setSelectedInterview] = useState<Interview | null>(null);
   const [shortlistedCandidates, setShortlistedCandidates] = useState<ShortlistedCandidate[]>([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -164,15 +161,6 @@ export function EmployerInterviews() {
         const dateA = new Date(`${a.scheduledDate}T${a.scheduledTime}`);
         const dateB = new Date(`${b.scheduledDate}T${b.scheduledTime}`);
         return dateA.getTime() - dateB.getTime();
-      });
-  };
-
-  const getUpcomingInterviews = () => {
-    const now = new Date();
-    return getAllScheduledInterviews()
-      .filter(interview => {
-        const interviewDateTime = new Date(`${interview.scheduledDate}T${interview.scheduledTime}`);
-        return interviewDateTime > now;
       });
   };
 
@@ -358,7 +346,7 @@ export function EmployerInterviews() {
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg relative overflow-hidden">
                       {(() => {
-                        const profileImage = interview.candidate.avatar || interview.candidate.profile_image;
+                        const profileImage = interview.candidate.avatar;
                         const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
                         
                         if (hasValidImage) {
@@ -472,7 +460,7 @@ export function EmployerInterviews() {
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg relative overflow-hidden">
                       {(() => {
-                        const profileImage = interview.candidate.avatar || interview.candidate.profile_image;
+                        const profileImage = interview.candidate.avatar;
                         const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
                         
                         if (hasValidImage) {
@@ -537,7 +525,10 @@ export function EmployerInterviews() {
                     </span>
                     <div className="flex space-x-2">
                       <button 
-                        onClick={() => setSelectedInterview(interview)}
+                        onClick={() => {
+                          // Edit interview functionality can be added here
+                          console.log('Edit interview:', interview.id);
+                        }}
                         className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                       >
                         <EditIcon className="w-4 h-4" />
