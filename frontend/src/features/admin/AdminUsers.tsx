@@ -410,7 +410,8 @@ export function AdminUsers() {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/admin/users/${user.id || user._id}`);
+                          const userId = user.id || user._id;
+                          if (userId) navigate(`/admin/users/${userId}`);
                         }}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                       >
@@ -419,7 +420,8 @@ export function AdminUsers() {
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteUser(user.id || user._id);
+                          const userId = user.id || user._id;
+                          if (userId) deleteUser(userId);
                         }}
                         className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                       >
@@ -429,7 +431,8 @@ export function AdminUsers() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateUserStatus(user.id || user._id, 'inactive');
+                            const userId = user.id || user._id;
+                            if (userId) updateUserStatus(userId, 'inactive');
                           }}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                         >
@@ -439,7 +442,8 @@ export function AdminUsers() {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateUserStatus(user.id || user._id, 'active');
+                            const userId = user.id || user._id;
+                            if (userId) updateUserStatus(userId, 'active');
                           }}
                           className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
                         >
