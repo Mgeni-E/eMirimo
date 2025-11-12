@@ -298,12 +298,22 @@ export function AdminApplications() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Candidate Avatar */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden">
                       {(application.seeker_id as any)?.profile_image ? (
                         <img 
                           src={(application.seeker_id as any).profile_image} 
                           alt={(application.seeker_id as any)?.name || 'Candidate'}
                           className="w-12 h-12 rounded-full object-cover"
+                          onError={(e) => {
+                            // Fallback to initial if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = ((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase();
+                              parent.className = 'w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg';
+                            }
+                          }}
                         />
                       ) : (
                         ((application.seeker_id as any)?.name || 'C').charAt(0).toUpperCase()

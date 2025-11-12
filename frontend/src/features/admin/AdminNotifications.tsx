@@ -38,35 +38,75 @@ export function AdminNotifications() {
     loadNotifications();
     setupSocketConnection();
     
+    // Poll for notifications every 30 seconds as fallback
+    const pollInterval = setInterval(() => {
+      if (!socketService.isSocketConnected()) {
+        loadNotifications();
+      }
+    }, 30000);
+    
     return () => {
+      clearInterval(pollInterval);
       if (socketService.isSocketConnected()) {
         socketService.getSocket()?.emit('leave-admin-dashboard');
       }
     };
-  }, []);
+  }, [setupSocketConnection]);
 
   const setupSocketConnection = useCallback(() => {
     const token = localStorage.getItem('token');
-    if (token) {
+    if (!token) {
+      console.warn('No token found for socket connection');
+      return;
+    }
+
+    try {
       socketService.connect(token);
       
+      const socket = socketService.getSocket();
+      if (!socket) {
+        console.warn('Socket not available after connection attempt');
+        return;
+      }
+      
       // Listen for connection status
-      socketService.getSocket()?.on('connect', () => {
-        socketService.getSocket()?.emit('join-admin-dashboard');
+      socket.on('connect', () => {
+        console.log('Socket connected, joining admin dashboard');
+        socket.emit('join-admin-dashboard');
+        setError(null); // Clear any previous errors
       });
 
-      socketService.getSocket()?.on('disconnect', () => {
-        // Connection lost
+      socket.on('disconnect', (reason) => {
+        console.warn('Socket disconnected:', reason);
+        // Attempt to reconnect if it was an unexpected disconnect
+        if (reason === 'io server disconnect') {
+          // Server disconnected, reconnect manually
+          setTimeout(() => {
+            if (token) {
+              socketService.connect(token);
+            }
+          }, 1000);
+        }
       });
 
-      socketService.getSocket()?.on('connect_error', (error) => {
+      socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
+        setError('Connection issue. Notifications may be delayed.');
+        // Retry connection after delay
+        setTimeout(() => {
+          if (token && !socketService.isSocketConnected()) {
+            socketService.connect(token);
+          }
+        }, 3000);
       });
       
       // Listen for admin updates
       socketService.onAdminUpdate((data) => {
         handleAdminUpdate(data);
       });
+    } catch (error) {
+      console.error('Error setting up socket connection:', error);
+      setError('Failed to establish real-time connection. Notifications will still work via polling.');
     }
   }, []);
 
@@ -93,9 +133,11 @@ export function AdminNotifications() {
     }
   }, []);
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (retryCount = 0) => {
     setLoading(true);
-    setError(null);
+    if (retryCount === 0) {
+      setError(null);
+    }
     
     try {
       console.log('Loading notifications...');
@@ -140,8 +182,18 @@ export function AdminNotifications() {
       });
       
       setNotifications(transformedNotifications);
+      setError(null); // Clear error on success
     } catch (error: any) {
       console.error('Failed to load notifications:', error);
+      
+      // Retry logic for transient errors
+      if (retryCount < 3 && (error.response?.status >= 500 || !error.response)) {
+        console.log(`Retrying notification load (attempt ${retryCount + 1}/3)...`);
+        setTimeout(() => {
+          loadNotifications(retryCount + 1);
+        }, 2000 * (retryCount + 1)); // Exponential backoff
+        return;
+      }
       console.error('Error response:', error.response?.data);
       
       // Fallback to mock data if API fails

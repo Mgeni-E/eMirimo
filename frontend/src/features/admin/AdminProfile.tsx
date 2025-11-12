@@ -204,25 +204,25 @@ export function AdminProfile() {
     if (!file) return;
 
     setUploading(true);
+    setError(null);
     try {
-      const formData = new FormData();
-      formData.append('profilePicture', file);
+      // Upload to Cloudinary first
+      const { uploadImageToCloudinary } = await import('../../lib/storage.service');
+      const imageUrl = await uploadImageToCloudinary(file, { folder: 'profile_images' });
       
-      const response = await api.post('/admin/profile/picture', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Then update profile with the image URL
+      const response = await api.put('/users/me', { profile_image: imageUrl });
       
-      if (response.data.success) {
+      if (response.data?.user) {
+        const newImageUrl = response.data.user.profile_image || imageUrl;
         setProfile(prev => prev ? {
           ...prev,
-          profilePicture: response.data.profilePicture
+          profilePicture: newImageUrl
         } : null);
       }
     } catch (error: any) {
       console.error('Failed to upload image:', error);
-      setError('Failed to upload profile picture. Please try again.');
+      setError(error.response?.data?.error || 'Failed to upload profile picture. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -320,13 +320,25 @@ export function AdminProfile() {
                     src={profile.profilePicture}
                     alt="Profile"
                     className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg';
+                        fallback.innerHTML = '<svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+                        parent.insertBefore(fallback, target);
+                      }
+                    }}
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center border-4 border-white dark:border-gray-700 shadow-lg">
                     <UserIcon className="w-8 h-8 text-white" />
                   </div>
                 )}
-                <label className="absolute -bottom-2 -right-2 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-2 cursor-pointer shadow-lg">
+                <label className="absolute -bottom-2 -right-2 bg-primary-600 hover:bg-primary-700 text-white rounded-full p-2 cursor-pointer shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                   <CameraIcon className="w-4 h-4" />
                   <input
                     type="file"
@@ -336,12 +348,17 @@ export function AdminProfile() {
                     disabled={uploading}
                   />
                 </label>
+                {uploading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                )}
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{profile.name}</h3>
                 <p className="text-gray-600 dark:text-gray-400">{profile.email}</p>
                 {uploading && (
-                  <p className="text-sm text-primary-600 dark:text-primary-400">Uploading...</p>
+                  <p className="text-sm text-primary-600 dark:text-primary-400 mt-1">Uploading image...</p>
                 )}
               </div>
             </div>

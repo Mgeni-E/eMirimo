@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
-  UserIcon,
   FilterIcon,
   SearchIcon,
   EyeIcon,
@@ -26,6 +25,7 @@ interface User {
   lastLogin?: string;
   last_login?: string;
   profileComplete?: boolean;
+  profile_image?: string;
 }
 
 export function AdminUsers() {
@@ -369,9 +369,29 @@ export function AdminUsers() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                        <UserIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      </div>
+                      {user.profile_image ? (
+                        <img 
+                          src={user.profile_image} 
+                          alt={user.name || 'User'}
+                          className="w-10 h-10 rounded-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center';
+                              fallback.innerHTML = '<svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+                              parent.insertBefore(fallback, target);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                          {(user.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {user.name || 'Unknown User'}
