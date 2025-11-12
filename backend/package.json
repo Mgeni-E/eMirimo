@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
+    "postinstall": "npm run build",
     "setup": "node scripts/setup-env.js",
     "clean-start": "./scripts/start-server.sh",
     "test": "jest",

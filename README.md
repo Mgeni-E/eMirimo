@@ -202,13 +202,16 @@ The project includes GitHub Actions workflows for automatic deployment:
    - Create new Web Service
    - **Important**: Select "Node" environment (NOT Docker)
    - Connect GitHub repository
-   - **Root Directory**: `backend`
-   - **Build Command**: `npm install && npm run build` ⚠️ Must include `npm run build`
-   - **Start Command**: `npm start`
-   - **Node Version**: `18` (set explicitly, not default)
-   - **Health Check Path**: `/health`
-   - Configure environment variables in dashboard
+   - **Settings → Build & Deploy:**
+     - **Root Directory**: `backend`
+     - **Build Command**: `npm install` (build runs automatically)
+     - **Start Command**: `npm start`
+     - **Node Version**: `20` (or leave blank to use .nvmrc)
+   - **Settings → Health Check:**
+     - **Health Check Path**: `/health`
+   - **Environment tab**: Add all environment variables
    - Enable Auto-Deploy
+   - See `RENDER_COMMANDS.md` for exact commands
 
 3. **Vercel (Frontend)**
    - Import GitHub repository
