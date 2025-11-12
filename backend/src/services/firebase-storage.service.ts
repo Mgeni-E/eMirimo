@@ -43,8 +43,53 @@ export function initializeFirebase(): admin.app.App | null {
   }
 
   try {
-    // Option 1: Service Account JSON file path
-    if (config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
+    // Option 1: Base64 encoded JSON (for deployment/CI - PRIORITY for Render)
+    if (config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
+      if (!config.FIREBASE_STORAGE_BUCKET) {
+        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using FIREBASE_SERVICE_ACCOUNT_KEY_BASE64');
+        return null;
+      }
+      
+      try {
+        const serviceAccount = JSON.parse(
+          Buffer.from(config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8')
+        );
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          storageBucket: config.FIREBASE_STORAGE_BUCKET,
+        });
+        console.log('✅ Firebase initialized (Base64)');
+        return firebaseApp;
+      } catch (parseError: any) {
+        console.error('❌ Failed to parse base64 service account:', parseError.message);
+        return null;
+      }
+    }
+    // Option 2: Individual environment variables (for deployment - PRIORITY for Render)
+    else if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
+      if (!config.FIREBASE_STORAGE_BUCKET) {
+        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using individual credentials');
+        return null;
+      }
+      
+      try {
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: config.FIREBASE_PROJECT_ID,
+            clientEmail: config.FIREBASE_CLIENT_EMAIL,
+            privateKey: config.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          }),
+          storageBucket: config.FIREBASE_STORAGE_BUCKET,
+        });
+        console.log('✅ Firebase initialized (Individual credentials)');
+        return firebaseApp;
+      } catch (initError: any) {
+        console.error('❌ Failed to initialize Firebase with individual credentials:', initError.message);
+        return null;
+      }
+    }
+    // Option 3: Service Account JSON file path (for local development only)
+    else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
       // Resolve path relative to backend root or absolute path
       let serviceAccountPath: string;
       if (path.isAbsolute(config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH)) {
@@ -69,53 +114,8 @@ export function initializeFirebase(): admin.app.App | null {
         credential: admin.credential.cert(serviceAccount),
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
-      console.log('✅ Firebase initialized');
+      console.log('✅ Firebase initialized (File path)');
       return firebaseApp;
-    }
-    // Option 2: Base64 encoded JSON (for deployment/CI)
-    else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
-      if (!config.FIREBASE_STORAGE_BUCKET) {
-        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using FIREBASE_SERVICE_ACCOUNT_KEY_BASE64');
-        return null;
-      }
-      
-      try {
-        const serviceAccount = JSON.parse(
-          Buffer.from(config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8')
-        );
-        firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          storageBucket: config.FIREBASE_STORAGE_BUCKET,
-        });
-        console.log('✅ Firebase initialized (Base64)');
-        return firebaseApp;
-      } catch (parseError: any) {
-        console.error('❌ Failed to parse base64 service account:', parseError.message);
-        return null;
-      }
-    }
-    // Option 3: Individual environment variables
-    else if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
-      if (!config.FIREBASE_STORAGE_BUCKET) {
-        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using individual credentials');
-        return null;
-      }
-      
-      try {
-        firebaseApp = admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: config.FIREBASE_PROJECT_ID,
-            clientEmail: config.FIREBASE_CLIENT_EMAIL,
-            privateKey: config.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          }),
-          storageBucket: config.FIREBASE_STORAGE_BUCKET,
-        });
-        console.log('✅ Firebase initialized (Individual credentials)');
-        return firebaseApp;
-      } catch (initError: any) {
-        console.error('❌ Failed to initialize Firebase with individual credentials:', initError.message);
-        return null;
-      }
     }
     
     // Not configured - return null (graceful fallback)
