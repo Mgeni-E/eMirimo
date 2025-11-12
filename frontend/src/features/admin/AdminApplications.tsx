@@ -98,33 +98,19 @@ export function AdminApplications() {
         console.log('First raw seeker_id profile_image:', data[0].seeker_id?.profile_image);
       }
       
-      // Normalize application data to ensure profile_image is accessible
-      // Handle both populated objects and ObjectId references
-      const normalizedApplications = data.map((app: any) => {
-        // If seeker_id is already an object (populated), use it as is
-        // Otherwise, it might be an ObjectId that needs to be handled
-        let seekerData = app.seeker_id;
-        
-        // If seeker_id is an object with data, preserve all fields including profile_image
-        if (seekerData && typeof seekerData === 'object' && !seekerData._id && !seekerData.id) {
-          // It's an ObjectId, keep as is (shouldn't happen with populate, but handle it)
-          seekerData = seekerData;
-        } else if (seekerData && typeof seekerData === 'object') {
-          // It's a populated object, ensure profile_image is preserved
-          seekerData = {
-            ...seekerData,
-            _id: seekerData._id || seekerData.id,
-            profile_image: seekerData.profile_image || null
-          };
-        }
-        
-        return {
-          ...app,
-          _id: app._id || app.id,
-          id: app.id || app._id,
-          seeker_id: seekerData
-        };
-      });
+      // Normalize application data - preserve all fields exactly as they come from backend
+      // Just ensure consistent id fields, but don't modify seeker_id structure
+      const normalizedApplications = data.map((app: any) => ({
+        ...app,
+        _id: app._id || app.id,
+        id: app.id || app._id,
+        // Preserve seeker_id exactly as populated by backend - don't modify it
+        seeker_id: app.seeker_id ? {
+          ...app.seeker_id,
+          // Only normalize _id, preserve everything else including profile_image
+          _id: app.seeker_id._id || app.seeker_id.id
+        } : app.seeker_id
+      }));
       
       console.log('Normalized applications:', normalizedApplications);
       if (normalizedApplications.length > 0) {
