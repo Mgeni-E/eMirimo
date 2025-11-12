@@ -233,6 +233,7 @@ export function JobDetail() {
                   {/* Application Deadline */}
                   {(job.application_deadline || job.expiry_date) && (() => {
                     const deadline = job.application_deadline || job.expiry_date;
+                    if (!deadline) return null;
                     const deadlineDate = new Date(deadline);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
@@ -246,7 +247,7 @@ export function JobDetail() {
                       }`}>
                         <ClockIcon className="w-5 h-5" />
                         <span className="flex items-center gap-2">
-                          <span>{new Date(deadline).toLocaleDateString()}</span>
+                          <span>{deadlineDate.toLocaleDateString()}</span>
                           {isPassed && (
                             <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-semibold">
                               Closed
@@ -349,7 +350,11 @@ export function JobDetail() {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Requirements</h2>
                 <ul className="space-y-2">
                   {job.requirements.map((requirement, index) => {
-                    const reqText = typeof requirement === 'string' ? requirement : (requirement?.description || requirement?.name || String(requirement));
+                    const reqText = typeof requirement === 'string' 
+                      ? requirement 
+                      : (typeof requirement === 'object' && requirement !== null
+                          ? ((requirement as any)?.description || (requirement as any)?.name || String(requirement))
+                          : String(requirement));
                     return (
                       <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                         <CheckCircleIcon className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -367,7 +372,11 @@ export function JobDetail() {
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Benefits</h2>
                 <ul className="space-y-2">
                   {job.benefits.map((benefit, index) => {
-                    const benefitText = typeof benefit === 'string' ? benefit : (benefit?.name || benefit?.description || String(benefit));
+                    const benefitText = typeof benefit === 'string' 
+                      ? benefit 
+                      : (typeof benefit === 'object' && benefit !== null
+                          ? ((benefit as any)?.name || (benefit as any)?.description || String(benefit))
+                          : String(benefit));
                     return (
                       <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                         <StarIcon className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
@@ -388,7 +397,11 @@ export function JobDetail() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
                   {job.skills.map((skill, index) => {
-                    const skillName = typeof skill === 'string' ? skill : (skill?.name || String(skill));
+                    const skillName = typeof skill === 'string' 
+                      ? skill 
+                      : (typeof skill === 'object' && skill !== null
+                          ? ((skill as any)?.name || String(skill))
+                          : String(skill));
                     return (
                       <span
                         key={index}
