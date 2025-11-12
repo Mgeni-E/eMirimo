@@ -34,24 +34,28 @@ export function AdminNotifications() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  useEffect(() => {
-    loadNotifications();
-    setupSocketConnection();
-    
-    // Poll for notifications every 30 seconds as fallback
-    const pollInterval = setInterval(() => {
-      if (!socketService.isSocketConnected()) {
-        loadNotifications();
-      }
-    }, 30000);
-    
-    return () => {
-      clearInterval(pollInterval);
-      if (socketService.isSocketConnected()) {
-        socketService.getSocket()?.emit('leave-admin-dashboard');
-      }
-    };
-  }, [setupSocketConnection]);
+  const handleAdminUpdate = useCallback((data: any) => {
+    switch (data.type) {
+      case 'new-notification':
+        // Add new notification to the list
+        setNotifications(prev => [data.notification, ...prev]);
+        break;
+      case 'notification-update':
+        // Update specific notification
+        setNotifications(prev => prev.map(notification => 
+          notification.id === data.notificationId 
+            ? { ...notification, ...data.updates }
+            : notification
+        ));
+        break;
+      case 'notification-delete':
+        // Remove notification from list
+        setNotifications(prev => prev.filter(notification => 
+          notification.id !== data.notificationId
+        ));
+        break;
+    }
+  }, []);
 
   const setupSocketConnection = useCallback(() => {
     const token = localStorage.getItem('token');
@@ -108,32 +112,9 @@ export function AdminNotifications() {
       console.error('Error setting up socket connection:', error);
       setError('Failed to establish real-time connection. Notifications will still work via polling.');
     }
-  }, []);
+  }, [handleAdminUpdate]);
 
-  const handleAdminUpdate = useCallback((data: any) => {
-    switch (data.type) {
-      case 'new-notification':
-        // Add new notification to the list
-        setNotifications(prev => [data.notification, ...prev]);
-        break;
-      case 'notification-update':
-        // Update specific notification
-        setNotifications(prev => prev.map(notification => 
-          notification.id === data.notificationId 
-            ? { ...notification, ...data.updates }
-            : notification
-        ));
-        break;
-      case 'notification-delete':
-        // Remove notification from list
-        setNotifications(prev => prev.filter(notification => 
-          notification.id !== data.notificationId
-        ));
-        break;
-    }
-  }, []);
-
-  const loadNotifications = async (retryCount = 0) => {
+  const loadNotifications = useCallback(async (retryCount = 0) => {
     setLoading(true);
     if (retryCount === 0) {
       setError(null);
@@ -259,7 +240,26 @@ export function AdminNotifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+    setupSocketConnection();
+    
+    // Poll for notifications every 30 seconds as fallback
+    const pollInterval = setInterval(() => {
+      if (!socketService.isSocketConnected()) {
+        loadNotifications();
+      }
+    }, 30000);
+    
+    return () => {
+      clearInterval(pollInterval);
+      if (socketService.isSocketConnected()) {
+        socketService.getSocket()?.emit('leave-admin-dashboard');
+      }
+    };
+  }, [setupSocketConnection, loadNotifications]);
 
   const markAsRead = async (notificationId: string) => {
     try {
