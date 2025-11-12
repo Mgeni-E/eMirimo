@@ -3,7 +3,6 @@ import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { CVParserService } from '../services/cvParser.service.js';
 import { uploadFileToFirebase, isFirebaseConfigured } from '../services/firebase-storage.service.js';
-import { uploadDocumentToCloudinary, isCloudinaryConfigured } from '../services/cloudinary-storage.service.js';
 
 // Helper: sanitize address strings to prevent repeated tokens like "Rwanda, Rwanda"
 function sanitizeAddressString(raw: string): string {
@@ -530,26 +529,18 @@ export const uploadCV = async (req: Request, res: Response) => {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Upload to Firebase Storage (or Cloudinary fallback)
+      // Upload to Firebase Storage (required for documents)
+      if (!isFirebaseConfigured()) {
+        return res.status(500).json({ 
+          error: 'Firebase is not configured. Please configure Firebase for document uploads.' 
+        });
+      }
+
       try {
-        if (isFirebaseConfigured()) {
-          cvUrl = await uploadFileToFirebase(file, userId, 'emirimo/documents');
-        } else if (isCloudinaryConfigured()) {
-          cvUrl = await uploadDocumentToCloudinary(file, userId);
-        } else {
-          return res.status(500).json({ 
-            error: 'No storage service configured. Please configure Firebase or Cloudinary.' 
-          });
-        }
+        cvUrl = await uploadFileToFirebase(file, userId, 'emirimo/documents');
       } catch (uploadError: any) {
-        console.error('Storage upload failed:', uploadError);
-        // Try fallback if Firebase fails
-        if (isFirebaseConfigured() && isCloudinaryConfigured()) {
-          console.log('Falling back to Cloudinary...');
-          cvUrl = await uploadDocumentToCloudinary(file, userId);
-        } else {
-          throw uploadError;
-        }
+        console.error('Firebase upload failed:', uploadError);
+        throw uploadError;
       }
     } else {
       // LEGACY APPROACH: URL provided in body (for backward compatibility)

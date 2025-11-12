@@ -81,6 +81,7 @@ export function initializeFirebase(): admin.app.App | null {
     }
     
     // Not configured - return null (graceful fallback)
+    // No Firebase environment variables set - this is normal if using Cloudinary
     return null;
   } catch (error: any) {
     // Log error but don't throw - allow graceful fallback
@@ -101,7 +102,10 @@ export async function uploadFileToFirebase(
   folder: string = 'emirimo/documents'
 ): Promise<string> {
   if (!firebaseApp) {
-    initializeFirebase();
+    const initialized = initializeFirebase();
+    if (!initialized) {
+      throw new Error('Firebase is not initialized. Please configure Firebase environment variables.');
+    }
   }
 
   if (!config.FIREBASE_STORAGE_BUCKET) {

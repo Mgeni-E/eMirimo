@@ -76,8 +76,8 @@ const ApplicationSchema = new Schema({
           return true;
         }
         
-        // Accept Cloudinary URLs (for uploaded documents)
-        if (/cloudinary\.com/i.test(v)) {
+        // Accept Firebase Storage URLs (for uploaded documents)
+        if (/storage\.googleapis\.com/i.test(v)) {
           return true;
         }
         

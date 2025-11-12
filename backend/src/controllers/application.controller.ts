@@ -332,25 +332,8 @@ export const getApplicationDetails = async (req: any, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Get resume URL from application or user profile
-    // Prefer Firebase URLs over Cloudinary URLs
+    // Get resume URL from application or user profile (Firebase Storage only)
     let resumeUrl = application.resume_url || (application.seeker_id as any)?.cv_url;
-    
-    // If resume URL is from Cloudinary, try to get Firebase URL from user profile
-    if (resumeUrl && resumeUrl.includes('cloudinary.com')) {
-      const seeker = application.seeker_id as any;
-      // Check if user has a Firebase URL in their profile
-      const firebaseUrl = seeker?.cv_url?.includes('storage.googleapis.com') 
-        ? seeker.cv_url 
-        : seeker?.job_seeker_profile?.documents?.resume_url?.includes('storage.googleapis.com')
-          ? seeker.job_seeker_profile.documents.resume_url
-          : null;
-      
-      // Prefer Firebase URL if available
-      if (firebaseUrl) {
-        resumeUrl = firebaseUrl;
-      }
-    }
 
     res.json({
       success: true,

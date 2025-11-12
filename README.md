@@ -194,6 +194,19 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
+
+# Firebase (Required for document uploads - CV/Resume)
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-bucket-name.appspot.com
+FIREBASE_SERVICE_ACCOUNT_KEY_BASE64=base64-encoded-service-account-json
+# OR use individual credentials:
+FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
+
+# Cloudinary (Optional - for profile pictures only)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_UPLOAD_PRESET=your-upload-preset
+CLOUDINARY_IMAGE_PRESET=your-image-preset
 ```
 
 #### Frontend (Vercel)

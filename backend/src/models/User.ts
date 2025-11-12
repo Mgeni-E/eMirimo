@@ -74,7 +74,7 @@ const UserSchema = new Schema({
       validator: function(v: string) {
         // Allow empty string, null, or undefined
         if (!v || v.trim() === '') return true;
-        // Allow any valid HTTP/HTTPS URL (Firebase Storage, Cloudinary, etc.)
+        // Allow any valid HTTP/HTTPS URL (Firebase Storage for documents)
         return /^https?:\/\/.+/.test(v);
       },
       message: 'CV URL must be a valid HTTP/HTTPS URL or empty'

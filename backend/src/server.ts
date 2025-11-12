@@ -11,14 +11,11 @@ import { initializeFirebase } from './services/firebase-storage.service.js';
 // Validate environment configuration (silently)
 validateEnv();
 
-// Initialize Firebase Admin SDK (if configured)
+// Initialize Firebase Admin SDK (required for document uploads)
 const firebaseInitialized = initializeFirebase();
-if (!firebaseInitialized && (config.FIREBASE_PROJECT_ID || config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64)) {
-  // Firebase env vars are set but initialization failed - will use Cloudinary fallback
-  console.log('ℹ️  Firebase not initialized - using Cloudinary fallback for file uploads');
-} else if (!firebaseInitialized) {
-  // Firebase not configured - this is normal if using Cloudinary only
-  // No message needed - silent fallback
+if (!firebaseInitialized) {
+  console.warn('⚠️  Firebase not initialized - document uploads will fail');
+  console.warn('   Please configure Firebase environment variables for document uploads');
 }
 
 mongoose.connect(config.MONGO_URI).then(async ()=>{

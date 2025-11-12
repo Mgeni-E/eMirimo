@@ -81,24 +81,16 @@ export class CVParserService {
    */
   static async parseCVFromURL(cvUrl: string): Promise<ParsedCVData> {
     try {
-      // Ensure URL is accessible - Cloudinary URLs should be public
+      // Ensure URL is accessible - Firebase Storage URLs should be public
       let fetchUrl = cvUrl;
       
-      // If it's a Cloudinary URL, try different formats
-      if (cvUrl.includes('cloudinary.com')) {
-        // Cloudinary secure URLs should be publicly accessible
-        // Try to ensure we're using the correct format
-        if (cvUrl.includes('upload/')) {
-          // This is already a proper Cloudinary URL
-          fetchUrl = cvUrl;
-        } else {
-          // Try to construct proper URL
-          fetchUrl = cvUrl;
-        }
+      // Firebase Storage URLs are already in the correct format
+      if (cvUrl.includes('storage.googleapis.com')) {
+        fetchUrl = cvUrl;
       }
 
       // Fetch the document with proper headers
-      // Note: Cloudinary URLs should be publicly accessible
+      // Note: Firebase Storage URLs should be publicly accessible
       const fetchOptions: any = {
         method: 'GET',
         headers: {
