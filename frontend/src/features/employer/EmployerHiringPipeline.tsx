@@ -72,7 +72,7 @@ export function EmployerHiringPipeline() {
     averageTimeToHire: 0
   });
   const [loading, setLoading] = useState(true);
-  const [selectedJob, setSelectedJob] = useState<string>('all');
+  const [selectedJob] = useState<string>('all');
 
   useEffect(() => {
     loadPipelineData();
@@ -141,11 +141,6 @@ export function EmployerHiringPipeline() {
       candidate.currentStage === stage && 
       (selectedJob === 'all' || candidate.job.id === selectedJob)
     );
-  };
-
-  const getStageColor = (stage: string) => {
-    const stageConfig = pipelineStages.find(s => s.id === stage);
-    return stageConfig?.color || 'bg-gray-500';
   };
 
   const getStageIcon = (stage: string) => {
@@ -292,7 +287,7 @@ export function EmployerHiringPipeline() {
                       <div className="flex items-start space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-sm relative overflow-hidden">
                           {(() => {
-                            const profileImage = candidate.avatar || candidate.profile_image;
+                            const profileImage = candidate.avatar;
                             const hasValidImage = profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://'));
                             
                             if (hasValidImage) {
