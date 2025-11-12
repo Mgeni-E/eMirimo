@@ -9,8 +9,7 @@ import {
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon,
-  RefreshIcon
+  ClockIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
 import { socketService } from '../../lib/socket';
@@ -37,7 +36,6 @@ export function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,17 +56,15 @@ export function AdminUsers() {
       
       // Listen for connection status
       socketService.getSocket()?.on('connect', () => {
-        setIsConnected(true);
         socketService.joinAdminDashboard();
       });
 
       socketService.getSocket()?.on('disconnect', () => {
-        setIsConnected(false);
+        // Connection lost
       });
 
       socketService.getSocket()?.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        setIsConnected(false);
       });
       
       // Listen for admin updates
@@ -159,10 +155,6 @@ export function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRefresh = async () => {
-    await loadUsers();
   };
 
   const updateUserStatus = async (userId: string, status: 'active' | 'inactive', reason?: string) => {
