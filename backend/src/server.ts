@@ -12,13 +12,9 @@ import { initializeFirebase } from './services/firebase-storage.service.js';
 validateEnv();
 
 // Initialize Firebase Admin SDK (if configured)
-try {
-  if (config.FIREBASE_PROJECT_ID || config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
-    initializeFirebase();
-  }
-} catch (error: any) {
-  console.warn('⚠️  Firebase Admin SDK not initialized:', error.message);
-  console.warn('   Document uploads will use Cloudinary fallback if configured');
+const firebaseInitialized = initializeFirebase();
+if (!firebaseInitialized) {
+  // Silent fallback - Firebase not configured, will use Cloudinary if available
 }
 
 mongoose.connect(config.MONGO_URI).then(async ()=>{

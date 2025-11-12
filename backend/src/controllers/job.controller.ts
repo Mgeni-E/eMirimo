@@ -22,7 +22,7 @@ export const list = async (req:Request,res:Response)=>{
   // This is more reliable than complex MongoDB queries
   const allJobs = await Job.find(filter)
     .populate('employer_id', 'name email')
-    .sort({ created_at: -1 })
+    .sort({ createdAt: -1 })
     .limit(50)
     .lean();
   
@@ -491,7 +491,7 @@ export const getMyJobs = async (req:any,res:Response)=>{
     if (status === 'inactive') filter.is_active = false;
     
     const jobs = await Job.find(filter)
-      .sort({ created_at: -1 })
+      .sort({ createdAt: -1 })
       .lean();
     
     // Get application counts and views for each job
@@ -559,8 +559,7 @@ export const getRecommendations = async (req:any,res:Response)=>{
   const jobsWithScores = jobs.map(job => {
     const jobSkills = [
       ...(job.required_skills || []).map((s: any) => typeof s === 'string' ? s : s?.name),
-      ...(job.preferred_skills || []).map((s: any) => typeof s === 'string' ? s : s?.name),
-      ...(job.skills || [])
+      ...(job.preferred_skills || []).map((s: any) => typeof s === 'string' ? s : s?.name)
     ].filter(Boolean);
     
     const matchingSkills = userSkillNames.filter(skill => 
@@ -585,8 +584,8 @@ export const getRecommendations = async (req:any,res:Response)=>{
       return b.matchScore - a.matchScore;
     }
     // If scores are equal, prefer newer jobs
-    const aDate = new Date(a.created_at || a.posted_at || 0).getTime();
-    const bDate = new Date(b.created_at || b.posted_at || 0).getTime();
+    const aDate = new Date((a as any).createdAt || a.posted_at || 0).getTime();
+    const bDate = new Date((b as any).createdAt || b.posted_at || 0).getTime();
     return bDate - aDate;
   }).slice(0, 10);
   

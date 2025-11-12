@@ -267,7 +267,7 @@ ApplicationSchema.virtual('days_since_last_activity').get(function() {
 
 // Virtual for is overdue (no activity for 7+ days)
 ApplicationSchema.virtual('is_overdue').get(function() {
-  return this.days_since_last_activity > 7;
+  return ((this as any).days_since_last_activity || 0) > 7;
 });
 
 // Virtual for has offer
@@ -321,7 +321,7 @@ ApplicationSchema.post('save', async function(doc) {
 });
 
 // Post-remove middleware to update job application count
-ApplicationSchema.post('remove', async function(doc) {
+ApplicationSchema.post('findOneAndDelete', async function(doc) {
   const Job = model('Job');
   await Job.findByIdAndUpdate(doc.job_id, {
     $inc: { applications_count: -1 }

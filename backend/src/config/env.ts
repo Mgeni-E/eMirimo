@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import { getJWTSecret } from '../utils/generateJWTSecret.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (quiet mode)
+dotenv.config({ quiet: true });
 
 // Environment configuration with defaults
 export const config = {

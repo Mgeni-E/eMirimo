@@ -358,7 +358,7 @@ export const updateCandidateStage = async (req: any, res: Response) => {
     
     // Add to timeline
     if (!application.timeline) {
-      application.timeline = [];
+      (application as any).timeline = [];
     }
     application.timeline.push({
       status: newStatus,
@@ -466,7 +466,7 @@ export const scheduleInterview = async (req: any, res: Response) => {
     
     // Add interview to application
     if (!application.interviews) {
-      application.interviews = [];
+      (application as any).interviews = [];
     }
     application.interviews.push(interview);
     
@@ -481,11 +481,10 @@ export const scheduleInterview = async (req: any, res: Response) => {
     const interviewDate = new Date(scheduledAt);
     await createNotification(
       (application.seeker_id as any).toString(),
-      'Interview Scheduled',
       `An interview has been scheduled for ${jobTitle} on ${interviewDate.toLocaleDateString()} at ${interviewDate.toLocaleTimeString()}`,
       'interview_scheduled',
-      'application',
-      { application_id: application._id, interview_id: application.interviews[application.interviews.length - 1]._id }
+      { application_id: application._id, interview_id: (application.interviews[application.interviews.length - 1] as any)._id },
+      'Interview Scheduled'
     );
     
     res.json({

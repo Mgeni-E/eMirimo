@@ -24,7 +24,7 @@ export class JobNotificationService {
       
       // Get the newly posted job
       const job = await Job.findById(jobId).populate('employer_id', 'name email');
-      if (!job || !job.is_active) {
+      if (!job || job.status !== 'active') {
         console.log('Job not found or inactive');
         return;
       }

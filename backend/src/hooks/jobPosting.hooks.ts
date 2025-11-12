@@ -12,7 +12,7 @@ export class JobPostingHooks {
   static initialize() {
     // Hook into job creation
     Job.schema.post('save', async function(doc) {
-      if (doc.is_active && doc.isNew) {
+      if (doc.status === 'active' && doc.isNew) {
         console.log(`🆕 New job posted: ${doc.title} by ${doc.employer_id}`);
         
         // Send job recommendation emails to matching users
@@ -26,7 +26,7 @@ export class JobPostingHooks {
 
     // Hook into job updates (when job becomes active)
     Job.schema.post('findOneAndUpdate', async function(doc) {
-      if (doc && doc.is_active) {
+      if (doc && doc.status === 'active') {
         console.log(`🔄 Job updated and activated: ${doc.title}`);
         
         // Send job recommendation emails to matching users

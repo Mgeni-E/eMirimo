@@ -242,7 +242,7 @@ export const getProfile = async (req: Request, res: Response) => {
       // For admin or other roles, return basic info
       res.json({ 
         user: { 
-          id: user._id?.toString() || user.id,
+          id: user._id?.toString() || (user as any)._id?.toString(),
           name: user.name,
           email: user.email,
           role: user.role
@@ -579,7 +579,7 @@ export const uploadCV = async (req: Request, res: Response) => {
             file.buffer.byteOffset + file.buffer.byteLength
           );
           
-          parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer, file.originalname);
+          parsedData = await CVParserService.parseCVFromBuffer(arrayBuffer as ArrayBuffer, file.originalname);
           console.log('✅ Parsed CV data from file buffer:', {
             name: parsedData.name,
             skills: parsedData.skills?.length || 0,
@@ -665,12 +665,12 @@ export const uploadCV = async (req: Request, res: Response) => {
               return skillName;
             }).filter(Boolean)
           : [];
-        const newSkills = parsedData.skills.filter(s => {
+        const newSkills = parsedData.skills.filter((s: string) => {
           const skillLower = s.toLowerCase().trim();
-          return !existingSkills.some(existing => existing === skillLower);
+          return !existingSkills.some((existing: string) => existing === skillLower);
         });
         if (newSkills.length > 0) {
-          const skillsToAdd = newSkills.map(name => ({
+          const skillsToAdd = newSkills.map((name: string) => ({
             name: name.trim(),
             level: 'intermediate',
             years_experience: 0,

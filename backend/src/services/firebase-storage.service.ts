@@ -17,8 +17,9 @@ let firebaseApp: admin.app.App | null = null;
  * 1. Service Account JSON file path
  * 2. Base64 encoded JSON (for deployment)
  * 3. Individual environment variables
+ * Returns null if not configured (graceful fallback)
  */
-export function initializeFirebase(): admin.app.App {
+export function initializeFirebase(): admin.app.App | null {
   if (firebaseApp) {
     return firebaseApp;
   }
@@ -39,7 +40,7 @@ export function initializeFirebase(): admin.app.App {
       
       // Check if file exists
       if (!fs.existsSync(serviceAccountPath)) {
-        throw new Error(`Firebase service account file not found: ${serviceAccountPath}`);
+        return null; // Graceful fallback - don't throw
       }
       
       // Read and parse JSON file
@@ -51,6 +52,7 @@ export function initializeFirebase(): admin.app.App {
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
       console.log('✅ Firebase initialized');
+      return firebaseApp;
     }
     // Option 2: Base64 encoded JSON (for deployment/CI)
     else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
@@ -62,6 +64,7 @@ export function initializeFirebase(): admin.app.App {
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
       console.log('✅ Firebase initialized');
+      return firebaseApp;
     }
     // Option 3: Individual environment variables
     else if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
@@ -74,14 +77,14 @@ export function initializeFirebase(): admin.app.App {
         storageBucket: config.FIREBASE_STORAGE_BUCKET,
       });
       console.log('✅ Firebase initialized');
-    } else {
-      throw new Error('Firebase Admin SDK not configured. Please set FIREBASE_SERVICE_ACCOUNT_KEY_PATH, FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, or FIREBASE_PROJECT_ID with FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY');
+      return firebaseApp;
     }
-
-    return firebaseApp;
+    
+    // Not configured - return null (graceful fallback)
+    return null;
   } catch (error: any) {
-    console.error('❌ Firebase Admin SDK initialization failed:', error.message);
-    throw error;
+    // Log error but don't throw - allow graceful fallback
+    return null;
   }
 }
 

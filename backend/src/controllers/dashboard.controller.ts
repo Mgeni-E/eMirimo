@@ -80,7 +80,7 @@ export const getEmployerDashboard = async (req: any, res: Response) => {
       .sort({ applied_at: -1 });
 
     // Calculate stats from real database data
-    const activeJobs = jobs.filter(job => job.is_active !== false && (job.status === 'active' || job.status === 'published')).length;
+    const activeJobs = jobs.filter(job => (job.status === 'active' || job.status === 'published')).length;
     const totalApplications = applications.length;
     const interviewsScheduled = applications.filter(app => 
       app.status === 'interview_scheduled' || app.status === 'shortlisted' || app.status === 'under_review'
@@ -331,16 +331,16 @@ async function getEmployerRecentActivity(employerId: string) {
       id: job._id.toString(),
       type: 'job',
       title: `Posted job: ${job.title}`,
-      description: job.is_active !== false ? 'Job is now live and accepting applications' : 'Job is inactive',
-      timestamp: job.created_at || job.posted_at || new Date(),
-      status: job.is_active !== false ? 'success' : 'pending'
+      description: job.status === 'active' ? 'Job is now live and accepting applications' : 'Job is inactive',
+      timestamp: (job as any).createdAt || job.posted_at || new Date(),
+      status: job.status === 'active' ? 'success' : 'pending'
     })),
     ...applications.map(app => ({
       id: app._id.toString(),
       type: 'application',
       title: `New application for ${(app.job_id as any)?.title || 'Unknown Job'}`,
       description: `Application from ${(app.seeker_id as any)?.name || 'Unknown User'}`,
-      timestamp: app.applied_at || app.created_at || new Date(),
+      timestamp: app.applied_at || (app as any).createdAt || new Date(),
       status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
     }))
   ].sort((a, b) => {
