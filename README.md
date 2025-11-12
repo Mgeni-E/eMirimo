@@ -211,9 +211,19 @@ CLOUDINARY_IMAGE_PRESET=your-image-preset
 
 #### Frontend (Vercel)
 ```env
-VITE_API_URL=https://your-backend.onrender.com/api
-VITE_APP_NAME=eMirimo
-VITE_APP_VERSION=1.0.0
+# API Configuration
+VITE_API_URL=https://emirimo-backend1.onrender.com/api
+
+# Cloudinary Configuration (for profile pictures)
+VITE_CLOUDINARY_CLOUD_NAME=djk2kdtwb
+VITE_CLOUDINARY_IMAGE_PRESET=emirimo-profiles
+VITE_CLOUDINARY_DOCUMENT_PRESET=emirimo-documents
+
+# Firebase Configuration (client-side SDK - optional)
+VITE_FIREBASE_API_KEY=AIzaSyCtYUJUDyMz-OzhaaV2jwCY_RPS0kC809c
+VITE_FIREBASE_AUTH_DOMAIN=emirimo-704d1.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=emirimo-704d1
+VITE_FIREBASE_STORAGE_BUCKET=emirimo-704d1.firebasestorage.app
 ```
 
 ### Manual Deployment
