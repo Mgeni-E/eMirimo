@@ -211,7 +211,6 @@ The project includes GitHub Actions workflows for automatic deployment:
      - **Health Check Path**: `/health`
    - **Environment tab**: Add all environment variables
    - Enable Auto-Deploy
-   - See `RENDER_COMMANDS.md` for exact commands
 
 3. **Vercel (Frontend)**
    - Import GitHub repository
