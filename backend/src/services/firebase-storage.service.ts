@@ -24,6 +24,24 @@ export function initializeFirebase(): admin.app.App | null {
     return firebaseApp;
   }
 
+  // Debug: Log which configuration method is being checked
+  const hasPath = !!config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH;
+  const hasBase64 = !!config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
+  const hasIndividual = !!(config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY);
+  const hasBucket = !!config.FIREBASE_STORAGE_BUCKET;
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 Firebase config check:', {
+      hasPath,
+      hasBase64,
+      hasIndividual,
+      hasBucket,
+      projectId: config.FIREBASE_PROJECT_ID ? 'set' : 'missing',
+      clientEmail: config.FIREBASE_CLIENT_EMAIL ? 'set' : 'missing',
+      privateKey: config.FIREBASE_PRIVATE_KEY ? 'set' : 'missing'
+    });
+  }
+
   try {
     // Option 1: Service Account JSON file path
     if (config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
@@ -56,35 +74,64 @@ export function initializeFirebase(): admin.app.App | null {
     }
     // Option 2: Base64 encoded JSON (for deployment/CI)
     else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64) {
-      const serviceAccount = JSON.parse(
-        Buffer.from(config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8')
-      );
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: config.FIREBASE_STORAGE_BUCKET,
-      });
-      console.log('✅ Firebase initialized');
-      return firebaseApp;
+      if (!config.FIREBASE_STORAGE_BUCKET) {
+        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using FIREBASE_SERVICE_ACCOUNT_KEY_BASE64');
+        return null;
+      }
+      
+      try {
+        const serviceAccount = JSON.parse(
+          Buffer.from(config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8')
+        );
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          storageBucket: config.FIREBASE_STORAGE_BUCKET,
+        });
+        console.log('✅ Firebase initialized (Base64)');
+        return firebaseApp;
+      } catch (parseError: any) {
+        console.error('❌ Failed to parse base64 service account:', parseError.message);
+        return null;
+      }
     }
     // Option 3: Individual environment variables
     else if (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY) {
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: config.FIREBASE_PROJECT_ID,
-          clientEmail: config.FIREBASE_CLIENT_EMAIL,
-          privateKey: config.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        }),
-        storageBucket: config.FIREBASE_STORAGE_BUCKET,
-      });
-      console.log('✅ Firebase initialized');
-      return firebaseApp;
+      if (!config.FIREBASE_STORAGE_BUCKET) {
+        console.error('❌ FIREBASE_STORAGE_BUCKET is required when using individual credentials');
+        return null;
+      }
+      
+      try {
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: config.FIREBASE_PROJECT_ID,
+            clientEmail: config.FIREBASE_CLIENT_EMAIL,
+            privateKey: config.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          }),
+          storageBucket: config.FIREBASE_STORAGE_BUCKET,
+        });
+        console.log('✅ Firebase initialized (Individual credentials)');
+        return firebaseApp;
+      } catch (initError: any) {
+        console.error('❌ Failed to initialize Firebase with individual credentials:', initError.message);
+        return null;
+      }
     }
     
     // Not configured - return null (graceful fallback)
-    // No Firebase environment variables set - this is normal if using Cloudinary
+    // No Firebase environment variables set
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('⚠️  Firebase not configured: No environment variables found');
+      console.warn('   Required: FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 + FIREBASE_STORAGE_BUCKET');
+      console.warn('   OR: FIREBASE_PROJECT_ID + FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY + FIREBASE_STORAGE_BUCKET');
+    }
     return null;
   } catch (error: any) {
     // Log error but don't throw - allow graceful fallback
+    console.error('❌ Firebase initialization error:', error.message);
+    if (error.stack && process.env.NODE_ENV === 'development') {
+      console.error('Stack:', error.stack);
+    }
     return null;
   }
 }
