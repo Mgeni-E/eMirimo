@@ -78,17 +78,15 @@ export function AdminJobs() {
       
       // Listen for connection status
       socketService.getSocket()?.on('connect', () => {
-        setIsConnected(true);
         socketService.getSocket()?.emit('join-admin-dashboard');
       });
 
       socketService.getSocket()?.on('disconnect', () => {
-        setIsConnected(false);
+        // Connection lost
       });
 
       socketService.getSocket()?.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        setIsConnected(false);
       });
       
       // Listen for admin updates
@@ -202,7 +200,7 @@ export function AdminJobs() {
     if (user.role === 'admin') return true;
     // Employer can only manage their own jobs
     if (user.role === 'employer') {
-      const jobEmployerId = typeof job.employer_id === 'object' ? job.employer_id?._id : job.employer_id;
+      const jobEmployerId = job.employer_id?._id || job.employer_id?.name;
       return jobEmployerId === user.id;
     }
     // Job seekers cannot manage any jobs
