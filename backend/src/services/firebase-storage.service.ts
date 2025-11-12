@@ -1,22 +1,14 @@
 import admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import config from '../config/env.js';
-
-// Get current directory for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 let firebaseApp: admin.app.App | null = null;
 
 /**
  * Initialize Firebase Admin SDK
- * Supports multiple configuration methods:
- * 1. Service Account JSON file path
- * 2. Base64 encoded JSON (for deployment)
- * 3. Individual environment variables
+ * Supports multiple configuration methods (via environment variables):
+ * 1. Base64 encoded JSON (recommended for deployment)
+ * 2. Individual environment variables
  * Returns null if not configured (graceful fallback)
  */
 export function initializeFirebase(): admin.app.App | null {
@@ -25,14 +17,12 @@ export function initializeFirebase(): admin.app.App | null {
   }
 
   // Debug: Log which configuration method is being checked
-  const hasPath = !!config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH;
   const hasBase64 = !!config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64;
   const hasIndividual = !!(config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY);
   const hasBucket = !!config.FIREBASE_STORAGE_BUCKET;
   
   if (process.env.NODE_ENV === 'development') {
     console.log('🔍 Firebase config check:', {
-      hasPath,
       hasBase64,
       hasIndividual,
       hasBucket,
@@ -88,36 +78,6 @@ export function initializeFirebase(): admin.app.App | null {
         return null;
       }
     }
-    // Option 3: Service Account JSON file path (for local development only)
-    else if (config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH) {
-      // Resolve path relative to backend root or absolute path
-      let serviceAccountPath: string;
-      if (path.isAbsolute(config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH)) {
-        serviceAccountPath = config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH;
-      } else {
-        // Resolve relative to backend root (where .env is)
-        // Go up from src/services to backend root
-        const backendRoot = path.resolve(__dirname, '../../');
-        serviceAccountPath = path.resolve(backendRoot, config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH);
-      }
-      
-      // Check if file exists
-      if (!fs.existsSync(serviceAccountPath)) {
-        return null; // Graceful fallback - don't throw
-      }
-      
-      // Read and parse JSON file
-      const serviceAccountData = fs.readFileSync(serviceAccountPath, 'utf-8');
-      const serviceAccount = JSON.parse(serviceAccountData);
-      
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: config.FIREBASE_STORAGE_BUCKET,
-      });
-      console.log('✅ Firebase initialized (File path)');
-      return firebaseApp;
-    }
-    
     // Not configured - return null (graceful fallback)
     // No Firebase environment variables set
     if (process.env.NODE_ENV !== 'development') {
@@ -199,7 +159,6 @@ export async function uploadFileToFirebase(
  */
 export function isFirebaseConfigured(): boolean {
   return !!(
-    config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH ||
     config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 ||
     (config.FIREBASE_PROJECT_ID && config.FIREBASE_CLIENT_EMAIL && config.FIREBASE_PRIVATE_KEY)
   );

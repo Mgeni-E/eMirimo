@@ -111,15 +111,23 @@ service firebase.storage {
 
 ## 🧪 Testing Locally
 
-1. Create `.env` file in `backend/` directory:
+1. Create `.env` file in `backend/` directory with one of these options:
+
+   **Option A (Base64 - Recommended):**
    ```env
-   FIREBASE_SERVICE_ACCOUNT_KEY_PATH=config/firebase-service-account.json
+   FIREBASE_SERVICE_ACCOUNT_KEY_BASE64=<your-base64-string>
    FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
    ```
 
-2. Place service account JSON in `backend/config/firebase-service-account.json`
+   **Option B (Individual Variables):**
+   ```env
+   FIREBASE_PROJECT_ID=your-project-id
+   FIREBASE_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+   FIREBASE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n
+   FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+   ```
 
-3. Start backend:
+2. Start backend:
    ```bash
    cd backend
    npm run dev
