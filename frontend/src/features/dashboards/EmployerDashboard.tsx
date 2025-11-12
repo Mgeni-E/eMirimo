@@ -128,9 +128,6 @@ export function EmployerDashboard() {
         hiredCandidates
       });
 
-      setJobs(jobs);
-      setApplications(applications);
-
       // Format timestamp helper
       const formatTimestamp = (timestamp: string | Date) => {
         if (!timestamp) return t('recently');
@@ -150,14 +147,14 @@ export function EmployerDashboard() {
       };
 
       // Get real recent activities from database
-      const recentActivities = [
+      const recentActivities: RecentActivity[] = [
         ...jobs.slice(0, 5).map((job: any) => ({
           id: job.id || job._id,
           type: 'job' as const,
           title: t('postedJob', { title: job.title }),
           description: job.is_active !== false ? t('jobIsNowLiveAccepting') : t('jobIsInactive'),
           timestamp: formatTimestamp(job.created_at || job.createdAt || job.posted_at),
-          status: job.is_active !== false ? 'success' : 'pending'
+          status: (job.is_active !== false ? 'success' : 'pending') as 'success' | 'pending' | 'warning'
         })),
         ...applications.slice(0, 5).map((app: any) => ({
           id: app.id || app._id,
@@ -165,7 +162,7 @@ export function EmployerDashboard() {
           title: t('newApplicationFor', { job: app.job_id?.title || app.job?.title || 'Job' }),
           description: t('applicationFrom', { name: app.seeker_id?.name || app.seeker?.name || 'Unknown User' }),
           timestamp: formatTimestamp(app.applied_at || app.created_at),
-          status: app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending'
+          status: (app.status === 'hired' ? 'success' : app.status === 'rejected' ? 'warning' : 'pending') as 'success' | 'pending' | 'warning'
         }))
       ].sort((a, b) => {
         // Sort by original timestamp for proper ordering
