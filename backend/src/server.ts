@@ -13,8 +13,12 @@ validateEnv();
 
 // Initialize Firebase Admin SDK (if configured)
 const firebaseInitialized = initializeFirebase();
-if (!firebaseInitialized) {
-  // Silent fallback - Firebase not configured, will use Cloudinary if available
+if (!firebaseInitialized && (config.FIREBASE_PROJECT_ID || config.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || config.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64)) {
+  // Firebase env vars are set but initialization failed - will use Cloudinary fallback
+  console.log('ℹ️  Firebase not initialized - using Cloudinary fallback for file uploads');
+} else if (!firebaseInitialized) {
+  // Firebase not configured - this is normal if using Cloudinary only
+  // No message needed - silent fallback
 }
 
 mongoose.connect(config.MONGO_URI).then(async ()=>{
