@@ -37,7 +37,10 @@ mongoose.connect(config.MONGO_URI).then(async ()=>{
   const socketService = initializeSocketService(server);
   
   server.listen(config.PORT, ()=>{
-    console.log(`✅ Server running on http://localhost:${config.PORT}\n`);
+    const serverUrl = config.NODE_ENV === 'production' 
+      ? 'https://emirimo-backend1.onrender.com'
+      : `http://localhost:${config.PORT}`;
+    console.log(`✅ Server running on ${serverUrl}\n`);
   });
 
   // Handle server errors
