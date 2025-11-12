@@ -167,7 +167,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="px-3 sm:px-4 md:px-5 lg:px-4 xl:px-5 2xl:px-6 py-4 sm:py-5 md:py-6 lg:py-5 xl:py-6 2xl:py-8 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-              {profileImage ? (
+              {profileImage && typeof profileImage === 'string' && profileImage.trim() !== '' && (profileImage.startsWith('http://') || profileImage.startsWith('https://')) ? (
                 <img
                   src={profileImage}
                   alt={user.name}
