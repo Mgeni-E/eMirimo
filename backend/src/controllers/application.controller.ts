@@ -32,7 +32,7 @@ export const apply = async (req: any, res: Response) => {
 
     // Check if deadline has passed
     if (job.application_deadline) {
-      const deadline = new Date(job.application_deadline);
+      const deadline = new Date(job.application_deadline as string | Date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       deadline.setHours(0, 0, 0, 0);
