@@ -89,22 +89,50 @@ export function AdminApplications() {
         ? (response.data.applications || [])
         : (Array.isArray(response.data) ? response.data : []);
       
+      console.log('Raw API response:', response.data);
+      console.log('Raw applications data:', data);
+      if (data.length > 0) {
+        console.log('First raw application:', data[0]);
+        console.log('First raw seeker_id:', data[0].seeker_id);
+        console.log('First raw seeker_id type:', typeof data[0].seeker_id);
+        console.log('First raw seeker_id profile_image:', data[0].seeker_id?.profile_image);
+      }
+      
       // Normalize application data to ensure profile_image is accessible
-      const normalizedApplications = data.map((app: any) => ({
-        ...app,
-        _id: app._id || app.id,
-        id: app.id || app._id,
-        seeker_id: {
-          ...app.seeker_id,
-          _id: app.seeker_id?._id || app.seeker_id?.id,
-          profile_image: app.seeker_id?.profile_image || null
+      // Handle both populated objects and ObjectId references
+      const normalizedApplications = data.map((app: any) => {
+        // If seeker_id is already an object (populated), use it as is
+        // Otherwise, it might be an ObjectId that needs to be handled
+        let seekerData = app.seeker_id;
+        
+        // If seeker_id is an object with data, preserve all fields including profile_image
+        if (seekerData && typeof seekerData === 'object' && !seekerData._id && !seekerData.id) {
+          // It's an ObjectId, keep as is (shouldn't happen with populate, but handle it)
+          seekerData = seekerData;
+        } else if (seekerData && typeof seekerData === 'object') {
+          // It's a populated object, ensure profile_image is preserved
+          seekerData = {
+            ...seekerData,
+            _id: seekerData._id || seekerData.id,
+            profile_image: seekerData.profile_image || null
+          };
         }
-      }));
+        
+        return {
+          ...app,
+          _id: app._id || app.id,
+          id: app.id || app._id,
+          seeker_id: seekerData
+        };
+      });
       
       console.log('Normalized applications:', normalizedApplications);
       if (normalizedApplications.length > 0) {
-        console.log('First application seeker_id:', normalizedApplications[0].seeker_id);
-        console.log('First application profile_image:', normalizedApplications[0].seeker_id?.profile_image);
+        console.log('First normalized application:', normalizedApplications[0]);
+        console.log('First normalized seeker_id:', normalizedApplications[0].seeker_id);
+        console.log('First normalized profile_image:', normalizedApplications[0].seeker_id?.profile_image);
+        console.log('Profile image exists?', !!normalizedApplications[0].seeker_id?.profile_image);
+        console.log('Profile image value:', normalizedApplications[0].seeker_id?.profile_image);
       }
       
       setApplications(normalizedApplications);
@@ -318,29 +346,43 @@ export function AdminApplications() {
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Candidate Avatar */}
                     <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg relative overflow-hidden">
-                      {application.seeker_id?.profile_image ? (
-                        <img 
-                          src={application.seeker_id.profile_image} 
-                          alt={application.seeker_id?.name || 'Candidate'}
-                          className="w-12 h-12 rounded-full object-cover"
-                          onError={(e) => {
-                            // Fallback to initial if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              const fallback = document.createElement('div');
-                              fallback.className = 'w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg';
-                              fallback.textContent = (application.seeker_id?.name || 'C').charAt(0).toUpperCase();
-                              parent.insertBefore(fallback, target);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                          {(application.seeker_id?.name || 'C').charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      {(() => {
+                        const seeker = application.seeker_id as any;
+                        const profileImage = seeker?.profile_image;
+                        
+                        // Debug logging
+                        if (!profileImage && seeker) {
+                          console.log('No profile_image for:', seeker.name, 'seeker object:', seeker);
+                        }
+                        
+                        if (profileImage && typeof profileImage === 'string' && profileImage.trim() !== '') {
+                          return (
+                            <img 
+                              src={profileImage} 
+                              alt={seeker?.name || 'Candidate'}
+                              className="w-12 h-12 rounded-full object-cover"
+                              onError={(e) => {
+                                console.error('Image load error for:', profileImage);
+                                // Fallback to initial if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  const fallback = document.createElement('div');
+                                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg';
+                                  fallback.textContent = (seeker?.name || 'C').charAt(0).toUpperCase();
+                                  parent.insertBefore(fallback, target);
+                                }
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            {(seeker?.name || 'C').charAt(0).toUpperCase()}
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     {/* Application Details */}
