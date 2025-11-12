@@ -38,9 +38,6 @@ export function EmployerDashboard() {
     hiredCandidates: 0
   });
   const [activities, setActivities] = useState<RecentActivity[]>([]);
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [applications, setApplications] = useState<any[]>([]);
-  const [topJobs, setTopJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,10 +60,6 @@ export function EmployerDashboard() {
             interviewsScheduled: stats?.interviewsScheduled || 0,
             hiredCandidates: stats?.hiredCandidates || 0
           });
-
-          setJobs(jobs || []);
-          setApplications(applications || []);
-          setTopJobs(topJobs || []);
           
           // Format recent activity timestamps
           const formatTimestamp = (timestamp: string | Date) => {
