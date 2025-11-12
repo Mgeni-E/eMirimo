@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { useAuth } from '../../lib/store';
 import { 
@@ -12,7 +12,6 @@ import {
   ClockIcon,
   CalendarIcon,
   UserIcon,
-  RefreshIcon,
   TrashIcon
 } from '../../components/icons';
 import { api } from '../../lib/api';
@@ -25,8 +24,9 @@ interface Job {
   company_name?: string;
   company?: string; // Legacy support
   employer_id?: {
+    _id?: string;
     name: string;
-    email: string;
+    email?: string;
   };
   location: string | {
     city?: string;
@@ -42,9 +42,6 @@ interface Job {
   description: string;
   requirements: string[];
   postedBy?: string;
-  employer_id?: {
-    name: string;
-  };
   createdAt: string;
   created_at?: string;
   expiresAt?: string;
@@ -55,14 +52,12 @@ interface Job {
 
 export function AdminJobs() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isConnected, setIsConnected] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -214,52 +209,6 @@ export function AdminJobs() {
     return false;
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'full-time': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'part-time': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'contract': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
-      case 'internship': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'inactive': return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
-      case 'expired': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircleIcon className="w-4 h-4" />;
-      case 'inactive': return <XCircleIcon className="w-4 h-4" />;
-      case 'pending': return <ClockIcon className="w-4 h-4" />;
-      case 'expired': return <ClockIcon className="w-4 h-4" />;
-      default: return <ClockIcon className="w-4 h-4" />;
-    }
-  };
-
-  const formatSalary = (salary?: string | { min?: number; max?: number; currency?: string }): string => {
-    if (!salary) return '';
-    if (typeof salary === 'string') return salary;
-    if (typeof salary === 'object') {
-      const { min, max, currency = 'RWF' } = salary;
-      if (min && max) {
-        return `${currency} ${min.toLocaleString()} - ${max.toLocaleString()}`;
-      } else if (min) {
-        return `${currency} ${min.toLocaleString()}+`;
-      } else if (max) {
-        return `Up to ${currency} ${max.toLocaleString()}`;
-      }
-      return 'Salary not specified';
-    }
-    return '';
-  };
 
   const filteredJobs = (jobs || []).filter(job => {
     const companyName = job.company_name || job.company || job.employer_id?.name || '';
