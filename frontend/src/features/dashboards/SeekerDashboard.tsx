@@ -54,7 +54,7 @@ export function SeekerDashboard() {
         const dashboardResponse = await api.get('/dashboard/seeker');
         
         if (dashboardResponse.data.success) {
-          const { stats, applications, recentActivity, jobRecommendations, learningRecommendations } = dashboardResponse.data.data;
+          const { stats, recentActivity } = dashboardResponse.data.data;
           
           setStats({
             totalApplications: stats.totalApplications,
