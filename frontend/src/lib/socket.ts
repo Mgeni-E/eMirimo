@@ -5,16 +5,32 @@ class SocketService {
   private socket: Socket | null = null;
   private isConnected = false;
 
-  connect(token: string) {
+  async connect(token: string) {
     if (this.socket && this.isConnected) {
       return this.socket;
+    }
+
+    // Wait for server to be ready before connecting socket (production only)
+    if (import.meta.env.PROD) {
+      try {
+        const { checkServerHealth } = await import('./healthCheck');
+        await checkServerHealth();
+      } catch (error) {
+        console.warn('Health check before socket connection failed:', error);
+      }
     }
 
     this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
       auth: {
         token: token
       },
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      // Add reconnection settings
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
+      timeout: 20000, // 20 second timeout for socket connection
     });
 
     this.socket.on('connect', () => {
@@ -153,9 +169,9 @@ export const useSocket = () => {
   const { user } = useAuth();
   const token = user?.token || localStorage.getItem('token');
 
-  const connectSocket = () => {
+  const connectSocket = async () => {
     if (user && token) {
-      socketService.connect(token);
+      await socketService.connect(token);
       socketService.joinNotifications();
     }
   };

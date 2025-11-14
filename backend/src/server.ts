@@ -18,7 +18,14 @@ if (!firebaseInitialized) {
   console.warn('   Please configure Firebase environment variables for document uploads');
 }
 
-mongoose.connect(config.MONGO_URI).then(async ()=>{
+mongoose.connect(config.MONGO_URI, {
+  // Connection pool settings for better performance
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  connectTimeoutMS: 10000,
+}).then(async ()=>{
   console.log('✅ Database connected');
   
   // Initialize all main model schemas and verify database schema

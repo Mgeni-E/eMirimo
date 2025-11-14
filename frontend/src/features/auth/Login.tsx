@@ -37,6 +37,27 @@ export function Login(){
     e.preventDefault();
     setLoading(true);
     setError('');
+    
+    // Check server health before making request (only in production)
+    if (import.meta.env.PROD) {
+      try {
+        const { checkServerHealth, waitForServer } = await import('../../lib/healthCheck');
+        const isReady = await checkServerHealth();
+        if (!isReady) {
+          // Wait for server to be ready (up to 60 seconds)
+          const serverReady = await waitForServer(60000);
+          if (!serverReady) {
+            setError(t('connectionFailed') || 'Connection Failed');
+            setErrorDetails('Server is taking longer than expected to respond. Please try again in a moment.');
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (healthError) {
+        console.warn('Health check error:', healthError);
+        // Continue with request even if health check fails
+      }
+    }
     setErrorDetails('');
     
     try {

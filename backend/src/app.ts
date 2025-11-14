@@ -60,9 +60,26 @@ app.get('/', (_req, res) => res.json({
   api: '/api/health'
 }));
 
-// Health check endpoints
-app.get('/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV }));
-app.get('/api/health', (_req, res) => res.json({ ok: true, env: process.env.NODE_ENV }));
+// Health check endpoints with database status
+app.get('/health', async (_req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.json({ 
+    ok: true, 
+    env: process.env.NODE_ENV,
+    database: dbStatus,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/health', async (_req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.json({ 
+    ok: true, 
+    env: process.env.NODE_ENV,
+    database: dbStatus,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // API routes
 app.use('/api', api);
