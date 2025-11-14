@@ -2,8 +2,6 @@
  * Health check utility to verify server is ready before making requests
  */
 
-import { api } from './api';
-
 let serverReady = false;
 let lastHealthCheck = 0;
 const HEALTH_CHECK_INTERVAL = 30000; // Check every 30 seconds
