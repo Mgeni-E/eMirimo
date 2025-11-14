@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import mongoose from 'mongoose';
 import { router as api } from './routes/index.js';
 import { requestLogger, errorLogger } from './services/logging.service.js';
 import config from './config/env.js';
