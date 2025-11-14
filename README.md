@@ -6,7 +6,7 @@ eMirimo is a comprehensive job management platform that connects Rwandan youth a
 - **GitHub Repository**: https://github.com/Mgeni-E/eMirimo.git
 - **UI Design**: [Figma Design](https://www.figma.com/design/rph1I9Ehqao8N7bNADo3eN/Untitled?node-id=0-1&t=ADA0dV2B3HpLShOZ-1)
 - **Video Presentation**: [https://youtu.be/eMk8w8huluQ?si=yHQXlOFN2gGik8ql](https://youtu.be/P0iTgj884CI)
-- **Deployed Link https://e-mirimo.vercel.app/
+- **Deployed Link**: https://e-mirimo.vercel.app/
 
 ## 🚀 Features
 
