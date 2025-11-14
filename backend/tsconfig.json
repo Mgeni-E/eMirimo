@@ -15,8 +15,9 @@
     "forceConsistentCasingInFileNames": false,
     "resolveJsonModule": true,
     "declaration": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "types": ["jest", "node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/__tests__/**/*", "**/*.test.ts", "**/*.spec.ts"]
+  "include": ["src/**/*", "src/__tests__/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
