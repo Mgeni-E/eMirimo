@@ -2,10 +2,12 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "types": ["jest", "node", "supertest"],
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*",
     "src/__tests__/**/*"
-  ]
+  ],
+  "exclude": []
 }
