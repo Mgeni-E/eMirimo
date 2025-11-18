@@ -144,7 +144,7 @@ export class YouTubeService {
             channelTitle: item.snippet.channelTitle,
             viewCount: detail?.statistics?.viewCount || '0',
             publishedAt: item.snippet.publishedAt
-          };
+          } as YouTubeVideo;
         })
         .filter((video): video is YouTubeVideo => video !== null);
       
