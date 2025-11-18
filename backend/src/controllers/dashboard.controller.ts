@@ -402,7 +402,7 @@ async function getLearningRecommendations(userId: string, limit: number) {
 
     // If we have stored courses, personalize them based on user skills
     if (storedRecommendations.length > 0) {
-      const userSkills = user.job_seeker_profile?.skills || [];
+      const userSkills = (user.skills?.map((s: any) => typeof s === 'string' ? s : s?.name || '') || []) as string[];
       
       // Get active jobs to identify market demands for skill gap analysis
       const activeJobs = await Job.find({ is_active: true })
@@ -465,7 +465,7 @@ async function getLearningRecommendations(userId: string, limit: number) {
     const youtubeService = new YouTubeService();
     
     // Get user skills for personalized recommendations
-    const userSkills = user.job_seeker_profile?.skills || [];
+    const userSkills = (user.skills?.map((s: any) => typeof s === 'string' ? s : s?.name || '') || []) as string[];
     
     // Get active jobs to identify market demands
     const activeJobs = await Job.find({ is_active: true })

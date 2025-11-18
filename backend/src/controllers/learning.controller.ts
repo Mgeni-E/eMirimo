@@ -83,8 +83,8 @@ export const getLearningResources = async (req: any, res: Response) => {
         
         if (userId) {
           const user = await User.findById(userId);
-          if (user && user.job_seeker_profile?.skills) {
-            userSkills = user.job_seeker_profile.skills.slice(0, 5);
+          if (user && user.skills) {
+            userSkills = (user.skills.map((s: any) => typeof s === 'string' ? s : s?.name || '') as string[]).slice(0, 5);
           }
         }
         
@@ -454,7 +454,7 @@ export const getCourseRecommendations = async (req: any, res: Response) => {
     }
 
     // Get user skills
-    const userSkills = user.job_seeker_profile?.skills || [];
+      const userSkills = (user.skills?.map((s: any) => typeof s === 'string' ? s : s?.name || '') || []) as string[];
     
     // FIRST: Try to get personalized recommendations from stored database courses
     // This avoids API calls and quota issues

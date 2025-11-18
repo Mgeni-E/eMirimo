@@ -97,12 +97,12 @@ export const apply = async (req: any, res: Response) => {
       .populate('employer_id', 'name email');
 
     // Get job title and company name for notifications
-    const jobTitle = job.title;
-    const companyName = job.company_name || (job.employer_id as any)?.employer_profile?.company_name || 'Company';
-    const seekerName = seeker.name || 'Job Seeker';
+    const jobTitle = String(job.title || 'Job');
+    const companyName = String(job.company_name || (job.employer_id as any)?.employer_profile?.company_name || 'Company');
+    const seekerName = String(seeker.name || 'Job Seeker');
     const employer = (job.employer_id as any);
     const employerEmail = employer?.email;
-    const employerName = employer?.name || 'Employer';
+    const employerName = String(employer?.name || 'Employer');
     const seekerEmail = seeker.email;
 
     // Create notification for employer

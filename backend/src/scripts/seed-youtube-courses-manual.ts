@@ -54,9 +54,9 @@ const MAX_DURATION_SECONDS = 50 * 60; // 3000 seconds
 async function seedCoursesManually() {
   try {
     // Connect to database
-    const mongoUri = config.MONGODB_URI || config.MONGO_URI;
+    const mongoUri = config.MONGO_URI;
     if (!mongoUri) {
-      throw new Error('MONGODB_URI not found in environment variables');
+      throw new Error('MONGO_URI not found in environment variables');
     }
 
     await mongoose.connect(mongoUri);

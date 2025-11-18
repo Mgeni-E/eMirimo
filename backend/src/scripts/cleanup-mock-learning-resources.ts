@@ -19,11 +19,11 @@ import { config } from '../config/env.js';
 import { LearningResource } from '../models/LearningResource.js';
 
 // Verify MongoDB URI is loaded
-const mongoUri = config.MONGODB_URI || config.MONGO_URI;
+const mongoUri = config.MONGO_URI;
 if (!mongoUri) {
   console.error('❌ MongoDB URI not found in environment variables');
   console.error(`   Checked .env file at: ${envPath}`);
-  console.error(`   Looking for: MONGO_URI or MONGODB_URI`);
+  console.error(`   Looking for: MONGO_URI`);
   process.exit(1);
 }
 
@@ -43,7 +43,7 @@ const MOCK_KEYWORDS = [
 async function cleanupMockResources() {
   try {
     // Connect to MongoDB
-    const mongoUri = config.MONGODB_URI || config.MONGO_URI;
+    const mongoUri = config.MONGO_URI;
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB');
 
@@ -52,13 +52,13 @@ async function cleanupMockResources() {
     console.log(`📊 Found ${allResources.length} total learning resources`);
 
     // Identify mock resources
-    const mockResources = allResources.filter(resource => {
-      const title = resource.title?.toLowerCase() || '';
-      const description = resource.description?.toLowerCase() || '';
-      const source = resource.source?.toLowerCase() || '';
+    const mockResources = allResources.filter((resource: any) => {
+      const title = (typeof resource.title === 'string' ? resource.title : String(resource.title || '')).toLowerCase();
+      const description = (typeof resource.description === 'string' ? resource.description : String(resource.description || '')).toLowerCase();
+      const source = (typeof resource.source === 'string' ? resource.source : String(resource.source || '')).toLowerCase();
       
       // Check if it's a YouTube resource (these are real)
-      if (source === 'youtube' || resource.video_id || resource.video_url) {
+      if (source === 'youtube' || (resource as any).video_id || (resource as any).video_url) {
         return false; // Keep YouTube resources
       }
 
@@ -103,7 +103,7 @@ async function cleanupMockResources() {
     console.log(`📊 Remaining resources: ${remainingResources.length}`);
     
     // Show breakdown by source
-    const youtubeCount = remainingResources.filter(r => r.source === 'YouTube' || r.video_id).length;
+    const youtubeCount = remainingResources.filter((r: any) => r.source === 'YouTube' || (r as any).video_id).length;
     const inAppCount = remainingResources.length - youtubeCount;
     console.log(`  - YouTube resources: ${youtubeCount}`);
     console.log(`  - In-app resources: ${inAppCount}`);
