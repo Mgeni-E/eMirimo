@@ -281,9 +281,11 @@ export function AdminNotifications() {
   };
 
   const deleteNotification = async (notificationId: string) => {
+    // Store original state for rollback on error
+    const originalNotifications = notifications;
+    
     try {
       // Update UI optimistically
-      const originalNotifications = notifications;
       setNotifications((notifications || []).filter(notification => notification.id !== notificationId));
       
       // Delete on server
@@ -292,7 +294,7 @@ export function AdminNotifications() {
       console.error('Failed to delete notification:', error);
       setError('Failed to delete notification. Please try again.');
       // Revert optimistic update on error
-      loadNotifications();
+      setNotifications(originalNotifications);
     }
   };
 

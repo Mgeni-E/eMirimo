@@ -30,6 +30,11 @@ export function Dashboard() {
     );
   }
 
+  // Type guard: After the check above, user is guaranteed to be non-null
+  if (!user) {
+    return null;
+  }
+
   // Route to appropriate role-based dashboard
   if (!user.role || !['admin', 'seeker', 'employer'].includes(user.role)) {
     return (

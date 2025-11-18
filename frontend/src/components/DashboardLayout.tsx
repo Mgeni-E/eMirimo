@@ -86,6 +86,11 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   }
 
+  // Type guard: After the check above, user is guaranteed to be non-null
+  if (!user) {
+    return null;
+  }
+
   const getMenuItems = (role: string) => {
     const baseItems = [
       {

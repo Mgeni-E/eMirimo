@@ -4,9 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { DashboardLayout } from '../../components/DashboardLayout';
 import { 
-  PlayIcon, 
   ClockIcon, 
-  StarIcon, 
   BookOpenIcon,
   VideoIcon,
   DocumentTextIcon,

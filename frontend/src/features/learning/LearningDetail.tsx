@@ -44,6 +44,7 @@ interface LearningResource {
   thumbnail_url?: string;
   author?: string | { name: string };
   source?: string;
+  source_url?: string;
   tags: string[];
   views?: number;
   likes?: number;
