@@ -4,8 +4,19 @@ import axios from 'axios';
 const isProduction = import.meta.env.PROD;
 const API_TIMEOUT = isProduction ? 60000 : 10000; // 60s for production, 10s for dev
 
+// Determine API URL based on environment
+const getApiUrl = () => {
+  // In development mode, ALWAYS use localhost:3000 (ignore VITE_API_URL if set)
+  // This ensures local frontend always connects to local backend
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3000/api';
+  }
+  // Production: use environment variable (set in Vercel) or Render backend URL
+  return import.meta.env.VITE_API_URL || 'https://emirimo-backend1.onrender.com/api';
+};
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: getApiUrl(),
   timeout: API_TIMEOUT,
   withCredentials: true,
 });

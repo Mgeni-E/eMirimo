@@ -19,8 +19,19 @@ export async function checkServerHealth(): Promise<boolean> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
     
+    // Determine health check URL based on environment
+    const getHealthUrl = () => {
+      // In development mode, ALWAYS use localhost:3000 (ignore VITE_API_URL if set)
+      // This ensures local frontend always connects to local backend
+      if (import.meta.env.DEV) {
+        return 'http://localhost:3000';
+      }
+      // Production: use Render backend URL (from Vercel env vars)
+      return import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://emirimo-backend1.onrender.com';
+    };
+    
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'}/health`,
+      `${getHealthUrl()}/health`,
       {
         method: 'GET',
         signal: controller.signal,

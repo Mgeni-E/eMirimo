@@ -4,6 +4,7 @@ import { Job } from '../models/Job.js';
 import { Notification } from '../models/Notification.js';
 import { Application } from '../models/Application.js';
 import { Log } from '../models/Log.js';
+import { LearningResource } from '../models/LearningResource.js';
 import { SocketService } from '../services/socket.service.js';
 
 export const getUsers = async (req: any, res: Response) => {
@@ -938,7 +939,6 @@ export const uploadAdminProfilePicture = async (req: any, res: Response) => {
     }
 
     // In a real implementation, you would handle file upload here
-    // For now, we'll just return a mock response
     const profilePicture = '/uploads/profile-pictures/default-admin.jpg';
 
     const admin = await User.findByIdAndUpdate(
@@ -992,7 +992,7 @@ export const getAdminNotifications = async (req: any, res: Response) => {
     }
     
     const notifications = await Notification.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ created_at: -1 })
       .limit(parseInt(limit as string))
       .skip(parseInt(offset as string))
       .lean();
@@ -1013,6 +1013,55 @@ export const getAdminNotifications = async (req: any, res: Response) => {
     res.status(500).json({ 
       success: false,
       message: 'Failed to fetch notifications',
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Clean up ALL non-YouTube learning resources from database
+ * This aggressively removes all mock/test data and only keeps YouTube resources
+ */
+export const cleanupMockLearningResources = async (req: any, res: Response) => {
+  try {
+    // Delete ALL resources that are NOT from YouTube
+    // This is more aggressive and ensures only YouTube resources remain
+    const deleteResult = await LearningResource.deleteMany({
+      $nor: [
+        { source: 'YouTube' },
+        { source: { $regex: /youtube/i } },
+        { video_id: { $exists: true, $ne: null } },
+        { video_url: { $exists: true, $ne: null, $regex: /youtube/i } }
+      ]
+    });
+    
+    // Get remaining resources count
+    const remainingCount = await LearningResource.countDocuments();
+    const youtubeCount = await LearningResource.countDocuments({
+      $or: [
+        { source: 'YouTube' },
+        { source: { $regex: /youtube/i } },
+        { video_id: { $exists: true, $ne: null } },
+        { video_url: { $exists: true, $ne: null, $regex: /youtube/i } }
+      ]
+    });
+    
+    console.log(`✅ Cleaned up ${deleteResult.deletedCount} non-YouTube learning resources`);
+    console.log(`📊 Remaining: ${remainingCount} resources (${youtubeCount} YouTube)`);
+    
+    res.json({
+      success: true,
+      message: `Cleaned up ${deleteResult.deletedCount} non-YouTube resources`,
+      deletedCount: deleteResult.deletedCount,
+      remainingCount,
+      youtubeCount,
+      inAppCount: remainingCount - youtubeCount
+    });
+  } catch (error: any) {
+    console.error('Error cleaning up mock resources:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clean up mock resources',
       error: error.message 
     });
   }

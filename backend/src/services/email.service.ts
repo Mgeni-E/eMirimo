@@ -323,6 +323,372 @@ export const sendJobRecommendationEmail = async (
 };
 
 /**
+ * Send job application notification email to employer
+ */
+export const sendApplicationReceivedEmail = async (
+  employerEmail: string,
+  employerName: string,
+  jobTitle: string,
+  companyName: string,
+  applicantName: string,
+  applicationId: string
+) => {
+  const applicationUrl = `${process.env.FRONTEND_URL}/employer/applications/${applicationId}`;
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: employerEmail,
+    subject: `📥 New Application Received: ${applicantName} applied for ${jobTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">eMirimo</h1>
+          <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">New Job Application</p>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <h2 style="color: #1f2937; margin: 0 0 20px 0;">Hello ${employerName}! 👋</h2>
+          
+          <p style="color: #6b7280; line-height: 1.6; margin: 0 0 20px 0;">
+            You have received a new job application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.
+          </p>
+          
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
+            <p style="color: #1f2937; margin: 0 0 10px 0; font-weight: 600;">Applicant Details:</p>
+            <p style="color: #6b7280; margin: 0; font-size: 16px;">👤 <strong>${applicantName}</strong></p>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 16px;">💼 Position: <strong>${jobTitle}</strong></p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #0ea5e9, #0284c7); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 Review Application
+            </a>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; margin: 30px 0 20px 0; padding-top: 20px;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              © ${new Date().getFullYear()} eMirimo. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Application received email sent to employer: ${employerEmail}`);
+  } catch (error) {
+    console.error('Error sending application received email:', error);
+    // Don't throw - email failure shouldn't break the application process
+  }
+};
+
+/**
+ * Send job application confirmation email to applicant
+ */
+export const sendApplicationSubmittedEmail = async (
+  applicantEmail: string,
+  applicantName: string,
+  jobTitle: string,
+  companyName: string,
+  applicationId: string
+) => {
+  const applicationUrl = `${process.env.FRONTEND_URL}/applications/${applicationId}`;
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: applicantEmail,
+    subject: `✅ Application Submitted: ${jobTitle} at ${companyName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">eMirimo</h1>
+          <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">Application Confirmation</p>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <h2 style="color: #1f2937; margin: 0 0 20px 0;">Hello ${applicantName}! 👋</h2>
+          
+          <p style="color: #6b7280; line-height: 1.6; margin: 0 0 20px 0;">
+            Your application for <strong>${jobTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted!
+          </p>
+          
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 20px; margin: 20px 0;">
+            <p style="color: #166534; margin: 0; font-weight: 600;">✅ Application Status: Submitted</p>
+            <p style="color: #166534; margin: 10px 0 0 0; font-size: 14px;">
+              The employer will review your application and get back to you soon. You'll be notified via email when there's an update.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #10b981, #059669); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 View Application
+            </a>
+          </div>
+          
+          <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 0 6px 6px 0; margin: 20px 0;">
+            <p style="color: #1e40af; margin: 0; font-weight: 600; font-size: 14px;">💡 What's Next?</p>
+            <ul style="color: #1e40af; margin: 10px 0 0 0; padding-left: 20px; font-size: 14px;">
+              <li>Keep your profile updated to increase your chances</li>
+              <li>Check your email regularly for updates</li>
+              <li>Explore other job opportunities on eMirimo</li>
+            </ul>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; margin: 30px 0 20px 0; padding-top: 20px;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              © ${new Date().getFullYear()} eMirimo. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Application submitted email sent to applicant: ${applicantEmail}`);
+  } catch (error) {
+    console.error('Error sending application submitted email:', error);
+    // Don't throw - email failure shouldn't break the application process
+  }
+};
+
+/**
+ * Send application status update email to applicant
+ */
+export const sendApplicationStatusUpdateEmail = async (
+  applicantEmail: string,
+  applicantName: string,
+  jobTitle: string,
+  companyName: string,
+  status: string,
+  applicationId: string,
+  interviewDate?: string,
+  interviewLocation?: string,
+  salaryOffered?: number,
+  rejectionReason?: string
+) => {
+  const applicationUrl = `${process.env.FRONTEND_URL}/applications/${applicationId}`;
+  
+  let statusColor = '#3b82f6';
+  let statusIcon = '📋';
+  let statusMessage = '';
+  let actionButton = '';
+  let additionalInfo = '';
+  
+  switch (status) {
+    case 'shortlisted':
+      statusColor = '#10b981';
+      statusIcon = '🎉';
+      statusMessage = 'Congratulations! You have been shortlisted for this position.';
+      actionButton = `<a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #10b981, #059669); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 View Application
+            </a>`;
+      break;
+    case 'interview':
+    case 'interview_scheduled':
+      statusColor = '#3b82f6';
+      statusIcon = '📅';
+      statusMessage = 'Great news! An interview has been scheduled for you.';
+      if (interviewDate) {
+        additionalInfo = `
+          <div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 15px; margin: 15px 0;">
+            <p style="color: #1e40af; margin: 0 0 10px 0; font-weight: 600;">📅 Interview Details:</p>
+            <p style="color: #1e40af; margin: 0; font-size: 14px;"><strong>Date & Time:</strong> ${new Date(interviewDate).toLocaleString()}</p>
+            ${interviewLocation ? `<p style="color: #1e40af; margin: 5px 0 0 0; font-size: 14px;"><strong>Location:</strong> ${interviewLocation}</p>` : ''}
+          </div>
+        `;
+      }
+      actionButton = `<a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #3b82f6, #2563eb); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 View Details
+            </a>`;
+      break;
+    case 'offer':
+    case 'offer_received':
+      statusColor = '#10b981';
+      statusIcon = '🎊';
+      statusMessage = 'Congratulations! You have received a job offer!';
+      if (salaryOffered) {
+        additionalInfo = `
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px; margin: 15px 0;">
+            <p style="color: #166534; margin: 0; font-weight: 600;">💰 Offer Details:</p>
+            <p style="color: #166534; margin: 5px 0 0 0; font-size: 16px;"><strong>Salary Offered:</strong> $${salaryOffered.toLocaleString()}</p>
+          </div>
+        `;
+      }
+      actionButton = `<a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #10b981, #059669); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 Review Offer
+            </a>`;
+      break;
+    case 'hired':
+      statusColor = '#10b981';
+      statusIcon = '🎉';
+      statusMessage = 'Congratulations! You have been hired!';
+      actionButton = `<a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #10b981, #059669); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 View Details
+            </a>`;
+      break;
+    case 'rejected':
+      statusColor = '#ef4444';
+      statusIcon = '📋';
+      statusMessage = 'We regret to inform you that your application was not successful at this time.';
+      if (rejectionReason) {
+        additionalInfo = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 15px 0;">
+            <p style="color: #991b1b; margin: 0; font-weight: 600;">📝 Feedback:</p>
+            <p style="color: #991b1b; margin: 5px 0 0 0; font-size: 14px;">${rejectionReason}</p>
+          </div>
+        `;
+      }
+      actionButton = `<a href="${process.env.FRONTEND_URL}/jobs" 
+               style="background: linear-gradient(135deg, #0ea5e9, #0284c7); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              🔍 Browse More Jobs
+            </a>`;
+      break;
+    default:
+      statusMessage = `Your application status for ${jobTitle} has been updated to ${status}.`;
+      actionButton = `<a href="${applicationUrl}" 
+               style="background: linear-gradient(135deg, #0ea5e9, #0284c7); 
+                      color: white; 
+                      text-decoration: none; 
+                      padding: 15px 30px; 
+                      border-radius: 8px; 
+                      font-weight: bold; 
+                      display: inline-block;
+                      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              📋 View Application
+            </a>`;
+  }
+  
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: applicantEmail,
+    subject: `${statusIcon} Application Update: ${jobTitle} at ${companyName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, ${statusColor}, ${statusColor}dd); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">eMirimo</h1>
+          <p style="color: white; margin: 5px 0 0 0; opacity: 0.9;">Application Status Update</p>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <h2 style="color: #1f2937; margin: 0 0 20px 0;">Hello ${applicantName}! 👋</h2>
+          
+          <p style="color: #6b7280; line-height: 1.6; margin: 0 0 20px 0;">
+            ${statusMessage}
+          </p>
+          
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 20px 0;">
+            <p style="color: #1f2937; margin: 0 0 10px 0; font-weight: 600;">Application Details:</p>
+            <p style="color: #6b7280; margin: 0; font-size: 16px;">💼 Position: <strong>${jobTitle}</strong></p>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 16px;">🏢 Company: <strong>${companyName}</strong></p>
+            <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 16px;">📊 Status: <strong style="color: ${statusColor};">${status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}</strong></p>
+          </div>
+          
+          ${additionalInfo}
+          
+          <div style="text-align: center; margin: 30px 0;">
+            ${actionButton}
+          </div>
+          
+          ${status === 'rejected' ? `
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0;">
+              <h4 style="color: #92400e; margin: 0 0 10px 0; font-size: 16px;">💡 Keep Going!</h4>
+              <p style="color: #92400e; margin: 0; font-size: 14px;">
+                Don't be discouraged! Continue applying to other opportunities and improving your skills. Check out our learning resources to enhance your profile.
+              </p>
+              <a href="${process.env.FRONTEND_URL}/learning" 
+                 style="background: #f59e0b; 
+                        color: white; 
+                        text-decoration: none; 
+                        padding: 10px 20px; 
+                        border-radius: 6px; 
+                        font-weight: 500; 
+                        display: inline-block;
+                        font-size: 14px;
+                        margin-top: 10px;">
+                📚 Explore Learning Resources
+              </a>
+            </div>
+          ` : ''}
+          
+          <div style="border-top: 1px solid #e5e7eb; margin: 30px 0 20px 0; padding-top: 20px;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              © ${new Date().getFullYear()} eMirimo. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Application status update email sent to applicant: ${applicantEmail}`);
+  } catch (error) {
+    console.error('Error sending application status update email:', error);
+    // Don't throw - email failure shouldn't break the status update process
+  }
+};
+
+/**
  * Send course/learning resource recommendation email to job seekers
  */
 export const sendCourseRecommendationEmail = async (

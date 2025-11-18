@@ -384,37 +384,227 @@ async function getJobRecommendations(userId: string, limit: number) {
 
 async function getLearningRecommendations(userId: string, limit: number) {
   try {
-    // Prefer the dedicated recommendations service if available
-    const { RecommendationService } = await import('../services/recommendation.service.js');
-    if (RecommendationService?.getCourseRecommendations) {
-      const recs = await RecommendationService.getCourseRecommendations(userId, limit);
-      if (Array.isArray(recs) && recs.length > 0) {
-        // Return recommendation objects with course and matchScore
-        return recs.map((r: any) => ({
-          course: r.course || r.resource || r,
-          matchScore: r.matchScore || r.relevanceScore || 0.6,
-          reasons: r.reasons || [],
-          skillsGap: r.skillsGap || []
-        })).slice(0, limit);
+    // Get user profile to personalize recommendations
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return [];
+    }
+
+    // FIRST: Try to get personalized recommendations from stored database courses
+    // This avoids API calls and quota issues
+    let storedRecommendations = await LearningResource.find({
+      is_active: true,
+      source: 'YouTube'
+    })
+      .sort({ created_at: -1 })
+      .limit(100)
+      .lean();
+
+    // If we have stored courses, personalize them based on user skills
+    if (storedRecommendations.length > 0) {
+      const userSkills = user.job_seeker_profile?.skills || [];
+      
+      // Get active jobs to identify market demands for skill gap analysis
+      const activeJobs = await Job.find({ is_active: true })
+        .select('skills requirements experience_level')
+        .limit(100);
+
+      const marketSkills = new Set<string>();
+      activeJobs.forEach((job: any) => {
+        if (job.skills && Array.isArray(job.skills)) {
+          job.skills.forEach((skill: string) => marketSkills.add(skill.toLowerCase()));
+        }
+        if (job.requirements && typeof job.requirements === 'string') {
+          const reqText = job.requirements.toLowerCase();
+          ['javascript', 'python', 'react', 'node', 'sql', 'communication', 'leadership', 'project management', 'marketing', 'design', 'business', 'entrepreneurship'].forEach(skill => {
+            if (reqText.includes(skill)) marketSkills.add(skill);
+          });
+        }
+      });
+
+      const userSkillsLower = userSkills.map((s: string) => s.toLowerCase());
+      const skillGaps = Array.from(marketSkills).filter(skill => 
+        !userSkillsLower.some((userSkill: string) => 
+          userSkill.includes(skill) || skill.includes(userSkill)
+        )
+      );
+
+      // Score courses based on user skills match
+      const scoredRecommendations = storedRecommendations.map((resource: any) => {
+        const resourceSkills = (resource.skills || []).map((s: string) => s.toLowerCase());
+        const matchingSkills = userSkillsLower.filter((userSkill: string) =>
+          resourceSkills.some((rs: string) => rs.includes(userSkill) || userSkill.includes(rs))
+        );
+        const matchScore = userSkills.length > 0 
+          ? matchingSkills.length / Math.max(userSkills.length, resourceSkills.length)
+          : 0.7;
+
+        return {
+          course: resource,
+          resource: resource,
+          matchScore: Math.max(0.5, Math.min(1.0, matchScore)),
+          reasons: matchingSkills.length > 0 
+            ? [`Matches ${matchingSkills.length} of your skills`]
+            : ['Recommended based on job market trends'],
+          skillsGap: skillGaps.slice(0, 3)
+        };
+      });
+
+      // Sort by match score and return top recommendations
+      return scoredRecommendations
+        .sort((a: any, b: any) => (b.matchScore || 0) - (a.matchScore || 0))
+        .slice(0, limit);
+    }
+
+    // FALLBACK: Only use API if no stored courses (should rarely happen)
+    console.warn('⚠️  No stored courses found. Using YouTube API (may hit quota limits)...');
+    
+    // Use the learning controller's recommendation logic
+    // Import YouTube service to fetch personalized courses
+    const { YouTubeService } = await import('../services/youtube.service.js');
+    const youtubeService = new YouTubeService();
+    
+    // Get user skills for personalized recommendations
+    const userSkills = user.job_seeker_profile?.skills || [];
+    
+    // Get active jobs to identify market demands
+    const activeJobs = await Job.find({ is_active: true })
+      .select('skills requirements experience_level')
+      .limit(100);
+
+    // Extract skills from job market
+    const marketSkills = new Set<string>();
+    activeJobs.forEach((job: any) => {
+      if (job.skills && Array.isArray(job.skills)) {
+        job.skills.forEach((skill: string) => marketSkills.add(skill.toLowerCase()));
+      }
+      if (job.requirements && typeof job.requirements === 'string') {
+        const reqText = job.requirements.toLowerCase();
+        ['javascript', 'python', 'react', 'node', 'sql', 'communication', 'leadership', 'project management', 'marketing', 'design', 'business', 'entrepreneurship'].forEach(skill => {
+          if (reqText.includes(skill)) marketSkills.add(skill);
+        });
+      }
+    });
+
+    // Identify skill gaps
+    const userSkillsLower = userSkills.map((s: string) => s.toLowerCase());
+    const skillGaps = Array.from(marketSkills).filter(skill => 
+      !userSkillsLower.some((userSkill: string) => 
+        userSkill.includes(skill) || skill.includes(userSkill)
+      )
+    );
+
+    // Combine user skills and skill gaps for recommendations
+    const allSkills = [...userSkills, ...skillGaps.slice(0, 5)].slice(0, 10);
+    
+    // Default skills if user has none
+    const searchSkills = allSkills.length > 0 ? allSkills : ['programming', 'communication', 'career development', 'digital skills', 'soft skills'];
+
+    // Fetch YouTube courses based on user profile
+    // Search across multiple categories to get diverse recommendations
+    const categoryMap: { [key: string]: string[] } = {
+      'digital-literacy-productivity': ['digital skills', 'computer basics', 'Microsoft Office', 'Google Workspace', 'ICT'],
+      'soft-skills-professional': ['communication', 'leadership', 'teamwork', 'time management', 'professional skills'],
+      'entrepreneurship-business': ['entrepreneurship', 'business', 'marketing', 'finance', 'startup'],
+      'job-search-career': ['resume', 'interview', 'career', 'job search', 'CV'],
+      'technology-digital-careers': ['programming', 'coding', 'web development', 'data analysis', 'AI'],
+      'personal-development-workplace': ['productivity', 'confidence', 'growth mindset', 'work-life balance', 'personal development']
+    };
+
+    // Determine relevant categories based on user skills
+    const relevantCategories: string[] = [];
+    const userSkillsLowerStr = userSkillsLower.join(' ');
+    
+    for (const [category, keywords] of Object.entries(categoryMap)) {
+      if (keywords.some(keyword => userSkillsLowerStr.includes(keyword))) {
+        relevantCategories.push(category);
       }
     }
+
+    // If no relevant categories found, use default categories
+    const categoriesToSearch = relevantCategories.length > 0 
+      ? relevantCategories.slice(0, 3) 
+      : ['soft-skills-professional', 'job-search-career', 'technology-digital-careers'];
+
+    // Fetch courses from relevant categories
+    const allRecommendations: any[] = [];
+    
+    for (const category of categoriesToSearch) {
+      try {
+        const categoryKeywords = categoryMap[category] || searchSkills;
+        
+        // Catch individual API errors to prevent quota errors from breaking everything
+        let playlists: any[] = [];
+        let videos: any[] = [];
+        
+        try {
+          playlists = await youtubeService.searchEducationalPlaylists(categoryKeywords, 'beginner', 5);
+        } catch (playlistError: any) {
+          if (playlistError?.response?.data?.error?.code === 403) {
+            console.warn(`YouTube quota exceeded for ${category} playlists, skipping...`);
+          } else {
+            console.error(`Error fetching ${category} playlists:`, playlistError.message);
+          }
+        }
+        
+        try {
+          videos = await youtubeService.searchEducationalVideos(categoryKeywords, 'beginner', 5);
+        } catch (videoError: any) {
+          if (videoError?.response?.data?.error?.code === 403) {
+            console.warn(`YouTube quota exceeded for ${category} videos, skipping...`);
+          } else {
+            console.error(`Error fetching ${category} videos:`, videoError.message);
+          }
+        }
+        
+        // Convert to learning resources
+        const resources = [
+          ...playlists.map((p: any) => youtubeService.convertPlaylistToLearningResource(p, searchSkills, category, 'beginner')),
+          ...videos.map((v: any) => youtubeService.convertToLearningResource(v, searchSkills, category, 'beginner'))
+        ];
+
+        // Calculate match scores based on user skills
+        const scoredResources = resources.map((resource: any) => {
+          const resourceSkills = (resource.skills || []).map((s: string) => s.toLowerCase());
+          const matchingSkills = userSkillsLower.filter((userSkill: string) =>
+            resourceSkills.some((rs: string) => rs.includes(userSkill) || userSkill.includes(rs))
+          );
+          const matchScore = userSkills.length > 0 
+            ? matchingSkills.length / Math.max(userSkills.length, resourceSkills.length)
+            : 0.7; // Default score if no user skills
+
+          return {
+            course: resource,
+            resource: resource,
+            matchScore: Math.max(0.5, Math.min(1.0, matchScore)),
+            reasons: matchingSkills.length > 0 
+              ? [`Matches ${matchingSkills.length} of your skills`]
+              : ['Recommended based on job market trends'],
+            skillsGap: skillGaps.slice(0, 3)
+          };
+        });
+
+        allRecommendations.push(...scoredResources);
+      } catch (error: any) {
+        console.error(`Error fetching ${category} recommendations:`, error.message);
+        // Continue with next category
+      }
+    }
+
+    // Remove duplicates and sort by match score
+    const uniqueRecommendations = Array.from(
+      new Map(allRecommendations.map((r: any) => [r.course?._id || r.course?.id || r.resource?._id || r.resource?.id, r])).values()
+    );
+
+    // Sort by match score (highest first) and return top recommendations
+    return uniqueRecommendations
+      .sort((a: any, b: any) => (b.matchScore || 0) - (a.matchScore || 0))
+      .slice(0, limit);
   } catch (error) {
     console.error('Error getting course recommendations:', error);
+    // Fallback: Return empty array if YouTube API fails
+    return [];
   }
-
-  // Fallback: Return real learning resources from database
-  const resources = await LearningResource.find({ is_active: true })
-    .sort({ created_at: -1 })
-    .limit(limit)
-    .lean();
-
-  // Format as recommendation objects
-  return (resources || []).map((resource: any) => ({
-    course: resource,
-    matchScore: 0.6,
-    reasons: [],
-    skillsGap: []
-  }));
 }
 
 async function getTopPerformingJobs(employerId: string) {

@@ -18,7 +18,9 @@ export function Dashboard() {
     );
   }
 
-  if (!user) {
+  // Only show login message if auth is initialized and user is still null
+  // AuthGuard should handle redirecting, but this is a safety check
+  if (!user && isInitialized) {
     return (
       <div className="text-center py-16">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 font-display">

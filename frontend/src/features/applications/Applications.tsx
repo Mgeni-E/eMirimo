@@ -56,10 +56,23 @@ export function Applications(){
     if (!location) return 'Remote';
     if (typeof location === 'string') return location;
     if (typeof location === 'object') {
+      // Priority: Use address if it exists and is substantial (likely contains full address)
+      // Otherwise, combine city and country
+      if (location.address && location.address.trim().length > 5) {
+        return location.address.trim();
+      }
+      
+      // Fallback: combine city and country (avoid duplicates)
       const parts: string[] = [];
-      if (location.city) parts.push(location.city);
-      if (location.country) parts.push(location.country);
-      if (location.address) parts.push(location.address);
+      if (location.city && location.city.trim()) {
+        parts.push(location.city.trim());
+      }
+      if (location.country && location.country.trim()) {
+        // Only add country if it's different from city
+        if (!parts.includes(location.country.trim())) {
+          parts.push(location.country.trim());
+        }
+      }
       if (parts.length > 0) return parts.join(', ');
       if (location.is_remote || location.remote_allowed) return 'Remote';
       return 'Location not specified';

@@ -78,11 +78,11 @@ export class LoggingService {
   }
 }
 
-// Middleware for automatic request logging
+// Middleware for automatic request logging (non-blocking)
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   
-  res.on('finish', async () => {
+  res.on('finish', () => {
     const duration = Date.now() - start;
     const logData: LogData = {
       level: res.statusCode >= 400 ? 'error' : 'info',
@@ -101,13 +101,17 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
       userAgent: req.get('User-Agent')
     };
 
-    await LoggingService.log(logData);
+    // Log asynchronously without blocking the response
+    LoggingService.log(logData).catch(err => {
+      // Silently fail logging to prevent blocking requests
+      console.error('Failed to log request:', err.message);
+    });
   });
 
   next();
 };
 
-// Middleware for error logging
+// Middleware for error logging (non-blocking)
 export const errorLogger = (error: Error, req: Request, res: Response, next: NextFunction) => {
   const logData: LogData = {
     level: 'error',
@@ -126,6 +130,10 @@ export const errorLogger = (error: Error, req: Request, res: Response, next: Nex
     userAgent: req.get('User-Agent')
   };
 
-  LoggingService.log(logData);
+  // Log asynchronously without blocking error response
+  LoggingService.log(logData).catch(err => {
+    console.error('Failed to log error:', err.message);
+  });
+  
   next(error);
 };

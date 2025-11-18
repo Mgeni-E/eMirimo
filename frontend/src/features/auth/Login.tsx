@@ -13,6 +13,8 @@ const REMEMBER_ME_CHECKED_KEY = 'remember_me_checked';
 export function Login(){
   const nav = useNavigate();
   const setUser = useAuth(s=>s.setUser);
+  const lastRoute = useAuth(s=>s.lastRoute);
+  const setLastRoute = useAuth(s=>s.setLastRoute);
   const { t } = useTranslation();
   const { showNotification } = useNotification();
   const [form,setForm] = useState({email:'',password:''});
@@ -88,7 +90,28 @@ export function Login(){
         duration: 4000
       });
       
-      // Navigate based on role
+      // Navigate based on role and last route
+      if (lastRoute && lastRoute !== '/login' && lastRoute !== '/register') {
+        // Validate route is appropriate for user role
+        const isAdminRoute = lastRoute.startsWith('/admin');
+        const isEmployerRoute = lastRoute.startsWith('/employer');
+        
+        if (isAdminRoute && userData.role === 'admin') {
+          nav(lastRoute);
+          setLastRoute(null); // Clear after restoring
+          return;
+        } else if (isEmployerRoute && userData.role === 'employer') {
+          nav(lastRoute);
+          setLastRoute(null); // Clear after restoring
+          return;
+        } else if (!isAdminRoute && !isEmployerRoute && userData.role === 'seeker') {
+          nav(lastRoute);
+          setLastRoute(null); // Clear after restoring
+          return;
+        }
+      }
+      
+      // Default navigation based on role
       if (userData.role === 'admin') {
         nav('/admin');
       } else {

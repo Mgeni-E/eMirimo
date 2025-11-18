@@ -3,6 +3,11 @@ import { Application } from '../models/Application.js';
 import { Job } from '../models/Job.js';
 import { User } from '../models/User.js';
 import { createNotification } from './notification.controller.js';
+import { 
+  sendApplicationReceivedEmail, 
+  sendApplicationSubmittedEmail, 
+  sendApplicationStatusUpdateEmail 
+} from '../services/email.service.js';
 
 // Apply for a job
 export const apply = async (req: any, res: Response) => {
@@ -95,10 +100,14 @@ export const apply = async (req: any, res: Response) => {
     const jobTitle = job.title;
     const companyName = job.company_name || (job.employer_id as any)?.employer_profile?.company_name || 'Company';
     const seekerName = seeker.name || 'Job Seeker';
+    const employer = (job.employer_id as any);
+    const employerEmail = employer?.email;
+    const employerName = employer?.name || 'Employer';
+    const seekerEmail = seeker.email;
 
     // Create notification for employer
     await createNotification(
-      (job.employer_id as any)._id.toString(),
+      employer._id.toString(),
       `New application received for ${jobTitle}`,
       'job_application',
       {
@@ -114,6 +123,18 @@ export const apply = async (req: any, res: Response) => {
       `/applications/${application._id}`,
       'application'
     );
+
+    // Send email to employer if email is available
+    if (employerEmail) {
+      sendApplicationReceivedEmail(
+        employerEmail,
+        employerName,
+        jobTitle,
+        companyName,
+        seekerName,
+        application._id.toString()
+      ).catch(err => console.error('Failed to send email to employer:', err));
+    }
 
     // Create notification for seeker
     await createNotification(
@@ -131,6 +152,17 @@ export const apply = async (req: any, res: Response) => {
       `/applications/${application._id}`,
       'application'
     );
+
+    // Send email to applicant if email is available
+    if (seekerEmail) {
+      sendApplicationSubmittedEmail(
+        seekerEmail,
+        seekerName,
+        jobTitle,
+        companyName,
+        application._id.toString()
+      ).catch(err => console.error('Failed to send email to applicant:', err));
+    }
 
     // Create notification for all admins
     const admins = await User.find({ role: 'admin', is_active: { $ne: false } })
@@ -282,8 +314,15 @@ export const updateApplicationStatus = async (req: any, res: Response) => {
         notificationMessage = `Your application status for ${(application.job_id as any).title} has been updated`;
     }
 
+    const seeker = application.seeker_id as any;
+    const seekerId = seeker._id.toString();
+    const seekerEmail = seeker.email;
+    const seekerName = seeker.name || 'Job Seeker';
+    const jobTitle = (application.job_id as any).title;
+    const companyName = (application as any).company_name || 'Company';
+
     await createNotification(
-      (application.seeker_id as any)._id.toString(),
+      seekerId,
       notificationMessage,
       notificationType,
       {
@@ -295,6 +334,22 @@ export const updateApplicationStatus = async (req: any, res: Response) => {
         salary_offered
       }
     );
+
+    // Send email to applicant if email is available
+    if (seekerEmail) {
+      sendApplicationStatusUpdateEmail(
+        seekerEmail,
+        seekerName,
+        jobTitle,
+        companyName,
+        status,
+        application._id.toString(),
+        interview_date,
+        interview_location,
+        salary_offered,
+        rejection_reason
+      ).catch(err => console.error('Failed to send status update email to applicant:', err));
+    }
 
     res.json({
       success: true,

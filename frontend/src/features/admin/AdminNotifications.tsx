@@ -121,11 +121,11 @@ export function AdminNotifications() {
     }
     
     try {
-      console.log('Loading notifications...');
+      console.log('Loading admin notifications...');
       
-      // Fetch real notifications data from API
-      const response = await api.get('/notifications');
-      console.log('Notifications API response:', response.data);
+      // Fetch admin notifications from admin-specific endpoint
+      const response = await api.get('/admin/notifications');
+      console.log('Admin notifications API response:', response.data);
       
       const backendNotifications = response.data?.notifications || [];
       
@@ -150,13 +150,13 @@ export function AdminNotifications() {
         const title = notif.message.split(':')[0] || 'Notification';
         
         return {
-          id: notif._id,
+          id: notif._id || notif.id,
           title: title,
           message: notif.message,
           type: frontendType,
           status: notif.read_status ? 'read' : 'unread',
           priority: priority,
-          createdAt: notif.created_at,
+          createdAt: notif.created_at || notif.createdAt || new Date().toISOString(),
           targetUsers: ['admin'],
           actionRequired: actionRequired
         };
@@ -263,23 +263,36 @@ export function AdminNotifications() {
 
   const markAsRead = async (notificationId: string) => {
     try {
+      // Update UI optimistically
       setNotifications(notifications.map(notification => 
         notification.id === notificationId 
           ? { ...notification, status: 'read' as const }
           : notification
       ));
+      
+      // Update on server
+      await api.patch(`/admin/notifications/${notificationId}/read`);
     } catch (error: any) {
       console.error('Failed to mark notification as read:', error);
       setError('Failed to update notification status. Please try again.');
+      // Revert optimistic update on error
+      loadNotifications();
     }
   };
 
   const deleteNotification = async (notificationId: string) => {
     try {
+      // Update UI optimistically
+      const originalNotifications = notifications;
       setNotifications((notifications || []).filter(notification => notification.id !== notificationId));
+      
+      // Delete on server
+      await api.delete(`/admin/notifications/${notificationId}`);
     } catch (error: any) {
       console.error('Failed to delete notification:', error);
       setError('Failed to delete notification. Please try again.');
+      // Revert optimistic update on error
+      loadNotifications();
     }
   };
 

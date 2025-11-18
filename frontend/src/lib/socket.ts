@@ -20,7 +20,24 @@ class SocketService {
       }
     }
 
-    this.socket = io(import.meta.env.VITE_API_URL || 'http://localhost:3000', {
+    // Socket.IO should connect to base server URL, not /api endpoint
+    const getSocketUrl = () => {
+      // In development mode, ALWAYS use localhost:3000 (ignore VITE_API_URL if set)
+      // This ensures local frontend always connects to local backend
+      if (import.meta.env.DEV) {
+        return 'http://localhost:3000';
+      }
+      // Production: use Render backend URL (from Vercel env vars)
+      return import.meta.env.VITE_API_URL 
+        ? import.meta.env.VITE_API_URL.replace('/api', '').replace(/\/$/, '')
+        : 'https://emirimo-backend1.onrender.com';
+    };
+    
+    const baseUrl = getSocketUrl();
+    
+    console.log('Connecting Socket.IO to:', baseUrl);
+    
+    this.socket = io(baseUrl, {
       auth: {
         token: token
       },
@@ -31,6 +48,8 @@ class SocketService {
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
       timeout: 20000, // 20 second timeout for socket connection
+      forceNew: false, // Reuse existing connection if available
+      autoConnect: true,
     });
 
     this.socket.on('connect', () => {
@@ -45,6 +64,24 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+      this.isConnected = false;
+      // Don't throw - let reconnection handle it
+    });
+    
+    // Handle namespace errors
+    this.socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      // If it's a namespace error, try reconnecting
+      if (error.message && error.message.includes('Invalid namespace')) {
+        console.warn('Invalid namespace error detected, will retry connection');
+        setTimeout(() => {
+          if (this.socket && !this.isConnected) {
+            this.socket.disconnect();
+            this.socket = null;
+            this.isConnected = false;
+          }
+        }, 1000);
+      }
     });
 
     return this.socket;

@@ -20,7 +20,8 @@ import {
   getUserApplications,
   getUserJobs,
   deleteJob,
-  getAllApplications
+  getAllApplications,
+  cleanupMockLearningResources
 } from '../controllers/admin.controller.js';
 import { markAsRead, markAllAsRead, deleteNotification } from '../controllers/notification.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
@@ -67,3 +68,6 @@ router.patch('/notifications/read-all', markAllAsRead);
 router.delete('/notifications/:id', deleteNotification);
 router.patch('/jobs/:id', updateJobStatus);
 router.delete('/jobs/:id', deleteJob);
+
+// Learning resources cleanup
+router.post('/learning/cleanup', cleanupMockLearningResources);

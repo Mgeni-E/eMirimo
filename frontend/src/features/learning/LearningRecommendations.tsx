@@ -48,11 +48,31 @@ export function LearningRecommendations() {
         console.log('Dashboard endpoint not available, trying learning endpoint');
       }
 
+      // Try learning recommendations endpoint for personalized courses
+      try {
+        const recommendationsResponse = await api.get('/learning/recommendations');
+        if (recommendationsResponse.data?.success && recommendationsResponse.data?.resources) {
+          const resources = recommendationsResponse.data.resources;
+          setRecommendations(resources.slice(0, 6).map((resource: any) => ({
+            course: resource,
+            resource: resource,
+            matchScore: 0.8,
+            reasons: []
+          })));
+          return;
+        }
+      } catch (recError) {
+        console.log('Recommendations endpoint not available, trying regular endpoint');
+      }
+
       // Fallback to learning resources endpoint
-      const response = await api.get('/learning');
-      const resources = Array.isArray(response.data) ? response.data : [];
-      setRecommendations(resources.slice(0, 3).map((resource: any) => ({
+      const response = await api.get('/learning?includeYouTube=true');
+      const resources = response.data?.success 
+        ? (response.data.resources || [])
+        : (Array.isArray(response.data) ? response.data : []);
+      setRecommendations(resources.slice(0, 6).map((resource: any) => ({
         course: resource,
+        resource: resource,
         matchScore: 0.6,
         reasons: []
       })));

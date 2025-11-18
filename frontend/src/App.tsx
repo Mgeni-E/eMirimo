@@ -6,6 +6,7 @@ import { Layout } from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthGuard } from './components/AuthGuard';
 import { AdminAuthGuard } from './components/AdminAuthGuard';
+import { RouteTracker } from './components/RouteTracker';
 import { useAuth } from './lib/store';
 import { Home } from './features/common/Home';
 import { Login } from './features/auth/Login';
@@ -47,6 +48,8 @@ function AppContent() {
   }, [initialize, isInitialized]);
 
   return (
+    <>
+      <RouteTracker />
     <Routes>
           {/* Public routes with Layout */}
           <Route path="/" element={<Layout><Home/></Layout>} />
@@ -84,6 +87,7 @@ function AppContent() {
           
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </>
   );
 }
 

@@ -12,7 +12,9 @@ type User = {
 type AuthState = { 
   user: User; 
   isInitialized: boolean;
+  lastRoute: string | null;
   setUser: (u: User) => void; 
+  setLastRoute: (route: string | null) => void;
   logout: () => Promise<void>;
   initialize: () => Promise<void>;
   clearSession: () => void;
@@ -37,6 +39,7 @@ export const useAuth = create<AuthState>()(
     (set, get) => ({
       user: null,
       isInitialized: false,
+      lastRoute: null,
       
       setUser: (u: User) => {
         set({ user: u, isInitialized: true });
@@ -44,6 +47,10 @@ export const useAuth = create<AuthState>()(
         if (u?.token) {
           localStorage.setItem('token', u.token);
         }
+      },
+      
+      setLastRoute: (route: string | null) => {
+        set({ lastRoute: route });
       },
       
       initialize: async () => {
@@ -131,7 +138,7 @@ export const useAuth = create<AuthState>()(
       
       clearSession: () => {
         localStorage.removeItem('token');
-        set({ user: null, isInitialized: true });
+        set({ user: null, isInitialized: true, lastRoute: null });
       }
     }),
     {
@@ -144,7 +151,8 @@ export const useAuth = create<AuthState>()(
           email: state.user.email,
           role: state.user.role
           // Don't persist token in Zustand storage, keep it separate
-        } : null
+        } : null,
+        lastRoute: state.lastRoute // Persist last route for session restoration
       }),
     }
   )

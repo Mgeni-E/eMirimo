@@ -359,17 +359,17 @@ export function SeekerDashboard() {
         </div>
       </div>
 
-      {/* Learning Resources */}
+      {/* Recommended Courses */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
         <div className="px-6 pt-6 pb-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('learningResources')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{t('coursesAndMaterialsToEnhance')}</p>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Recommended Courses</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Personalized courses to enhance your skills</p>
             </div>
             <Link 
               to="/learning" 
-              className="text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors flex items-center"
+              className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors flex items-center"
             >
               {t('viewAll')}
               <ArrowRightIcon className="w-4 h-4 ml-1" />

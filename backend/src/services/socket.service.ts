@@ -10,11 +10,11 @@ class SocketService {
   constructor(server: HTTPServer) {
     // List of allowed origins for Socket.IO
     const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5174',
-      'https://e-mirimo.vercel.app',
-      'https://e-mirimo-git-main-elvins-projects-78a22d58.vercel.app',
+      'http://localhost:5173', // Vite default port
+      'http://localhost:3000', // Alternative frontend port
+      'http://localhost:5174', // Vite alternative port
+      'https://e-mirimo.vercel.app', // Vercel production
+      'https://e-mirimo-git-main-elvins-projects-78a22d58.vercel.app', // Vercel preview
       config.CORS_ORIGIN
     ].filter(Boolean);
     
@@ -32,13 +32,24 @@ class SocketService {
             if (config.NODE_ENV === 'development' && origin.startsWith('http://localhost:')) {
               callback(null, true);
             } else {
+              // In production, allow Vercel preview deployments
+              if (origin.includes('vercel.app')) {
+                callback(null, true);
+              } else if (origin.includes('render.com') || origin.includes('onrender.com')) {
+                // Allow Render health checks
+              callback(null, true);
+            } else {
               callback(new Error('Not allowed by CORS'));
+              }
             }
           }
         },
         methods: ['GET', 'POST'],
         credentials: true
-      }
+      },
+      pingTimeout: 60000,
+      pingInterval: 25000,
+      transports: ['websocket', 'polling']
     });
 
     this.setupMiddleware();
@@ -187,6 +198,15 @@ class SocketService {
     return this.connectedUsers.size;
   }
 
+  // Close all connections gracefully
+  close() {
+    console.log('🛑 Closing Socket.IO server...');
+    this.io.close(() => {
+      console.log('✅ Socket.IO server closed');
+    });
+    this.connectedUsers.clear();
+  }
+
   // Check if user is connected
   isUserConnected(userId: string): boolean {
     return this.connectedUsers.has(userId);
@@ -229,6 +249,21 @@ class SocketService {
         reason
       }
     });
+  }
+
+  // Send notification update to admin dashboard
+  sendAdminNotificationUpdate(notification: any, updateType: 'new' | 'update' | 'delete') {
+    const eventData = {
+      type: updateType === 'new' ? 'new-notification' : 
+            updateType === 'update' ? 'notification-update' : 
+            'notification-delete',
+      notification: updateType !== 'delete' ? notification : undefined,
+      notificationId: notification._id || notification.id,
+      updates: updateType === 'update' ? notification : undefined
+    };
+    
+    this.io.to('admin-dashboard').emit('admin-update', eventData);
+    console.log(`Admin notification ${updateType} broadcasted to admin-dashboard room`);
   }
 }
 

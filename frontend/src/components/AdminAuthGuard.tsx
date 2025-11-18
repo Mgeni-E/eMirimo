@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/store';
 import { Loading } from './Loading';
 
@@ -8,9 +8,11 @@ interface AdminAuthGuardProps {
 }
 
 export const AdminAuthGuard = ({ children }: AdminAuthGuardProps) => {
-  const { user, isInitialized, initialize } = useAuth();
+  const { user, isInitialized, initialize, lastRoute, setLastRoute } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
+  const hasRestoredRoute = useRef(false);
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -23,6 +25,10 @@ export const AdminAuthGuard = ({ children }: AdminAuthGuardProps) => {
       
       // Check if user is authenticated
       if (!user && !token) {
+        // Save the current route before redirecting to login
+        if (location.pathname !== '/login' && location.pathname !== '/register') {
+          setLastRoute(location.pathname);
+        }
         navigate('/login', { replace: true });
         setIsLoading(false);
         return;
@@ -42,11 +48,23 @@ export const AdminAuthGuard = ({ children }: AdminAuthGuardProps) => {
         return;
       }
       
+      // If user is authenticated admin and we have a last route, restore it on first load
+      if (user && user.role === 'admin' && !hasRestoredRoute.current && lastRoute) {
+        // Only restore if we're on a default admin route or the route doesn't match
+        const isDefaultAdminRoute = location.pathname === '/admin';
+        const shouldRestore = isDefaultAdminRoute && lastRoute !== location.pathname && lastRoute.startsWith('/admin');
+        
+        if (shouldRestore) {
+          navigate(lastRoute, { replace: true });
+          hasRestoredRoute.current = true;
+        }
+      }
+      
       setIsLoading(false);
     };
 
     checkAdminAccess();
-  }, [user, isInitialized, navigate, initialize]);
+  }, [user, isInitialized, navigate, initialize, lastRoute, location.pathname, setLastRoute]);
 
   if (isLoading || !isInitialized) {
     return <Loading size="lg" text="Checking admin access..." />;

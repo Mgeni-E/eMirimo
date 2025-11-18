@@ -12,12 +12,18 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isInitialized } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Helper function to get first name only
+  const getFirstName = (fullName: string | undefined): string => {
+    if (!fullName) return '';
+    return fullName.split(' ')[0];
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -53,7 +59,18 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     // Also refresh when location changes (e.g., after profile update)
   }, [user, location.pathname]);
 
-  if (!user) {
+  // Wait for initialization before checking user
+  if (!isInitialized) {
+    return (
+      <div className="text-center py-16">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">{t('loading')}</p>
+      </div>
+    );
+  }
+
+  // Only show login message if auth is initialized and user is still null
+  if (!user && isInitialized) {
     return (
       <div className="text-center py-16">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 font-display">
@@ -244,7 +261,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               {(location.pathname === '/dashboard' || location.pathname === '/admin') && (
                 <>
                   <h1 className="text-lg sm:text-xl md:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white truncate">
-                    {t('welcomeBack', { name: user.name })}
+                    {t('welcomeBack', { name: getFirstName(user.name) })}
                   </h1>
                   <p className="text-xs sm:text-sm md:text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">
                     {t('recentActivity')}

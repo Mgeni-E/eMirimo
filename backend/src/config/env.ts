@@ -7,7 +7,7 @@ dotenv.config({ quiet: true });
 // Environment configuration with defaults
 export const config = {
   // Server
-  PORT: process.env.PORT || 3002,
+  PORT: process.env.PORT || 3000,
   NODE_ENV: process.env.NODE_ENV || 'development',
   
   // Database
@@ -35,6 +35,9 @@ export const config = {
   FIREBASE_SERVICE_ACCOUNT_KEY_BASE64: process.env.FIREBASE_SERVICE_ACCOUNT_KEY_BASE64 || '',
   FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL || '',
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY || '',
+  
+  // YouTube API (for learning resources)
+  YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY || '',
 };
 
 // Validate required environment variables

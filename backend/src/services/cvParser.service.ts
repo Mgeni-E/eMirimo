@@ -4,6 +4,19 @@
  */
 
 import fetch from 'node-fetch';
+import mammoth from 'mammoth';
+import { Readable } from 'stream';
+
+// Lazy load pdf-parse using dynamic import for ES module compatibility
+let pdfParsePromise: Promise<any> | null = null;
+async function getPdfParse() {
+  if (!pdfParsePromise) {
+    pdfParsePromise = import('pdf-parse').then((module) => {
+      return module.default || module;
+    });
+  }
+  return pdfParsePromise;
+}
 
 export interface ParsedCVData {
   name?: string;
@@ -171,99 +184,142 @@ export class CVParserService {
    * Extract text from buffer based on content type
    */
   private static async extractText(buffer: ArrayBuffer, contentType: string, url: string): Promise<string> {
+    try {
     if (contentType.includes('pdf') || url.toLowerCase().endsWith('.pdf')) {
       return await this.extractTextFromPDF(buffer);
     } else if (contentType.includes('word') || url.toLowerCase().match(/\.(doc|docx)$/i)) {
       return await this.extractTextFromWord(buffer);
     } else {
       // Try to extract as plain text
-      return new TextDecoder('utf-8', { ignoreBOM: true }).decode(buffer);
+        const text = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(buffer);
+        return this.cleanExtractedText(text);
+      }
+    } catch (error: any) {
+      console.error('Error in extractText:', error);
+      // Fallback: try basic text extraction
+      const text = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(buffer);
+      return this.cleanExtractedText(text);
     }
   }
 
   /**
-   * Extract text from PDF buffer
-   * Note: This is a simplified version. For production, use pdf-parse library
-   * This implementation tries to extract readable text from PDF binary format
+   * Extract text from PDF buffer using pdf-parse library
    */
   private static async extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     try {
       const uint8Array = new Uint8Array(buffer);
-      let text = '';
+      const bufferNode = Buffer.from(uint8Array);
       
-      // PDF text extraction: Look for text streams in PDF format
-      // PDFs store text in streams between "stream" and "endstream"
-      const pdfText = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(uint8Array);
+      // Use pdf-parse library for proper PDF text extraction
+      const pdfParse = await getPdfParse();
+      const data = await pdfParse(bufferNode);
+      let text = data.text || '';
       
-      // Extract text from PDF streams
-      const streamMatches = pdfText.match(/stream[\s\S]*?endstream/g);
-      if (streamMatches) {
-        for (const stream of streamMatches) {
-          // Try to extract readable text from stream
-          const streamText = stream
-            .replace(/stream|endstream/g, '')
-            .replace(/[^\x20-\x7E\n\r]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+      // Clean extracted text
+      text = this.cleanExtractedText(text);
           
-          if (streamText.length > 10) {
-            text += streamText + '\n';
-          }
-        }
+      if (text.length < 50) {
+        console.warn('PDF text extraction returned minimal text. The PDF might be image-based or corrupted.');
+        return text || 'PDF document uploaded (text extraction may be limited)';
       }
       
-      // Also try direct decoding for readable text
-      const directText = pdfText
-        .replace(/[^\x20-\x7E\n\r]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      // Combine both methods
-      const combined = (text + '\n' + directText)
-        .replace(/\s+/g, ' ')
-        .replace(/\n\s*\n/g, '\n')
-        .trim();
-      
-      return combined || 'PDF content extracted (text parsing may be limited)';
-    } catch (error) {
+      return text;
+    } catch (error: any) {
       console.error('Error extracting PDF text:', error);
-      // Fallback: return a message indicating extraction was attempted
-      return 'PDF document uploaded (automatic text extraction may be limited)';
+      // Fallback: try basic extraction
+      try {
+        const uint8Array = new Uint8Array(buffer);
+        const text = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(uint8Array);
+        const cleaned = this.cleanExtractedText(text);
+        if (cleaned.length > 50) {
+          return cleaned;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback PDF extraction also failed:', fallbackError);
+      }
+      throw new Error(`PDF text extraction failed: ${error.message || 'Unknown error'}`);
     }
   }
 
   /**
-   * Extract text from Word document buffer
-   * Note: This is a simplified version. For production, use mammoth library
-   * DOCX files are ZIP archives containing XML files
+   * Extract text from Word document buffer using mammoth library
+   * Supports both DOCX (ZIP-based) and DOC (legacy binary format)
    */
   private static async extractTextFromWord(buffer: ArrayBuffer): Promise<string> {
     try {
       const uint8Array = new Uint8Array(buffer);
-      const text = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(uint8Array);
+      const bufferNode = Buffer.from(uint8Array);
       
-      // DOCX files contain XML with text in <w:t> tags
-      // Try to extract text from XML structure
-      const xmlTextMatches = text.match(/<w:t[^>]*>([^<]+)<\/w:t>/gi);
-      if (xmlTextMatches && xmlTextMatches.length > 0) {
-        const extracted = xmlTextMatches
-          .map(match => match.replace(/<[^>]+>/g, ''))
-          .filter(t => t.trim().length > 0)
-          .join(' ');
-        if (extracted.length > 50) {
-          return extracted;
+      // Use mammoth library for DOCX files (ZIP-based XML format)
+      try {
+        const result = await mammoth.extractRawText({ buffer: bufferNode });
+        let text = result.value || '';
+        
+        // Clean extracted text
+        text = this.cleanExtractedText(text);
+        
+        if (text.length > 50) {
+          return text;
         }
+      } catch (mammothError: any) {
+        // If mammoth fails, it might be a legacy .doc file
+        console.warn('Mammoth extraction failed, trying fallback:', mammothError.message);
       }
       
-      // Fallback: extract readable text
-      return text
-        .replace(/[^\x20-\x7E\n\r]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim() || 'Word document uploaded (automatic text extraction may be limited)';
-    } catch (error) {
+      // Fallback for legacy .doc files or if mammoth fails
+      // Legacy DOC files are binary format - basic extraction
+      const text = new TextDecoder('utf-8', { ignoreBOM: true, fatal: false }).decode(uint8Array);
+      const cleaned = this.cleanExtractedText(text);
+      
+      if (cleaned.length > 50) {
+        return cleaned;
+        }
+      
+      throw new Error('Word document text extraction returned insufficient text');
+    } catch (error: any) {
       console.error('Error extracting Word text:', error);
-      return 'Word document uploaded (automatic text extraction may be limited)';
+      throw new Error(`Word document text extraction failed: ${error.message || 'Unknown error'}`);
     }
+  }
+  
+  /**
+   * Clean extracted text to remove gibberish and invalid characters
+   */
+  private static cleanExtractedText(text: string): string {
+    if (!text) return '';
+    
+    // Remove control characters and non-printable characters (except newlines and tabs)
+    let cleaned = text.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+    
+    // Remove excessive special characters that indicate binary/corrupted data
+    // Keep only reasonable punctuation and alphanumeric characters
+    cleaned = cleaned.replace(/[^\w\s\.,;:!?\-'()\[\]{}\/\\@#$%&*+=<>|~`"–—•\n\r\t]/g, ' ');
+    
+    // Remove sequences of 3+ consecutive special characters (likely binary data)
+    cleaned = cleaned.replace(/[^\w\s]{3,}/g, ' ');
+    
+    // Remove excessive whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    cleaned = cleaned.replace(/\n\s*\n\s*\n+/g, '\n\n');
+    
+    // Remove lines that are mostly special characters (gibberish detection)
+    const lines = cleaned.split('\n');
+    const validLines = lines.filter(line => {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) return false;
+      
+      // Check if line has reasonable ratio of alphanumeric to special characters
+      const alphanumericCount = (trimmed.match(/[a-zA-Z0-9]/g) || []).length;
+      const totalChars = trimmed.length;
+      const ratio = alphanumericCount / totalChars;
+      
+      // Keep lines with at least 60% alphanumeric characters
+      return ratio >= 0.6 || trimmed.length < 5;
+    });
+    
+    cleaned = validLines.join('\n').trim();
+    
+    return cleaned;
   }
 
   /**
@@ -283,21 +339,21 @@ export class CVParserService {
 
     // Extract email
     const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
-    if (emailMatch) {
-      data.email = emailMatch[0];
+    if (emailMatch && this.isValidText(emailMatch[0])) {
+      data.email = emailMatch[0].trim();
     }
 
     // Extract phone (various formats)
     const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}/);
-    if (phoneMatch) {
-      data.phone = phoneMatch[0].trim();
+    if (phoneMatch && this.isValidText(phoneMatch[0])) {
+      data.phone = this.cleanField(phoneMatch[0].trim());
     }
 
     // Extract name (usually first line or before email)
     if (lines.length > 0) {
       const firstLine = lines[0];
-      if (firstLine.length < 50 && !firstLine.includes('@') && !firstLine.match(/\d{10,}/)) {
-        data.name = firstLine;
+      if (this.isValidText(firstLine) && firstLine.length < 50 && !firstLine.includes('@') && !firstLine.match(/\d{10,}/)) {
+        data.name = this.cleanField(firstLine);
       }
     }
 
@@ -357,7 +413,7 @@ export class CVParserService {
       if (inEducationSection) {
         // Try to extract education entries
         const eduMatch = this.extractEducationEntry(lines[i], i < lines.length - 1 ? lines[i + 1] : '');
-        if (eduMatch) {
+        if (eduMatch && this.validateEducationEntry(eduMatch)) {
           data.education?.push(eduMatch);
         }
       }
@@ -367,7 +423,8 @@ export class CVParserService {
     if (data.education.length === 0) {
       for (let i = 0; i < lines.length; i++) {
         const eduMatch = this.extractEducationEntry(lines[i], i < lines.length - 1 ? lines[i + 1] : '');
-        if (eduMatch && !data.education.some(e => e.institution === eduMatch.institution && e.degree === eduMatch.degree)) {
+        if (eduMatch && this.validateEducationEntry(eduMatch) && 
+            !data.education.some(e => e.institution === eduMatch.institution && e.degree === eduMatch.degree)) {
           data.education?.push(eduMatch);
         }
       }
@@ -392,7 +449,8 @@ export class CVParserService {
       
       if (inExperienceSection) {
         const expMatch = this.extractWorkExperienceEntry(lines, i);
-        if (expMatch && !data.work_experience?.some(e => e.company === expMatch.company && e.position === expMatch.position)) {
+        if (expMatch && this.validateWorkExperienceEntry(expMatch) && 
+            !data.work_experience?.some(e => e.company === expMatch.company && e.position === expMatch.position)) {
           data.work_experience?.push(expMatch);
           i += 2; // Skip a few lines
         }
@@ -403,7 +461,8 @@ export class CVParserService {
     if (data.work_experience.length === 0) {
       for (let i = 0; i < lines.length; i++) {
         const expMatch = this.extractWorkExperienceEntry(lines, i);
-        if (expMatch && !data.work_experience?.some(e => e.company === expMatch.company && e.position === expMatch.position)) {
+        if (expMatch && this.validateWorkExperienceEntry(expMatch) && 
+            !data.work_experience?.some(e => e.company === expMatch.company && e.position === expMatch.position)) {
           data.work_experience?.push(expMatch);
           i += 2;
         }
@@ -469,25 +528,34 @@ export class CVParserService {
   }
 
   /**
-   * Extract education entry from a line
+   * Extract education entry from a line with validation
    */
   private static extractEducationEntry(line: string, nextLine: string = ''): any | null {
+    // Validate line is not gibberish
+    if (!this.isValidText(line)) {
+      return null;
+    }
+    
     // Look for degree patterns
     const degreePatterns = /(bachelor|master|phd|doctorate|diploma|certificate|degree|b\.?s\.?c|m\.?s\.?c|m\.?b\.?a|b\.?a|m\.?a)/i;
     const degreeMatch = line.match(degreePatterns);
     
-    if (degreeMatch || line.length > 10) {
+    // Must have degree pattern or be a reasonable length with valid content
+    if (!degreeMatch && (line.length < 10 || !this.isValidText(line))) {
+      return null;
+    }
+    
       // Try to extract institution name (usually before or after degree)
       let institution = '';
       let degree = '';
       let fieldOfStudy = '';
       
       // Check if line contains university/college name
-      const institutionPatterns = /(university|college|institute|school|academy)/i;
+    const institutionPatterns = /(university|college|institute|school|academy|univ\.?|coll\.?)/i;
       if (institutionPatterns.test(line)) {
-        institution = line.replace(degreePatterns, '').trim().substring(0, 100);
-      } else if (nextLine && institutionPatterns.test(nextLine)) {
-        institution = nextLine.trim().substring(0, 100);
+      institution = this.cleanField(line.replace(degreePatterns, '').trim());
+    } else if (nextLine && this.isValidText(nextLine) && institutionPatterns.test(nextLine)) {
+      institution = this.cleanField(nextLine.trim());
       }
       
       // Extract degree
@@ -496,31 +564,153 @@ export class CVParserService {
         // Try to get full degree name
         const fullDegreeMatch = line.match(new RegExp(`(${degreeMatch[0]}[^,]*?)(?:,|in|of|\\n|$)`, 'i'));
         if (fullDegreeMatch) {
-          degree = fullDegreeMatch[1].trim();
+        degree = this.cleanField(fullDegreeMatch[1].trim());
+      } else {
+        degree = this.cleanField(degree);
         }
       }
       
       // Extract field of study (often after "in" or "of")
       const fieldMatch = line.match(/(?:in|of)\s+([A-Z][^,]+?)(?:,|\n|$)/i);
-      if (fieldMatch) {
-        fieldOfStudy = fieldMatch[1].trim().substring(0, 100);
+    if (fieldMatch && this.isValidText(fieldMatch[1])) {
+      fieldOfStudy = this.cleanField(fieldMatch[1].trim());
       }
       
       // Extract year
       const yearMatch = line.match(/\b(19|20)\d{2}\b/);
-      const graduationYear = yearMatch ? parseInt(yearMatch[0]) : undefined;
-      
-      // Only return if we found meaningful data
-      if (degree || institution || graduationYear) {
-        return {
-          institution: institution || line.substring(0, 100),
-          degree: degree || 'Degree',
-          field_of_study: fieldOfStudy,
-          graduation_year: graduationYear
-        };
+    let graduationYear: number | undefined = yearMatch ? parseInt(yearMatch[0]) : undefined;
+    
+    // Validate graduation year is reasonable
+    if (graduationYear) {
+      const currentYear = new Date().getFullYear();
+      if (graduationYear < 1950 || graduationYear > currentYear + 5) {
+        // Invalid year, ignore it
+        graduationYear = undefined;
       }
     }
+      
+    // Only return if we found meaningful, validated data
+    if ((degree && this.isValidText(degree)) || (institution && this.isValidText(institution)) || graduationYear) {
+        return {
+        institution: institution ? institution.substring(0, 200) : undefined,
+        degree: degree ? degree.substring(0, 100) : undefined,
+        field_of_study: fieldOfStudy ? fieldOfStudy.substring(0, 100) : undefined,
+          graduation_year: graduationYear
+        };
+    }
     return null;
+  }
+  
+  /**
+   * Validate if text is meaningful (not gibberish)
+   */
+  private static isValidText(text: string): boolean {
+    if (!text || text.trim().length === 0) return false;
+    
+    const trimmed = text.trim();
+    
+    // Check if text has reasonable ratio of alphanumeric to special characters
+    const alphanumericCount = (trimmed.match(/[a-zA-Z0-9]/g) || []).length;
+    const totalChars = trimmed.length;
+    
+    if (totalChars === 0) return false;
+    
+    const ratio = alphanumericCount / totalChars;
+    
+    // Must have at least 50% alphanumeric characters for short text, 40% for longer text
+    const minRatio = trimmed.length < 20 ? 0.5 : 0.4;
+    
+    if (ratio < minRatio) return false;
+    
+    // Check for excessive repeated characters (likely binary/corrupted)
+    const repeatedCharPattern = /(.)\1{4,}/;
+    if (repeatedCharPattern.test(trimmed)) return false;
+    
+    // Check for excessive special character sequences
+    const specialCharPattern = /[^\w\s]{5,}/;
+    if (specialCharPattern.test(trimmed)) return false;
+    
+    return true;
+  }
+  
+  /**
+   * Clean a field value to remove invalid characters
+   */
+  private static cleanField(field: string): string {
+    if (!field) return '';
+    
+    // Remove control characters
+    let cleaned = field.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+    
+    // Remove excessive special characters but keep common punctuation
+    cleaned = cleaned.replace(/[^\w\s\.,;:!?\-'()\[\]{}\/\\@#&*+=<>|~`"–—•]/g, ' ');
+    
+    // Remove excessive whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    return cleaned;
+  }
+  
+  /**
+   * Validate education entry to ensure it's not gibberish
+   */
+  private static validateEducationEntry(entry: any): boolean {
+    if (!entry) return false;
+    
+    // Must have at least institution or degree
+    if (!entry.institution && !entry.degree) return false;
+    
+    // Validate institution if present
+    if (entry.institution && !this.isValidText(entry.institution)) {
+      return false;
+    }
+    
+    // Validate degree if present
+    if (entry.degree && !this.isValidText(entry.degree)) {
+      return false;
+    }
+    
+    // Validate field of study if present
+    if (entry.field_of_study && !this.isValidText(entry.field_of_study)) {
+      return false;
+    }
+    
+    // Validate graduation year if present
+    if (entry.graduation_year) {
+      const currentYear = new Date().getFullYear();
+      if (entry.graduation_year < 1950 || entry.graduation_year > currentYear + 5) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Validate work experience entry to ensure it's not gibberish
+   */
+  private static validateWorkExperienceEntry(entry: any): boolean {
+    if (!entry) return false;
+    
+    // Must have at least company or position
+    if (!entry.company && !entry.position) return false;
+    
+    // Validate company if present
+    if (entry.company && !this.isValidText(entry.company)) {
+      return false;
+    }
+    
+    // Validate position if present
+    if (entry.position && !this.isValidText(entry.position)) {
+      return false;
+    }
+    
+    // Validate description if present
+    if (entry.description && !this.isValidText(entry.description)) {
+      return false;
+    }
+    
+    return true;
   }
 
   /**
@@ -530,6 +720,9 @@ export class CVParserService {
     if (startIndex >= lines.length) return null;
 
     const line = lines[startIndex];
+    
+    // Validate line is not gibberish
+    if (!this.isValidText(line)) return null;
     
     // Skip if line is too short or looks like a header
     if (line.length < 5 || line.length > 150) return null;
@@ -592,12 +785,12 @@ export class CVParserService {
       // Only return if we have meaningful data
       if (company || position || hasDate) {
         return {
-          company: company || 'Company',
-          position: position || 'Position',
-          start_date: startDate || undefined,
-          end_date: endDate || undefined,
+          company: company ? this.cleanField(company) : undefined,
+          position: position ? this.cleanField(position) : undefined,
+          start_date: startDate ? this.cleanField(startDate) : undefined,
+          end_date: endDate ? this.cleanField(endDate) : undefined,
           current: current,
-          description: description
+          description: description ? this.cleanField(description) : undefined
         };
       }
     }

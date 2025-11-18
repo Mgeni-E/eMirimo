@@ -691,17 +691,43 @@ export const uploadCV = async (req: Request, res: Response) => {
           });
         });
         if (newEdu.length > 0) {
-          // Normalize education entries before adding
-          const normalizedEdu = newEdu.map((edu: any) => ({
-            institution: (edu.institution || '').trim().substring(0, 200),
-            degree: (edu.degree || 'Degree').trim().substring(0, 100),
-            field_of_study: (edu.field_of_study || '').trim().substring(0, 100),
-            graduation_year: edu.graduation_year || undefined,
-            gpa: (edu.gpa || '').toString().substring(0, 20),
+          // Normalize and validate education entries before adding
+          const normalizedEdu = newEdu
+            .map((edu: any) => {
+              // Clean and validate each field
+              const institution = edu.institution ? edu.institution.trim().replace(/[^\w\s\.,;:!?\-'()\[\]{}\/\\@#&*+=<>|~`"–—•]/g, ' ').substring(0, 200) : '';
+              const degree = edu.degree ? edu.degree.trim().replace(/[^\w\s\.,;:!?\-'()\[\]{}\/\\@#&*+=<>|~`"–—•]/g, ' ').substring(0, 100) : '';
+              const fieldOfStudy = edu.field_of_study ? edu.field_of_study.trim().replace(/[^\w\s\.,;:!?\-'()\[\]{}\/\\@#&*+=<>|~`"–—•]/g, ' ').substring(0, 100) : '';
+              
+              // Validate graduation year
+              let graduationYear = edu.graduation_year;
+              if (graduationYear) {
+                const currentYear = new Date().getFullYear();
+                if (graduationYear < 1950 || graduationYear > currentYear + 5) {
+                  graduationYear = undefined;
+                }
+              }
+              
+              // Only include if we have valid data
+              if (!institution && !degree && !graduationYear) {
+                return null;
+              }
+              
+              return {
+                institution: institution || undefined,
+                degree: degree || undefined,
+                field_of_study: fieldOfStudy || undefined,
+                graduation_year: graduationYear,
+                gpa: edu.gpa ? edu.gpa.toString().replace(/[^\d.]/g, '').substring(0, 20) : undefined,
             achievements: Array.isArray(edu.achievements) ? edu.achievements : []
-          }));
+              };
+            })
+            .filter((edu: any) => edu !== null); // Remove invalid entries
+          
+          if (normalizedEdu.length > 0) {
           const updatedEdu = [...existingEdu, ...normalizedEdu];
           updateData['job_seeker_profile.education'] = updatedEdu;
+          }
         }
       }
 

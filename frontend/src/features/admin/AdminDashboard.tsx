@@ -54,6 +54,12 @@ export function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
+  // Helper function to get first name only
+  const getFirstName = (fullName: string | undefined): string => {
+    if (!fullName) return 'Admin';
+    return fullName.split(' ')[0];
+  };
+
   useEffect(() => {
     loadDashboardData();
     setupSocketConnection();
@@ -220,7 +226,7 @@ export function AdminDashboard() {
               {t('adminDashboard')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {t('platformOverview', { name: user?.name || 'Admin' })}
+              {t('platformOverview', { name: getFirstName(user?.name) })}
             </p>
           </div>
         </div>
