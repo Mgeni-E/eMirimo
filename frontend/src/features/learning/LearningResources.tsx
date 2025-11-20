@@ -31,7 +31,7 @@ interface LearningResource {
   video_url?: string;
   video_id?: string;
   thumbnail_url?: string;
-  author: string;
+  author: string | { name: string };
   source: string;
   tags: string[];
   views: number;

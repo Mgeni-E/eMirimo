@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +25,7 @@ import {
   CheckCircleIcon,
   RefreshIcon,
   ExclamationTriangleIcon,
-  DownloadIcon,
-  TrophyIcon
+  DownloadIcon
 } from '../../components/icons';
 
 interface LearningResource {
@@ -70,8 +69,8 @@ export function LearningDetail() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [certificateId, setCertificateId] = useState<string | null>(null);
-  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
-  const [skillsEarned, setSkillsEarned] = useState<string[]>([]);
+  const [_certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [_skillsEarned, setSkillsEarned] = useState<string[]>([]);
 
   // Define checkCompletionStatus BEFORE useEffect that uses it
   const checkCompletionStatus = useCallback(async () => {
