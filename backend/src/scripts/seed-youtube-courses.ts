@@ -165,22 +165,33 @@ async function seedCourses() {
           // Mark as YouTube resource
           resource.source = 'YouTube';
           resource.isYouTube = true;
-          resource.video_id = video.videoId;
-          resource.video_url = `https://www.youtube.com/watch?v=${video.videoId}`;
           resource.is_active = true;
           resource.status = 'published';
           resource.created_by = new Types.ObjectId(); // System user
           
-          // Use video ID as _id for YouTube resources
-          const resourceData = {
-            ...resource,
-            _id: video.videoId
-          };
+          // Set video_id and video_url at root level and in content object
+          resource.video_id = video.videoId;
+          resource.video_url = `https://www.youtube.com/watch?v=${video.videoId}`;
           
-          // Save to database
+          if (!resource.content) {
+            resource.content = {};
+          }
+          resource.content.video_id = video.videoId;
+          resource.content.video_url = `https://www.youtube.com/watch?v=${video.videoId}`;
+          resource.content.video_duration = video.durationSeconds || 0;
+          
+          // Generate unique slug from title + video ID to avoid duplicate key errors
+          const slugBase = (resource.title || 'video')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '')
+            .substring(0, 40);
+          resource.slug = `${slugBase}-${video.videoId}`;
+          
+          // Save to database - find by video_id instead of _id
           await LearningResource.findOneAndUpdate(
-            { _id: video.videoId },
-            resourceData,
+            { video_id: video.videoId },
+            resource,
             { upsert: true, new: true, setDefaultsOnInsert: true }
           );
           

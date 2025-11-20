@@ -140,7 +140,7 @@ export function LearningRecommendations() {
     );
   }
 
-  const displayItems = recommendations.slice(0, 3).map((rec) => {
+  const displayItems = recommendations.slice(0, 6).map((rec) => {
     const resource = rec.course || rec.resource || rec;
     return { resource, matchScore: rec.matchScore || rec.relevanceScore || 0.6, reasons: rec.reasons || [] };
   });

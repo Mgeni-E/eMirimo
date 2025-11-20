@@ -243,6 +243,10 @@ const LearningResourceSchema = new Schema({
   is_featured: { type: Boolean, default: false },
   is_premium: { type: Boolean, default: false },
   is_free: { type: Boolean, default: true },
+  is_active: { type: Boolean, default: true },
+  isYouTube: { type: Boolean, default: false },
+  video_id: { type: String, index: true }, // YouTube video ID (root level for easier querying)
+  video_url: { type: String }, // YouTube video URL (root level)
   
   // Pricing (for premium content)
   pricing: {

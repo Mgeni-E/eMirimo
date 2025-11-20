@@ -194,7 +194,13 @@ export function JobRecommendations() {
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-400 mb-1.5 text-sm font-medium truncate">
-                  {rec.job.employer_id?.name || rec.job.company_name || (rec.job.employer_id as any)?.company_name || 'Company'}
+                  {(() => {
+                    const employerId = rec.job.employer_id;
+                    if (typeof employerId === 'object' && employerId !== null) {
+                      return (employerId as any)?.name || (employerId as any)?.company_name || rec.job.company_name || 'Company';
+                    }
+                    return rec.job.company_name || 'Company';
+                  })()}
                 </p>
                 <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs mb-2">
                   {rec.job?.description || rec.job?.short_description || 'No description available'}

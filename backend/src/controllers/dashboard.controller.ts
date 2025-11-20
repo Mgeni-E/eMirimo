@@ -35,8 +35,8 @@ export const getSeekerDashboard = async (req: any, res: Response) => {
     // Get job recommendations
     const jobRecommendations = await getJobRecommendations(userId, 3);
     
-    // Get learning recommendations
-    const learningRecommendations = await getLearningRecommendations(userId, 3);
+    // Get learning recommendations (4-6 courses)
+    const learningRecommendations = await getLearningRecommendations(userId, 6);
 
     res.json({
       success: true,
