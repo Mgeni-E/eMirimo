@@ -187,7 +187,7 @@ export function LearningRecommendations() {
                 <div className="flex-1 min-w-0 pr-24">
                   <div className="mb-1.5">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-1 pr-2">
-                      {resource.title}
+                      {typeof resource.title === 'string' ? resource.title : (resource.title?.toString() || 'Untitled')}
                     </h3>
                   </div>
                   {resource.author && (
@@ -196,7 +196,10 @@ export function LearningRecommendations() {
                     </p>
                   )}
                   <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs mb-2">
-                    {resource.short_description || resource.description}
+                    {(() => {
+                      const desc = resource.short_description || resource.description;
+                      return typeof desc === 'string' ? desc : (desc?.toString() || '');
+                    })()}
                   </p>
                 </div>
               </div>
@@ -217,7 +220,9 @@ export function LearningRecommendations() {
                 {resource.type && (
                   <div className="flex items-center text-gray-600 dark:text-gray-400">
                     <BookOpenIcon className="w-3 h-3 mr-0.5" />
-                    <span className="capitalize">{getTypeLabel(resource.type)}</span>
+                    <span className="capitalize">
+                      {getTypeLabel(typeof resource.type === 'string' ? resource.type : String(resource.type || ''))}
+                    </span>
                   </div>
                 )}
                 {resource.duration && (
@@ -228,12 +233,24 @@ export function LearningRecommendations() {
                 )}
                 {resource.difficulty_level && (
                   <div className="text-gray-600 dark:text-gray-400">
-                    <span className="capitalize">{resource.difficulty_level}</span>
+                    <span className="capitalize">
+                      {typeof resource.difficulty_level === 'string' 
+                        ? resource.difficulty_level 
+                        : (typeof resource.difficulty_level === 'object' && resource.difficulty_level?.name 
+                            ? resource.difficulty_level.name 
+                            : String(resource.difficulty_level || ''))}
+                    </span>
                   </div>
                 )}
                 {resource.category && (
                   <div className="text-gray-600 dark:text-gray-400">
-                    <span className="capitalize">{resource.category.replace('_', ' ')}</span>
+                    <span className="capitalize">
+                      {typeof resource.category === 'string' 
+                        ? resource.category.replace('_', ' ') 
+                        : (typeof resource.category === 'object' && resource.category?.name 
+                            ? resource.category.name 
+                            : String(resource.category || ''))}
+                    </span>
                   </div>
                 )}
               </div>
@@ -241,14 +258,22 @@ export function LearningRecommendations() {
               {resource.skills && resource.skills.length > 0 && (
                 <div className="mb-3">
                   <div className="flex flex-wrap gap-1.5">
-                    {resource.skills.slice(0, 3).map((skill: string, skillIndex: number) => (
-                      <span
-                        key={skillIndex}
-                        className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded text-xs font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {resource.skills.slice(0, 3).map((skill: any, skillIndex: number) => {
+                      // Handle both string and object formats for skills
+                      const skillName = typeof skill === 'string' 
+                        ? skill 
+                        : (typeof skill === 'object' && skill?.name 
+                            ? skill.name 
+                            : String(skill || ''));
+                      return (
+                        <span
+                          key={skillIndex}
+                          className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded text-xs font-medium"
+                        >
+                          {skillName}
+                        </span>
+                      );
+                    })}
                     {resource.skills.length > 3 && (
                       <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
                         +{resource.skills.length - 3}

@@ -155,6 +155,100 @@ export async function uploadFileToFirebase(
 }
 
 /**
+ * Upload certificate buffer to Firebase Storage
+ * @param certificateBuffer - PDF certificate buffer
+ * @param certificateId - Unique certificate ID
+ * @param userId - User ID for folder organization
+ * @returns Public URL of uploaded certificate
+ */
+export async function uploadCertificateToFirebase(
+  certificateBuffer: Buffer,
+  certificateId: string,
+  userId: string
+): Promise<string> {
+  if (!firebaseApp) {
+    const initialized = initializeFirebase();
+    if (!initialized) {
+      throw new Error('Firebase is not initialized. Please configure Firebase environment variables.');
+    }
+  }
+
+  if (!config.FIREBASE_STORAGE_BUCKET) {
+    throw new Error('FIREBASE_STORAGE_BUCKET is not configured');
+  }
+
+  const bucket = getStorage().bucket();
+  const fileName = `emirimo/certificates/${userId}/${certificateId}.pdf`;
+  const fileRef = bucket.file(fileName);
+
+  try {
+    // Upload certificate buffer
+    await fileRef.save(certificateBuffer, {
+      metadata: {
+        contentType: 'application/pdf',
+        metadata: {
+          uploadedBy: userId,
+          uploadedAt: new Date().toISOString(),
+          certificateId: certificateId,
+        },
+      },
+    });
+
+    // Make file publicly readable
+    await fileRef.makePublic();
+
+    // Get public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    
+    console.log(`✅ Certificate uploaded to Firebase Storage: ${fileName}`);
+    return publicUrl;
+  } catch (error: any) {
+    console.error('❌ Firebase certificate upload failed:', error.message);
+    throw new Error(`Failed to upload certificate to Firebase Storage: ${error.message}`);
+  }
+}
+
+/**
+ * Download certificate from Firebase Storage
+ * @param certificateId - Certificate ID
+ * @param userId - User ID
+ * @returns Certificate buffer or null if not found
+ */
+export async function downloadCertificateFromFirebase(
+  certificateId: string,
+  userId: string
+): Promise<Buffer | null> {
+  if (!firebaseApp) {
+    const initialized = initializeFirebase();
+    if (!initialized) {
+      return null;
+    }
+  }
+
+  if (!config.FIREBASE_STORAGE_BUCKET) {
+    return null;
+  }
+
+  const bucket = getStorage().bucket();
+  const fileName = `emirimo/certificates/${userId}/${certificateId}.pdf`;
+  const fileRef = bucket.file(fileName);
+
+  try {
+    const [exists] = await fileRef.exists();
+    if (!exists) {
+      return null;
+    }
+
+    const [buffer] = await fileRef.download();
+    console.log(`✅ Certificate downloaded from Firebase Storage: ${fileName}`);
+    return buffer;
+  } catch (error: any) {
+    console.error('❌ Firebase certificate download failed:', error.message);
+    return null;
+  }
+}
+
+/**
  * Check if Firebase is configured
  */
 export function isFirebaseConfigured(): boolean {

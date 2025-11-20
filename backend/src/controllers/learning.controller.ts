@@ -4,8 +4,18 @@ import { YouTubeService } from '../services/youtube.service.js';
 import { User } from '../models/User.js';
 import { Job } from '../models/Job.js';
 import { Types } from 'mongoose';
+import { CertificateService } from '../services/certificate.service.js';
+import { 
+  uploadCertificateToFirebase, 
+  downloadCertificateFromFirebase,
+  isFirebaseConfigured 
+} from '../services/firebase-storage.service.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const youtubeService = new YouTubeService();
+const certificateService = new CertificateService();
 
 /**
  * Get all learning resources (includes YouTube if user is authenticated and has skills)
@@ -15,32 +25,28 @@ export const getLearningResources = async (req: any, res: Response) => {
     const { category, difficulty, type, search, includeYouTube = 'true', forceRefresh = 'false' } = req.query;
     const userId = req.user?.uid;
     
-    // Smart caching: Check if we have fresh cached results (less than 24 hours old)
-    const cacheExpiry = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    const cacheCutoff = new Date(Date.now() - cacheExpiry);
-    
+    // Build filter for YouTube courses
     let filter: any = { 
       is_active: true,
       source: 'YouTube' // Only get YouTube courses from database
     };
     
-    // If not forcing refresh, only get recently cached results
-    if (forceRefresh !== 'true') {
-      filter.updated_at = { $gte: cacheCutoff };
-    }
-    
+    // Apply category filter if specified
     if (category && category !== 'all') {
       filter.category = category;
     }
     
+    // Apply difficulty filter if specified
     if (difficulty && difficulty !== 'all') {
       filter.difficulty = difficulty;
     }
     
+    // Apply type filter if specified
     if (type && type !== 'all') {
       filter.type = type;
     }
     
+    // Apply search filter if specified
     if (search) {
       filter.$and = [
         { $or: [
@@ -51,14 +57,14 @@ export const getLearningResources = async (req: any, res: Response) => {
       ];
     }
 
-    // Get cached YouTube courses from database
+    // Get all YouTube courses from database (no date restriction for Learning page)
     let storedResources = await LearningResource.find(filter)
       .sort({ updated_at: -1, created_at: -1 })
       .limit(100)
       .lean();
 
-    // If we have fresh cached courses, return them (no API calls needed)
-    if (storedResources.length >= 50 && forceRefresh !== 'true') {
+    // If we have courses in database, return them (no API calls needed)
+    if (storedResources.length > 0) {
       const allResources = storedResources.slice(0, 100);
       
       res.json({
@@ -67,7 +73,7 @@ export const getLearningResources = async (req: any, res: Response) => {
         total: allResources.length,
         inAppCount: 0,
         youtubeCount: allResources.length,
-        source: 'database-cached' // Indicate these are cached from API
+        source: 'database' // Indicate these are from database
       });
       return;
     }
@@ -535,7 +541,7 @@ export const getCourseRecommendations = async (req: any, res: Response) => {
           return !completedIds.has(resourceId);
         })
         .sort((a: any, b: any) => (b.matchScore || 0) - (a.matchScore || 0))
-        .slice(0, 25);
+        .slice(0, 100); // Return up to 100 courses for Learning page
 
       res.json({
         success: true,
@@ -926,62 +932,269 @@ export const markCourseComplete = async (req: any, res: Response) => {
     }
 
     // Check if resource exists (in DB or YouTube)
-    let resource = await LearningResource.findById(id);
+    let resource = await LearningResource.findById(id).lean();
     
-    // If not in DB, it might be a YouTube resource - create a minimal record for tracking
+    // If not in DB, try to find by video_id
     if (!resource) {
-      // Create a minimal learning resource record for YouTube resources
-      resource = await LearningResource.create({
-        _id: id,
-        title: `YouTube Resource ${id}`,
-        description: 'YouTube learning resource',
-        type: 'video',
-        category: 'technical',
-        skills: [],
-        difficulty: 'beginner',
-        duration: 0,
-        language: 'en',
-        is_active: true,
-        created_by: userId,
-        user_interactions: [{
-          user_id: userId,
-          interaction_type: 'complete',
-          progress: 100,
-          last_accessed: new Date(),
-          created_at: new Date()
-        }]
-      });
-    } else {
-      // Check if interaction already exists
-      const existingInteraction = resource.user_interactions?.find(
-        (interaction: any) => 
-          interaction.user_id?.toString() === userId && 
-          interaction.interaction_type === 'complete'
-      );
+      resource = await LearningResource.findOne({ video_id: id }).lean();
+    }
+    
+    // If still not found, it might be a YouTube resource - fetch from YouTube or create minimal record
+    if (!resource) {
+      // Try to fetch from YouTube API
+      try {
+        const video = await youtubeService.getVideoById(id);
+        if (video) {
+          const converted = youtubeService.convertToLearningResource(video, ['tutorial'], 'technical', 'beginner');
+          resource = await LearningResource.create({
+            ...converted,
+            _id: id,
+            video_id: id
+          });
+        }
+      } catch (youtubeError) {
+        // Create a minimal learning resource record for tracking
+        resource = await LearningResource.create({
+          _id: id,
+          title: `YouTube Resource ${id}`,
+          description: 'YouTube learning resource',
+          type: 'video',
+          category: 'technical',
+          skills: [],
+          difficulty: 'beginner',
+          duration: 0,
+          language: 'en',
+          is_active: true,
+          created_by: userId
+        });
+      }
+    }
 
-      if (!existingInteraction) {
-        // Add completion interaction
-        await LearningResource.findByIdAndUpdate(id, {
+    // Check if course is already completed
+    // completed_courses is nested under job_seeker_profile
+    const completedCourses = user.job_seeker_profile?.completed_courses || [];
+    const existingCompletion = completedCourses.find(
+      (c: any) => c.course_id?.toString() === (resource?._id?.toString() || id)
+    );
+
+    if (existingCompletion) {
+      return res.json({
+        success: true,
+        message: 'Course already completed',
+        completed: true,
+        certificate_id: existingCompletion.certificate_id,
+        certificate_url: existingCompletion.certificate_url
+      });
+    }
+
+    // Generate certificate
+    const certificateId = certificateService.generateCertificateId(userId, resource?._id?.toString() || id);
+    const completionDate = new Date();
+    
+    const certificateData = {
+      userName: user.name,
+      courseTitle: resource?.title || 'Course',
+      courseCategory: resource?.category || 'general',
+      completionDate,
+      certificateId,
+      skills: resource?.skills || [],
+      duration: resource?.duration
+    };
+
+    // Generate PDF certificate
+    const certificateBuffer = await certificateService.generateCertificate(certificateData);
+    
+    let certificateUrl: string;
+    
+    // Use Firebase Storage in production (Render), local filesystem in development
+    if (isFirebaseConfigured() && process.env.NODE_ENV !== 'development') {
+      try {
+        // Upload to Firebase Storage (for Render deployment)
+        certificateUrl = await uploadCertificateToFirebase(certificateBuffer, certificateId, userId);
+        console.log('✅ Certificate uploaded to Firebase Storage:', certificateUrl);
+      } catch (firebaseError: any) {
+        console.error('⚠️  Firebase upload failed, falling back to local storage:', firebaseError.message);
+        // Fallback to local filesystem if Firebase fails
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const certificatesDir = path.join(__dirname, '../../certificates');
+        
+        if (!fs.existsSync(certificatesDir)) {
+          fs.mkdirSync(certificatesDir, { recursive: true });
+        }
+        
+        const certificatePath = path.join(certificatesDir, `${certificateId}.pdf`);
+        fs.writeFileSync(certificatePath, certificateBuffer);
+        certificateUrl = `/api/learning/certificates/${certificateId}/download`;
+        console.log('✅ Certificate saved to local filesystem (fallback):', certificatePath);
+      }
+    } else {
+      // Local filesystem for development
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const certificatesDir = path.join(__dirname, '../../certificates');
+      
+      if (!fs.existsSync(certificatesDir)) {
+        fs.mkdirSync(certificatesDir, { recursive: true });
+      }
+      
+      const certificatePath = path.join(certificatesDir, `${certificateId}.pdf`);
+      fs.writeFileSync(certificatePath, certificateBuffer);
+      certificateUrl = `/api/learning/certificates/${certificateId}/download`;
+      console.log('✅ Certificate saved to local filesystem:', certificatePath);
+    }
+
+    // Update LearningResource with completion interaction
+    const existingInteraction = resource?.user_interactions?.find(
+      (interaction: any) => 
+        interaction.user_id?.toString() === userId && 
+        interaction.interaction_type === 'complete'
+    );
+
+    if (!existingInteraction && resource?._id) {
+      await LearningResource.findByIdAndUpdate(resource._id, {
+        $push: {
+          user_interactions: {
+            user_id: userId,
+            interaction_type: 'complete',
+            progress: 100,
+            last_accessed: completionDate,
+            created_at: completionDate
+          }
+        }
+      });
+    }
+
+    // Add to user's completed courses with certificate
+    // Ensure we use the correct course_id - prefer resource._id, but handle string IDs
+    let courseId: any;
+    if (resource?._id) {
+      courseId = resource._id;
+    } else if (id && Types.ObjectId.isValid(id)) {
+      courseId = new Types.ObjectId(id);
+    } else {
+      // If id is not a valid ObjectId, try to find the resource by other means
+      courseId = new Types.ObjectId(); // Create new ObjectId as fallback
+      console.warn('Using fallback ObjectId for course completion:', { id, resourceId: resource?._id });
+    }
+    
+    const courseCompletion = {
+      course_id: courseId,
+      course_title: resource?.title || 'Course',
+      course_category: resource?.category || 'general',
+      completed_at: completionDate,
+      certificate_id: certificateId,
+      certificate_url: certificateUrl,
+      skills_earned: resource?.skills || [],
+      progress: 100
+    };
+    
+    console.log('Saving course completion:', {
+      courseId: courseId.toString(),
+      resourceId: resource?._id?.toString(),
+      providedId: id,
+      certificateId,
+      courseTitle: courseCompletion.course_title
+    });
+
+    // Save completion to user's completed_courses
+    // IMPORTANT: completed_courses is nested under job_seeker_profile
+    try {
+      const updateResult = await User.findByIdAndUpdate(
+        userId,
+        {
           $push: {
-            user_interactions: {
-              user_id: userId,
-              interaction_type: 'complete',
-              progress: 100,
-              last_accessed: new Date(),
-              created_at: new Date()
+            'job_seeker_profile.completed_courses': courseCompletion
+          },
+          $addToSet: {
+            'job_seeker_profile.certifications': {
+              name: resource?.title || 'Course Completion',
+              issuer: 'eMirimo',
+              issue_date: completionDate,
+              credential_id: certificateId,
+              credential_url: certificateUrl,
+              skills: resource?.skills || []
             }
+          }
+        },
+        { new: true } // Return updated document
+      );
+      
+      // Verify the completion was saved
+      if (!updateResult) {
+        console.error('Failed to save completion to user profile');
+        throw new Error('Failed to save course completion');
+      }
+      
+      // Immediately verify the saved completion by re-fetching
+      const savedUser = await User.findById(userId).lean();
+      const completedCourses = savedUser?.job_seeker_profile?.completed_courses || [];
+      const savedCompletion = completedCourses.find(
+        (c: any) => c.certificate_id === certificateId
+      );
+      
+      if (!savedCompletion) {
+        console.error('❌ CRITICAL: Completion was not found after save!', {
+          certificateId,
+          courseId: courseCompletion.course_id?.toString(),
+          hasJobSeekerProfile: !!savedUser?.job_seeker_profile,
+          completedCoursesCount: completedCourses.length,
+          allCompletions: completedCourses.map((c: any) => ({
+            course_id: c.course_id?.toString(),
+            certificate_id: c.certificate_id,
+            course_title: c.course_title
+          }))
+        });
+        // Try to save again as a fallback with explicit path
+        await User.findByIdAndUpdate(
+          userId,
+          { 
+            $push: { 
+              'job_seeker_profile.completed_courses': courseCompletion 
+            } 
+          },
+          { new: true, upsert: false }
+        );
+        console.log('Retried saving completion to job_seeker_profile.completed_courses');
+      } else {
+        console.log('✅ Completion verified in database:', {
+          courseId: savedCompletion.course_id?.toString(),
+          certificateId: savedCompletion.certificate_id,
+          courseTitle: savedCompletion.course_title,
+          totalCompleted: completedCourses.length
+        });
+      }
+    } catch (saveError: any) {
+      console.error('Error saving completion:', saveError);
+      throw new Error(`Failed to save course completion: ${saveError.message}`);
+    }
+
+    // Update user skills based on course skills
+    if (resource?.skills && resource.skills.length > 0) {
+      const currentSkills = (user.skills || []).map((s: any) => typeof s === 'string' ? s : s?.name || '');
+      const newSkills = resource.skills.filter((skill: string) => !currentSkills.includes(skill));
+      
+      if (newSkills.length > 0) {
+        const skillsToAdd = newSkills.map((skill: string) => ({
+          name: skill,
+          level: 'beginner' as const
+        }));
+        
+        await User.findByIdAndUpdate(userId, {
+          $addToSet: {
+            skills: { $each: skillsToAdd }
           }
         });
       }
     }
 
-    // Also track in user's completed courses (if we have a field for this)
-    // For now, we'll just return success
-
     res.json({
       success: true,
-      message: 'Course marked as complete',
-      completed: true
+      message: 'Course marked as complete. Certificate generated!',
+      completed: true,
+      certificate_id: certificateId,
+      certificate_url: certificateUrl,
+      skills_earned: resource?.skills || []
     });
   } catch (error: any) {
     console.error('Mark course complete error:', error);
@@ -999,23 +1212,237 @@ export const getCompletedCourses = async (req: any, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Find all resources where user has completed interaction
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Get completed courses from user's job_seeker_profile.completed_courses array
+    const completedCourses = user.job_seeker_profile?.completed_courses || [];
+    
+    console.log('Fetching completed courses for user:', {
+      userId,
+      completedCount: completedCourses.length,
+      courseIds: completedCourses.map((c: any) => ({
+        course_id: c.course_id?.toString(),
+        certificate_id: c.certificate_id
+      }))
+    });
+
+    // Also get resources for additional details
+    const courseIds = completedCourses
+      .map((c: any) => c.course_id)
+      .filter((id: any) => id && Types.ObjectId.isValid(id));
+    
+    console.log('Fetching resources for completed courses:', {
+      courseIdsCount: courseIds.length,
+      courseIds: courseIds.map((id: any) => id?.toString())
+    });
+    
     const resources = await LearningResource.find({
-      'user_interactions': {
-        $elemMatch: {
-          user_id: userId,
-          interaction_type: 'complete'
-        }
-      }
-    }).select('_id title thumbnail_url type category duration');
+      _id: { $in: courseIds }
+    }).select('_id title thumbnail_url type category duration skills').lean();
+    
+    console.log('Found resources:', {
+      resourcesCount: resources.length,
+      resourceIds: resources.map((r: any) => r._id?.toString())
+    });
+
+    // Merge completion data with resource details
+    const enrichedCourses = completedCourses.map((completion: any) => {
+      const resource = resources.find((r: any) => {
+        const resourceId = r._id?.toString();
+        const completionCourseId = completion.course_id?.toString();
+        return resourceId === completionCourseId;
+      });
+      
+      // Return enriched course with both _id (from resource) and course_id (from completion)
+      // This ensures frontend can match by either field
+      return {
+        _id: resource?._id || completion.course_id, // Resource ID for matching
+        course_id: completion.course_id, // Original completion course_id
+        ...completion, // All completion fields (certificate_id, certificate_url, etc.)
+        ...resource, // All resource fields (title, thumbnail_url, etc.)
+        certificate_id: completion.certificate_id,
+        certificate_url: completion.certificate_url,
+        completed_at: completion.completed_at,
+        skills_earned: completion.skills_earned || resource?.skills || []
+      };
+    });
+    
+    console.log('Enriched completed courses:', {
+      count: enrichedCourses.length,
+      courses: enrichedCourses.map((c: any) => ({
+        _id: c._id?.toString(),
+        course_id: c.course_id?.toString(),
+        title: c.title || c.course_title,
+        certificate_id: c.certificate_id
+      }))
+    });
 
     res.json({
       success: true,
-      completedCourses: resources,
-      count: resources.length
+      completedCourses: enrichedCourses,
+      count: enrichedCourses.length
     });
   } catch (error: any) {
     console.error('Get completed courses error:', error);
     res.status(500).json({ error: 'Failed to fetch completed courses' });
+  }
+};
+
+/**
+ * Download certificate PDF
+ */
+export const downloadCertificate = async (req: any, res: Response) => {
+  try {
+    const userId = req.user?.uid;
+    const { certificateId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify certificate belongs to user
+    // completed_courses is nested under job_seeker_profile
+    const completedCourses = user.job_seeker_profile?.completed_courses || [];
+    const completion = completedCourses.find(
+      (c: any) => c.certificate_id === certificateId
+    );
+
+    if (!completion) {
+      console.error('Certificate not found in user completed courses:', {
+        userId,
+        certificateId,
+        completedCoursesCount: completedCourses.length,
+        certificateIds: completedCourses.map((c: any) => c.certificate_id)
+      });
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+    
+    console.log('Certificate found:', {
+      userId,
+      certificateId,
+      courseId: completion.course_id,
+      courseTitle: completion.course_title,
+      certificateUrl: completion.certificate_url
+    });
+
+    let certificateBuffer: Buffer | null = null;
+    const certificateUrl = completion.certificate_url || '';
+
+    // Check if certificate is stored in Firebase Storage (production)
+    if (certificateUrl.startsWith('https://storage.googleapis.com/')) {
+      console.log('Certificate URL is Firebase Storage, downloading...');
+      certificateBuffer = await downloadCertificateFromFirebase(certificateId, userId);
+      
+      if (certificateBuffer) {
+        console.log('✅ Certificate downloaded from Firebase Storage');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Certificate-${certificateId}.pdf"`);
+        res.setHeader('Content-Length', certificateBuffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.send(certificateBuffer);
+      } else {
+        console.log('⚠️  Certificate not found in Firebase Storage, regenerating...');
+      }
+    }
+
+    // Try local filesystem (development or fallback)
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const certificatesDir = path.join(__dirname, '../../certificates');
+    const certificatePath = path.join(certificatesDir, `${certificateId}.pdf`);
+    const absolutePath = path.resolve(certificatePath);
+    
+    if (fs.existsSync(absolutePath)) {
+      console.log('✅ Certificate found in local filesystem');
+      const fileStats = fs.statSync(absolutePath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Certificate-${certificateId}.pdf"`);
+      res.setHeader('Content-Length', fileStats.size);
+      res.setHeader('Cache-Control', 'no-cache');
+      return res.sendFile(absolutePath, (err) => {
+        if (err) {
+          console.error('Error sending certificate file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to send certificate file' });
+          }
+        }
+      });
+    }
+
+    // Certificate not found - regenerate it
+    console.log('Certificate file not found, regenerating...');
+    
+    const resource = await LearningResource.findById(completion.course_id).lean();
+    if (!resource) {
+      console.error('Course resource not found for certificate regeneration:', completion.course_id);
+      return res.status(404).json({ error: 'Course not found' });
+    }
+
+    const certificateData = {
+      userName: user.name,
+      courseTitle: completion.course_title || resource.title,
+      courseCategory: completion.course_category || resource.category,
+      completionDate: completion.completed_at || new Date(),
+      certificateId: certificateId,
+      skills: completion.skills_earned || resource.skills || [],
+      duration: resource.duration
+    };
+
+    certificateBuffer = await certificateService.generateCertificate(certificateData);
+    
+    // Try to upload to Firebase Storage if configured (production)
+    if (isFirebaseConfigured() && process.env.NODE_ENV !== 'development') {
+      try {
+        const firebaseUrl = await uploadCertificateToFirebase(certificateBuffer, certificateId, userId);
+        console.log('✅ Certificate regenerated and uploaded to Firebase Storage');
+        
+        // Update user's certificate URL in database
+        await User.updateOne(
+          { 
+            _id: userId,
+            'job_seeker_profile.completed_courses.certificate_id': certificateId
+          },
+          {
+            $set: {
+              'job_seeker_profile.completed_courses.$.certificate_url': firebaseUrl
+            }
+          }
+        );
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Certificate-${certificateId}.pdf"`);
+        res.setHeader('Content-Length', certificateBuffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
+        return res.send(certificateBuffer);
+      } catch (firebaseError: any) {
+        console.error('⚠️  Firebase upload failed during regeneration, using local storage:', firebaseError.message);
+      }
+    }
+    
+    // Fallback to local filesystem
+    if (!fs.existsSync(certificatesDir)) {
+      fs.mkdirSync(certificatesDir, { recursive: true });
+      console.log('Created certificates directory:', certificatesDir);
+    }
+    
+    fs.writeFileSync(absolutePath, certificateBuffer);
+    console.log('✅ Certificate regenerated and saved to local filesystem');
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Certificate-${certificateId}.pdf"`);
+    res.setHeader('Content-Length', certificateBuffer.length);
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.send(certificateBuffer);
+  } catch (error: any) {
+    console.error('Download certificate error:', error);
+    res.status(500).json({ error: 'Failed to download certificate' });
   }
 };

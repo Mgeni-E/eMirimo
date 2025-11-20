@@ -8,7 +8,8 @@ import {
   updateLearningResource,
   deleteLearningResource,
   markCourseComplete,
-  getCompletedCourses
+  getCompletedCourses,
+  downloadCertificate
 } from '../controllers/learning.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
@@ -23,6 +24,7 @@ router.get('/:id', getLearningResource);
 
 // User routes
 router.post('/:id/complete', requireAuth, markCourseComplete);
+router.get('/certificates/:certificateId/download', requireAuth, downloadCertificate);
 
 // Admin routes
 router.post('/', requireAuth, requireRole('admin'), createLearningResource);

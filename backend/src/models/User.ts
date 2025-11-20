@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model, Types } from 'mongoose';
 
 export type Role = 'seeker' | 'employer' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'pending' | 'suspended';
@@ -184,7 +184,7 @@ const UserSchema = new Schema({
       }
     }],
     
-    // Certifications
+    // Certifications & Course Completions
     certifications: [{
       name: { type: String, required: true, trim: true },
       issuer: { type: String, required: true, trim: true },
@@ -193,6 +193,17 @@ const UserSchema = new Schema({
       credential_id: { type: String, trim: true },
       credential_url: { type: String },
       skills: [{ type: String, trim: true }]
+    }],
+    // Learning course completions with certificates
+    completed_courses: [{
+      course_id: { type: Types.ObjectId, ref: 'LearningResource', required: true },
+      course_title: { type: String, required: true },
+      course_category: { type: String },
+      completed_at: { type: Date, default: Date.now },
+      certificate_id: { type: String, unique: true },
+      certificate_url: { type: String },
+      skills_earned: [{ type: String, trim: true }],
+      progress: { type: Number, default: 100, min: 0, max: 100 }
     }],
     
     // Languages

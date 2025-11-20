@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,9 @@ import {
   HomeIcon,
   CheckCircleIcon,
   RefreshIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  DownloadIcon,
+  TrophyIcon
 } from '../../components/icons';
 
 interface LearningResource {
@@ -67,13 +69,128 @@ export function LearningDetail() {
   const [retryCount, setRetryCount] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const hasCheckedCompletion = useRef(false);
+  const [certificateId, setCertificateId] = useState<string | null>(null);
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [skillsEarned, setSkillsEarned] = useState<string[]>([]);
+
+  // Define checkCompletionStatus BEFORE useEffect that uses it
+  const checkCompletionStatus = useCallback(async () => {
+    if (!user || !resource) return;
+    
+    try {
+      const response = await api.get('/learning/completed');
+      const completedCourses = response.data?.completedCourses || [];
+      const currentId = resource._id?.toString() || resource.id?.toString() || id;
+      
+      console.log('Checking completion status:', {
+        currentId,
+        completedCoursesCount: completedCourses.length,
+        courseIds: completedCourses.map((c: any) => ({
+          _id: c._id?.toString(),
+          course_id: c.course_id?.toString()
+        }))
+      });
+      
+      // Check both _id (from enriched resource) and course_id (from completion record)
+      // Also check if the current resource ID matches any completion
+      const completedCourse = completedCourses.find((c: any) => {
+        // The enriched course has both _id (from LearningResource) and course_id (from completion)
+        const resourceId = c._id?.toString();
+        const completionCourseId = c.course_id?.toString();
+        
+        // Match by resource ID, completion course_id, or certificate_id (if we have one)
+        const matches = 
+          resourceId === currentId || 
+          completionCourseId === currentId ||
+          (certificateId && c.certificate_id === certificateId);
+        
+        if (matches) {
+          console.log('✅ Found completed course:', {
+            resourceId,
+            completionCourseId,
+            currentId,
+            certificateId: c.certificate_id,
+            matchType: resourceId === currentId ? 'resourceId' : 
+                      completionCourseId === currentId ? 'courseId' : 'certificateId'
+          });
+        }
+        
+        return matches;
+      });
+      
+      if (completedCourse) {
+        setIsCompleted(true);
+        setCertificateId(completedCourse.certificate_id || null);
+        // Use full API URL for certificate download
+        const certUrl = completedCourse.certificate_url || 
+          (completedCourse.certificate_id ? `/api/learning/certificates/${completedCourse.certificate_id}/download` : null);
+        setCertificateUrl(certUrl);
+        setSkillsEarned(completedCourse.skills_earned || completedCourse.skills || []);
+        
+        console.log('Completion status set:', {
+          isCompleted: true,
+          certificateId: completedCourse.certificate_id,
+          certificateUrl: certUrl
+        });
+      } else {
+        // Only reset if we don't have local completion state
+        // This prevents resetting immediately after marking complete (before DB save completes)
+        if (!isCompleted && !certificateId) {
+          setIsCompleted(false);
+          setCertificateId(null);
+          setCertificateUrl(null);
+          setSkillsEarned([]);
+          
+          console.log('Course not completed - resetting state');
+        } else {
+          console.log('Completion not found in DB but keeping local state (may be saving):', {
+            isCompleted,
+            certificateId,
+            currentId,
+            completedCoursesCount: completedCourses.length
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check completion status:', err);
+    }
+  }, [user, resource, id]);
 
   useEffect(() => {
     if (id) {
       loadResource();
     }
   }, [id]);
+
+  // Check completion status when resource or user changes
+  useEffect(() => {
+    if (resource && user) {
+      checkCompletionStatus();
+      
+      // Set up a periodic check to ensure status persists (every 3 seconds for first 15 seconds)
+      // This helps catch cases where the DB save completes after initial check
+      let checkCount = 0;
+      const maxChecks = 5; // 5 checks over 15 seconds
+      
+      const intervalId = setInterval(() => {
+        checkCount++;
+        if (checkCount < maxChecks && resource && user) {
+          // Only re-check if we don't have completion status yet
+          // This prevents unnecessary API calls once we've confirmed completion
+          if (!isCompleted) {
+            console.log(`Re-checking completion status (attempt ${checkCount}/${maxChecks})...`);
+            checkCompletionStatus();
+          } else {
+            clearInterval(intervalId);
+          }
+        } else {
+          clearInterval(intervalId);
+        }
+      }, 3000); // Check every 3 seconds
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [resource, user, checkCompletionStatus, isCompleted]);
 
   const loadResource = async (isRetry = false) => {
     try {
@@ -112,11 +229,7 @@ export function LearningDetail() {
       
       setResource(resourceData);
       
-      // Check if course is already completed
-      if (user && !hasCheckedCompletion.current) {
-        checkCompletionStatus();
-        hasCheckedCompletion.current = true;
-      }
+      // Completion status will be checked by the useEffect hook when resource and user are available
     } catch (err: any) {
       console.error('Failed to load resource:', err);
       setError(err.response?.data?.error || 'Failed to load course. Please try again.');
@@ -129,19 +242,6 @@ export function LearningDetail() {
     }
   };
 
-  const checkCompletionStatus = async () => {
-    if (!user || !resource) return;
-    
-    try {
-      const response = await api.get('/learning/completed');
-      const completedIds = response.data?.completedCourses?.map((c: any) => c._id) || [];
-      const currentId = resource._id || resource.id || id;
-      setIsCompleted(completedIds.includes(currentId));
-    } catch (err) {
-      console.error('Failed to check completion status:', err);
-    }
-  };
-
   const handleMarkComplete = async () => {
     if (!user) {
       navigate('/login');
@@ -151,18 +251,74 @@ export function LearningDetail() {
     setIsCompleting(true);
     try {
       const resourceId = resource?._id || resource?.id || id;
-      await api.post(`/learning/${resourceId}/complete`);
-      setIsCompleted(true);
+      const response = await api.post(`/learning/${resourceId}/complete`);
       
-      // Show success message briefly
-      setTimeout(() => {
-        // Optionally navigate back or show notification
-      }, 1000);
+      if (response.data?.success) {
+        // Update local state immediately
+        setIsCompleted(true);
+        setCertificateId(response.data.certificate_id || null);
+        setCertificateUrl(response.data.certificate_url || null);
+        setSkillsEarned(response.data.skills_earned || []);
+        
+        console.log('Course completed! Certificate generated:', {
+          certificateId: response.data.certificate_id,
+          certificateUrl: response.data.certificate_url
+        });
+        
+        // Don't immediately re-check - the completion is already set in local state
+        // The useEffect will check when needed, and we prevent resetting if we have local state
+      }
     } catch (err: any) {
       console.error('Failed to mark as complete:', err);
       alert(err.response?.data?.error || 'Failed to mark course as complete');
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!certificateId) return;
+    
+    try {
+      // Use fetch directly to avoid axios interceptors interfering with blob responses
+      const token = localStorage.getItem('token');
+      const apiUrl = import.meta.env.DEV 
+        ? 'http://localhost:3000/api' 
+        : (import.meta.env.VITE_API_URL || 'https://emirimo-backend1.onrender.com/api');
+      
+      const response = await fetch(`${apiUrl}/learning/certificates/${certificateId}/download`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to download certificate' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Get blob from response
+      const blob = await response.blob();
+      
+      // Verify it's a PDF
+      if (blob.type !== 'application/pdf' && !blob.type.includes('pdf')) {
+        console.warn('Unexpected content type:', blob.type);
+      }
+      
+      // Create blob URL and download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Certificate-${certificateId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Failed to download certificate:', err);
+      alert(err.message || 'Failed to download certificate. Please try again.');
     }
   };
 
@@ -391,19 +547,35 @@ export function LearningDetail() {
                   </div>
                 </div>
 
-                {/* Completion Button */}
+                {/* Completion Status & Certificate */}
                 {user && (
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                     {isCompleted ? (
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                        <CheckCircleIcon className="w-5 h-5" />
-                        <span className="font-medium">Course Completed!</span>
+                      <div className="space-y-4">
+                        {/* Completed Status with Download Button */}
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                            <CheckCircleIcon className="w-5 h-5" />
+                            <span className="font-medium">Course Completed</span>
+                          </div>
+                          
+                          {/* Download Certificate Button - Next to Completed status */}
+                          {certificateId && (
+                            <button
+                              onClick={handleDownloadCertificate}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-md hover:shadow-lg"
+                            >
+                              <DownloadIcon className="w-4 h-4" />
+                              Download Certificate
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <button
                         onClick={handleMarkComplete}
                         disabled={isCompleting}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                       >
                         {isCompleting ? (
                           <>

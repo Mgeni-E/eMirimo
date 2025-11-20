@@ -82,18 +82,19 @@ export class YouTubeService {
     
     return this.getCachedOrFetch(cacheKey, async () => {
     try {
-      const query = this.buildSearchQuery(skills, difficulty);
-      const response = await axios.get(`${this.baseUrl}/search`, {
-        params: {
-          part: 'snippet',
-          q: query,
-          type: 'video',
-          // No videoDuration filter - allow any duration
-          maxResults: Math.min(maxResults * 3, 50), // Fetch more to account for filtering
-          order: 'relevance',
-          key: this.apiKey,
-          safeSearch: 'strict'
-        },
+        // Exclude YouTube Shorts and focus on educational content
+        const query = this.buildSearchQuery(skills, difficulty) + ' tutorial course lesson -shorts -#shorts';
+        const response = await axios.get(`${this.baseUrl}/search`, {
+          params: {
+            part: 'snippet',
+            q: query,
+            type: 'video',
+            videoDuration: 'medium', // Filter for medium-length videos (4-20 minutes) to exclude shorts
+            maxResults: Math.min(maxResults * 3, 50), // Fetch more to account for filtering
+            order: 'relevance',
+            key: this.apiKey,
+            safeSearch: 'strict'
+          },
         timeout: 10000 // 10 second timeout
       });
 
@@ -124,7 +125,11 @@ export class YouTubeService {
         }
       });
 
-      // Filter videos to 10-25 minutes (600-1500 seconds) for Rwanda youth career skills
+      // Filter videos: exclude YouTube Shorts (under 60 seconds) and ensure minimum 5 minutes (300 seconds)
+      // Maximum 50 minutes (3000 seconds) for optimal engagement
+      const MIN_DURATION_SECONDS = 300; // 5 minutes minimum
+      const MAX_DURATION_SECONDS = 3000; // 50 minutes maximum
+      
       const mappedVideos = searchResults.items
         .map((item) => {
           const detail = detailsMap.get(item.id.videoId);
@@ -132,6 +137,13 @@ export class YouTubeService {
           
           const rawDuration = detail?.contentDetails?.duration || 'PT0S';
           const durationSeconds = this.parseDurationToSeconds(rawDuration);
+          
+          // Filter out YouTube Shorts and very short videos (under 5 minutes)
+          // Also filter out very long videos (over 50 minutes)
+          if (durationSeconds < MIN_DURATION_SECONDS || durationSeconds > MAX_DURATION_SECONDS) {
+            return null;
+          }
+          
           const formattedDuration = this.formatDuration(rawDuration);
           
           return {
@@ -148,9 +160,15 @@ export class YouTubeService {
         })
         .filter((video): video is YouTubeVideo => video !== null);
       
-      // No duration filter - use all videos regardless of duration
-      // Return all mapped videos up to maxResults
-      return mappedVideos.slice(0, maxResults);
+      // Sort by view count (popularity) to get quality educational content
+      const sortedVideos = mappedVideos.sort((a, b) => {
+        const viewsA = parseInt(a.viewCount || '0');
+        const viewsB = parseInt(b.viewCount || '0');
+        return viewsB - viewsA; // Higher views first
+      });
+      
+      // Return top videos up to maxResults
+      return sortedVideos.slice(0, maxResults);
       } catch (error: any) {
         console.error('YouTube API error:', error.response?.data || error.message);
         return [];
@@ -171,7 +189,8 @@ export class YouTubeService {
     
     return this.getCachedOrFetch(cacheKey, async () => {
       try {
-        const query = this.buildSearchQuery(skills, difficulty) + ' playlist course';
+        // Exclude shorts and focus on educational content
+        const query = this.buildSearchQuery(skills, difficulty) + ' playlist course tutorial -shorts';
         const response = await axios.get(`${this.baseUrl}/search`, {
           params: {
             part: 'snippet',

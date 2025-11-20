@@ -56,42 +56,22 @@ export function Learning() {
   const loadResources = async () => {
     setLoading(true);
     try {
-      // Try to get personalized recommendations first (if authenticated)
-      try {
-        const recommendationsResponse = await api.get('/learning/recommendations');
-        if (recommendationsResponse.data?.success) {
-          const resources = recommendationsResponse.data.resources || [];
-          if (resources.length > 0) {
-            // Ensure we get 100 courses (25 rows x 4 cards)
-            setResources(resources.slice(0, 100));
-            return;
-          }
-        }
-      } catch (recError: any) {
-        // Log error but continue to fallback
-        console.log('Recommendations endpoint error:', recError.response?.status, recError.message);
-      }
-
-      // Fallback to regular learning resources endpoint - fetch more to ensure 16 courses
-      try {
-        const response = await api.get('/learning?includeYouTube=true');
+      // Use the main learning resources endpoint to get all 100 courses
+      const response = await api.get('/learning?includeYouTube=true');
+      
       // Handle both response formats: { success: true, resources: [] } or direct array
       const resources = response.data?.success
         ? (response.data.resources || [])
         : (Array.isArray(response.data) ? response.data : []);
         
-        if (resources.length > 0) {
-          // Ensure we show 100 courses (25 rows x 4 cards)
-          setResources(resources.slice(0, 100));
-        } else {
-          // No resources found - set empty array
-          setResources([]);
-        }
-      } catch (error: any) {
-        console.error('Failed to load learning resources:', error);
-        setResources([]); // Set empty array on error
+      if (resources.length > 0) {
+        // Show all available courses (up to 100)
+        setResources(resources.slice(0, 100));
+      } else {
+        // No resources found - set empty array
+        setResources([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load learning resources:', error);
       setResources([]); // Set empty array on error
     } finally {

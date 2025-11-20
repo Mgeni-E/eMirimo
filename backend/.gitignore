@@ -351,3 +351,6 @@ config/production.json
 config/development.json
 config/firebase-service-account.json
 config/*-firebase-adminsdk-*.json
+
+# Generated course completion certificates (PDF files)
+certificates/

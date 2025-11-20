@@ -21,38 +21,49 @@ import { YouTubeService } from '../services/youtube.service.js';
 import config from '../config/env.js';
 import { Types } from 'mongoose';
 
-// Broad search terms per category - fewer searches, more results per search
+// Educational-focused search terms per category - exclude shorts, focus on full tutorials
 const CATEGORY_SEARCH_TERMS = {
   'digital-literacy-productivity': [
-    'digital literacy tutorial',
-    'Microsoft Office basics',
-    'computer skills for beginners'
+    'digital literacy full course tutorial',
+    'Microsoft Office complete tutorial',
+    'computer skills course for beginners',
+    'ICT skills training course',
+    'Google Workspace tutorial course'
   ],
   'soft-skills-professional': [
-    'communication skills training',
-    'soft skills course',
-    'professional development'
+    'communication skills full course',
+    'soft skills training course',
+    'professional development tutorial',
+    'leadership skills course',
+    'public speaking tutorial course'
   ],
   'entrepreneurship-business': [
-    'entrepreneurship for beginners',
-    'business skills tutorial',
-    'start a business guide'
+    'entrepreneurship full course',
+    'business skills tutorial course',
+    'start a business complete guide',
+    'marketing fundamentals course',
+    'financial literacy course'
   ],
   'job-search-career': [
-    'resume writing tutorial',
-    'job interview skills',
-    'career development course'
+    'resume writing complete tutorial',
+    'job interview skills course',
+    'career development full course',
+    'CV writing tutorial course',
+    'job search strategies course'
   ],
   'technology-digital-careers': [
-    'programming for beginners',
-    'web development tutorial',
-    'coding basics course',
-    'data analysis tutorial'
+    'programming full course beginners',
+    'web development complete tutorial',
+    'coding basics full course',
+    'data analysis tutorial course',
+    'Python programming course'
   ],
   'personal-development-workplace': [
-    'personal development course',
-    'productivity skills',
-    'workplace skills training'
+    'personal development full course',
+    'productivity skills course',
+    'workplace skills training course',
+    'time management course',
+    'goal setting tutorial course'
   ]
 };
 
@@ -66,6 +77,8 @@ const TARGET_COURSES_PER_CATEGORY = {
   'personal-development-workplace': 15
 };
 
+// Minimum video duration in seconds (5 minutes) - excludes YouTube Shorts
+const MIN_DURATION_SECONDS = 5 * 60; // 300 seconds (5 minutes)
 // Maximum video duration in seconds (50 minutes)
 const MAX_DURATION_SECONDS = 50 * 60; // 3000 seconds
 
@@ -113,10 +126,10 @@ async function seedCourses() {
           // Fetch up to 50 videos per search (max allowed by YouTube API)
           const videos = await youtubeService.searchEducationalVideos([searchQuery], 'beginner', 50);
           
-          // Filter videos: below 50 minutes and not already saved
+          // Filter videos: between 5-50 minutes (exclude YouTube Shorts) and not already saved
           const validVideos = videos.filter(video => {
             const durationSeconds = video.durationSeconds || 0;
-            return durationSeconds > 0 && 
+            return durationSeconds >= MIN_DURATION_SECONDS && 
                    durationSeconds <= MAX_DURATION_SECONDS && 
                    !savedVideoIds.has(video.videoId);
           });

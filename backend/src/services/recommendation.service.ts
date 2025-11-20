@@ -209,7 +209,7 @@ export class RecommendationService {
    */
   static async getJobRecommendations(userId: string, limit: number = 10): Promise<JobRecommendation[]> {
     try {
-      const user = await User.findById(userId).select('skills education work_experience job_preferences address languages bio certifications');
+      const user = await User.findById(userId).select('skills education work_experience job_preferences address languages bio certifications completed_courses');
       if (!user) {
         throw new Error('User not found');
       }
@@ -235,6 +235,22 @@ export class RecommendationService {
         if (keywordBoost) {
           // Boost score by 20% if keywords match
           matchScore = Math.min(matchScore * 1.2, 1.0);
+        }
+        
+        // Additional boost for completed relevant courses (certificate boost already applied in skills match)
+        const certificateBoost = this.calculateCertificateBoost(user, [
+          ...(job.required_skills || []).map((s: any) => typeof s === 'string' ? s : s.name),
+          ...(job.preferred_skills || []).map((s: any) => typeof s === 'string' ? s : s.name),
+          ...(job.skills || [])
+        ].filter(Boolean));
+        
+        if (certificateBoost > 0) {
+          // Additional 10% boost on top of skills match boost for having certificates
+          matchScore = Math.min(matchScore * 1.1, 1.0);
+          // Add reason about certificates
+          if (!reasons.some((r: string) => r.includes('certificate') || r.includes('course'))) {
+            reasons.push(`You have completed relevant courses that match this job's requirements`);
+          }
         }
         
         // Calculate areas of improvement
@@ -268,36 +284,75 @@ export class RecommendationService {
    */
   static async getCourseRecommendations(userId: string, limit: number = 10): Promise<CourseRecommendation[]> {
     try {
-      const user = await User.findById(userId).select('skills education work_experience certifications languages');
+      // Fetch user with completed courses to avoid duplicates
+      const user = await User.findById(userId)
+        .select('skills education work_experience certifications languages job_seeker_profile.completed_courses')
+        .lean();
+      
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Get completed course IDs to exclude them
+      const completedCourseIds = (user.job_seeker_profile?.completed_courses || [])
+        .map((c: any) => c.course_id?.toString())
+        .filter(Boolean);
 
       // Comprehensive profile analysis
       const profileAnalysis = this.analyzeUserProfile(user);
       
       // Get jobs the user might be interested in to identify skills gaps
+      // Get more jobs and analyze them better for personalized gaps
       const potentialJobs = await Job.find({ is_active: true })
-        .select('skills requirements experience_level')
-        .limit(20);
+        .select('skills required_skills preferred_skills requirements experience_level title description')
+        .sort({ created_at: -1 })
+        .limit(50); // Get more jobs for better gap analysis
 
-      // Analyze skills gaps from potential jobs
+      // Analyze skills gaps from potential jobs - personalized per user
       const skillsGapAnalysis = this.analyzeSkillsGapFromJobs(user, potentialJobs);
-      console.log('Skills Gap Analysis:', skillsGapAnalysis);
+      console.log('Personalized Skills Gap Analysis for user:', userId, {
+        criticalSkills: skillsGapAnalysis.criticalSkills.slice(0, 10),
+        missingSkillsCount: skillsGapAnalysis.missingSkills.length,
+        completedCourses: completedCourseIds.length
+      });
 
-      // Get all active learning resources
+      // Get all active learning resources, excluding completed ones
       const courses = await LearningResource.find({ 
         is_active: true,
-        type: { $in: ['course', 'tutorial', 'video'] }
-      }).sort({ created_at: -1 }).limit(100);
+        type: { $in: ['course', 'tutorial', 'video'] },
+        _id: { $nin: completedCourseIds } // Exclude completed courses
+      })
+      .sort({ 'metrics.views': -1, created_at: -1 })
+      .limit(200); // Get more courses for better diversity
 
       const recommendations: CourseRecommendation[] = [];
 
       for (const course of courses) {
-        const { matchScore, skillsGap } = this.calculateEnhancedCourseMatchScore(user, course, profileAnalysis, skillsGapAnalysis);
-        const reasons = this.getEnhancedCourseMatchReasons(user, course, matchScore, skillsGap, profileAnalysis);
+        // Calculate match score with enhanced skills gap analysis
+        const { matchScore, skillsGap } = this.calculateEnhancedCourseMatchScore(
+          user, 
+          course, 
+          profileAnalysis, 
+          skillsGapAnalysis
+        );
+        
+        // Only recommend if there's a meaningful skills gap this course addresses
+        const hasRelevantSkillsGap = skillsGap.length > 0 && 
+          skillsGap.some(gap => 
+            skillsGapAnalysis.criticalSkills.includes(gap) || 
+            skillsGapAnalysis.missingSkills.includes(gap)
+          );
 
-        if (matchScore > 0.2) { // Lower threshold for skill development
+        // Higher threshold - only recommend if it addresses skill gaps
+        if (matchScore > 0.3 && hasRelevantSkillsGap) {
+          const reasons = this.getEnhancedCourseMatchReasons(
+            user, 
+            course, 
+            matchScore, 
+            skillsGap, 
+            profileAnalysis
+          );
+
           recommendations.push({
             course,
             matchScore,
@@ -307,10 +362,52 @@ export class RecommendationService {
         }
       }
 
-      // Sort by match score and return top recommendations
-      return recommendations
-        .sort((a, b) => b.matchScore - a.matchScore)
-        .slice(0, limit);
+      // Enhanced sorting: prioritize courses that fill critical skill gaps
+      const sortedRecommendations = recommendations.sort((a, b) => {
+        // First, prioritize courses that address critical skills
+        const aCriticalGaps = a.skillsGap.filter(gap => 
+          skillsGapAnalysis.criticalSkills.includes(gap)
+        ).length;
+        const bCriticalGaps = b.skillsGap.filter(gap => 
+          skillsGapAnalysis.criticalSkills.includes(gap)
+        ).length;
+
+        if (aCriticalGaps !== bCriticalGaps) {
+          return bCriticalGaps - aCriticalGaps; // More critical gaps = higher priority
+        }
+
+        // Then by match score
+        if (Math.abs(a.matchScore - b.matchScore) > 0.1) {
+          return b.matchScore - a.matchScore;
+        }
+
+        // Finally, ensure diversity by preferring courses with different skill sets
+        const aSkills = this.normalizeSkills(a.course.skills || []);
+        const bSkills = this.normalizeSkills(b.course.skills || []);
+        return bSkills.length - aSkills.length; // Prefer courses with more skills
+      });
+
+      // Ensure diversity: avoid recommending courses with identical skill sets
+      const diverseRecommendations: CourseRecommendation[] = [];
+      const usedSkillCombinations = new Set<string>();
+
+      for (const rec of sortedRecommendations) {
+        const courseSkills = this.normalizeSkills(rec.course.skills || [])
+          .sort()
+          .join(',');
+        
+        // Only add if it offers a different skill combination
+        if (!usedSkillCombinations.has(courseSkills) || diverseRecommendations.length < 3) {
+          diverseRecommendations.push(rec);
+          usedSkillCombinations.add(courseSkills);
+          
+          if (diverseRecommendations.length >= limit) break;
+        }
+      }
+
+      console.log(`Generated ${diverseRecommendations.length} personalized course recommendations for user ${userId}`);
+      
+      return diverseRecommendations.slice(0, limit);
 
     } catch (error) {
       console.error('Error getting course recommendations:', error);
@@ -346,7 +443,12 @@ export class RecommendationService {
           jobSkill.includes(skill) || skill.includes(jobSkill)
         )
       );
-      const skillsScore = matchingSkills.length / Math.max(jobSkills.length, 1);
+      let skillsScore = matchingSkills.length / Math.max(jobSkills.length, 1);
+      
+      // Boost score based on completed courses/certificates (up to 30% boost)
+      const certificateBoost = this.calculateCertificateBoost(user, allJobSkills);
+      skillsScore = Math.min(skillsScore * (1 + certificateBoost), 1.0);
+      
       score += skillsScore * 0.35;
       factors += 0.35;
     }
@@ -527,14 +629,17 @@ export class RecommendationService {
     criticalSkills: string[];
     missingSkills: string[];
     jobSkills: string[];
+    skillFrequency: { [key: string]: number };
+    skillFrequency: { [key: string]: number };
   } {
     // Handle skills that can be strings or objects with name property
     const userSkills = this.normalizeSkills(user.skills || []);
     
     const allJobSkills: string[] = [];
     const missingSkills: string[] = [];
+    const skillFrequency: { [key: string]: number } = {};
     
-    // Collect all skills from potential jobs
+    // Collect all skills from potential jobs with frequency tracking
     for (const job of potentialJobs) {
       // Combine required_skills, preferred_skills, and legacy skills
       const jobRequiredSkills = job.required_skills || [];
@@ -545,12 +650,25 @@ export class RecommendationService {
         ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
         ...jobLegacySkills
       ].filter(Boolean);
+      
       if (allJobSkillsForThisJob.length > 0) {
-        allJobSkills.push(...this.normalizeSkills(allJobSkillsForThisJob));
+        const normalizedJobSkills = this.normalizeSkills(allJobSkillsForThisJob);
+        allJobSkills.push(...normalizedJobSkills);
+        
+        // Track frequency (required skills count more)
+        for (const skill of normalizedJobSkills) {
+          const isRequired = jobRequiredSkills.length > 0 && 
+            jobRequiredSkills.some((s: any) => {
+              const skillName = typeof s === 'string' ? s : s.name;
+              return this.normalizeSkills([skillName]).includes(skill);
+            });
+          
+          skillFrequency[skill] = (skillFrequency[skill] || 0) + (isRequired ? 2 : 1);
+        }
       }
     }
     
-    // Find missing skills
+    // Find missing skills (skills user doesn't have)
     const uniqueJobSkills = [...new Set(allJobSkills)];
     for (const jobSkill of uniqueJobSkills) {
       if (!userSkills.some((userSkill: string) => 
@@ -560,21 +678,19 @@ export class RecommendationService {
       }
     }
     
-    // Identify critical skills (most frequently required)
-    const skillFrequency: { [key: string]: number } = {};
-    for (const skill of allJobSkills) {
-      skillFrequency[skill] = (skillFrequency[skill] || 0) + 1;
-    }
-    
+    // Identify critical skills (most frequently required, prioritizing missing ones)
+    // Sort by frequency, but prioritize missing skills
     const criticalSkills = Object.entries(skillFrequency)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
+      .filter(([skill]) => missingSkills.includes(skill)) // Only missing skills
+      .sort(([,a], [,b]) => b - a) // Sort by frequency
+      .slice(0, 15) // Get top 15 most in-demand missing skills
       .map(([skill]) => skill);
     
     return {
       criticalSkills,
-      missingSkills,
-      jobSkills: uniqueJobSkills
+      missingSkills: [...new Set(missingSkills)], // Remove duplicates
+      jobSkills: [...new Set(allJobSkills)],
+      skillFrequency
     };
   }
 
@@ -1286,5 +1402,46 @@ export class RecommendationService {
     }
     
     return improvements.slice(0, 5); // Limit to top 5 improvements
+  }
+
+  /**
+   * Calculate boost to job match score based on completed courses/certificates
+   * Returns a multiplier (0 to 0.3) based on how many relevant courses user has completed
+   */
+  private static calculateCertificateBoost(user: any, jobSkills: string[]): number {
+    if (!user.completed_courses || user.completed_courses.length === 0) {
+      return 0;
+    }
+
+    const normalizedJobSkills = this.normalizeSkills(jobSkills);
+    let relevantCertificates = 0;
+    let totalRelevantSkills = 0;
+
+    // Check each completed course
+    for (const completion of user.completed_courses) {
+      const courseSkills = completion.skills_earned || [];
+      const normalizedCourseSkills = this.normalizeSkills(courseSkills);
+      
+      // Count how many job skills are covered by this course
+      const coveredSkills = normalizedJobSkills.filter((jobSkill: string) =>
+        normalizedCourseSkills.some((courseSkill: string) =>
+          courseSkill.includes(jobSkill) || jobSkill.includes(courseSkill)
+        )
+      ).length;
+
+      if (coveredSkills > 0) {
+        relevantCertificates++;
+        totalRelevantSkills += coveredSkills;
+      }
+    }
+
+    // Calculate boost: more certificates and more relevant skills = higher boost
+    // Max boost of 30% (0.3 multiplier)
+    if (relevantCertificates === 0) return 0;
+    
+    const skillCoverageRatio = totalRelevantSkills / Math.max(normalizedJobSkills.length, 1);
+    const certificateCountFactor = Math.min(relevantCertificates / 5, 1); // Cap at 5 certificates
+    
+    return Math.min(skillCoverageRatio * 0.2 + certificateCountFactor * 0.1, 0.3);
   }
 }
