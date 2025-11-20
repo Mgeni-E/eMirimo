@@ -992,13 +992,13 @@ export const markCourseComplete = async (req: any, res: Response) => {
     const completionDate = new Date();
     
     const certificateData = {
-      userName: user.name,
-      courseTitle: resource?.title || 'Course',
-      courseCategory: resource?.category || 'general',
+      userName: String(user.name),
+      courseTitle: String(resource?.title || 'Course'),
+      courseCategory: String(resource?.category || 'general'),
       completionDate,
       certificateId,
-      skills: resource?.skills || [],
-      duration: resource?.duration
+      skills: Array.isArray(resource?.skills) ? resource.skills.map((s: any) => String(s)) : [],
+      duration: resource?.duration ? Number(resource.duration) : undefined
     };
 
     // Generate PDF certificate
@@ -1387,13 +1387,15 @@ export const downloadCertificate = async (req: any, res: Response) => {
     }
 
     const certificateData = {
-      userName: user.name,
-      courseTitle: completion.course_title || resource.title,
-      courseCategory: completion.course_category || resource.category,
+      userName: String(user.name),
+      courseTitle: String(completion.course_title || resource?.title || 'Course'),
+      courseCategory: String(completion.course_category || resource?.category || 'general'),
       completionDate: completion.completed_at || new Date(),
-      certificateId: certificateId,
-      skills: completion.skills_earned || resource.skills || [],
-      duration: resource.duration
+      certificateId: String(certificateId),
+      skills: Array.isArray(completion.skills_earned) 
+        ? completion.skills_earned.map((s: any) => String(s))
+        : (Array.isArray(resource?.skills) ? resource.skills.map((s: any) => String(s)) : []),
+      duration: resource?.duration ? Number(resource.duration) : undefined
     };
 
     certificateBuffer = await certificateService.generateCertificate(certificateData);
