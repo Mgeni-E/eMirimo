@@ -1006,10 +1006,10 @@ export const markCourseComplete = async (req: any, res: Response) => {
     
     let certificateUrl: string;
     
-    // Use Firebase Storage in production (Render), local filesystem in development
-    if (isFirebaseConfigured() && process.env.NODE_ENV !== 'development') {
+    // Use Firebase Storage if configured (works in both development and production)
+    if (isFirebaseConfigured()) {
       try {
-        // Upload to Firebase Storage (for Render deployment)
+        // Upload to Firebase Storage
         certificateUrl = await uploadCertificateToFirebase(certificateBuffer, certificateId, userId);
         console.log('✅ Certificate uploaded to Firebase Storage:', certificateUrl);
       } catch (firebaseError: any) {
@@ -1029,7 +1029,7 @@ export const markCourseComplete = async (req: any, res: Response) => {
         console.log('✅ Certificate saved to local filesystem (fallback):', certificatePath);
       }
     } else {
-      // Local filesystem for development
+      // Local filesystem fallback when Firebase is not configured
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
       const certificatesDir = path.join(__dirname, '../../certificates');
@@ -1041,7 +1041,7 @@ export const markCourseComplete = async (req: any, res: Response) => {
       const certificatePath = path.join(certificatesDir, `${certificateId}.pdf`);
       fs.writeFileSync(certificatePath, certificateBuffer);
       certificateUrl = `/api/learning/certificates/${certificateId}/download`;
-      console.log('✅ Certificate saved to local filesystem:', certificatePath);
+      console.log('✅ Certificate saved to local filesystem (Firebase not configured):', certificatePath);
     }
 
     // Update LearningResource with completion interaction
@@ -1398,8 +1398,8 @@ export const downloadCertificate = async (req: any, res: Response) => {
 
     certificateBuffer = await certificateService.generateCertificate(certificateData);
     
-    // Try to upload to Firebase Storage if configured (production)
-    if (isFirebaseConfigured() && process.env.NODE_ENV !== 'development') {
+    // Try to upload to Firebase Storage if configured (works in both dev and production)
+    if (isFirebaseConfigured()) {
       try {
         const firebaseUrl = await uploadCertificateToFirebase(certificateBuffer, certificateId, userId);
         console.log('✅ Certificate regenerated and uploaded to Firebase Storage');
