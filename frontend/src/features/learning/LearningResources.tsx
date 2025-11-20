@@ -241,7 +241,7 @@ export function LearningResources() {
                     <div className="flex items-center gap-2 mb-2">
                       {getTypeIcon(resource.type)}
                       <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        {resource.author} • {resource.source}
+                        {typeof resource.author === 'object' ? resource.author?.name : resource.author || 'Unknown Author'} • {resource.source}
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2 mb-2">

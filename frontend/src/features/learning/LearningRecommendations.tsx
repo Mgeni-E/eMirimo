@@ -192,7 +192,7 @@ export function LearningRecommendations() {
                   </div>
                   {resource.author && (
                     <p className="text-gray-600 dark:text-gray-400 mb-1.5 text-sm font-medium truncate">
-                      {resource.author} {resource.source && `• ${resource.source}`}
+                      {typeof resource.author === 'object' ? resource.author?.name : resource.author || 'Unknown Author'} {resource.source && `• ${resource.source}`}
                     </p>
                   )}
                   <p className="text-gray-700 dark:text-gray-300 line-clamp-2 text-xs mb-2">
