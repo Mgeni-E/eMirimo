@@ -422,16 +422,14 @@ export class RecommendationService {
     let factors = 0;
 
     // Skills match (35% weight) - More important for Rwanda job market
-    // Check both required_skills and preferred_skills (new format) and legacy skills field
+    // Check both required_skills and preferred_skills
     const jobRequiredSkills = job.required_skills || [];
     const jobPreferredSkills = job.preferred_skills || [];
-    const jobLegacySkills = job.skills || [];
     
-    // Combine all job skills (required + preferred + legacy)
+    // Combine all job skills (required + preferred)
     const allJobSkills = [
       ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobLegacySkills
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
     ].filter(Boolean);
     
     if (user.skills && allJobSkills.length > 0) {
@@ -557,14 +555,12 @@ export class RecommendationService {
     let factors = 0;
 
     // Skills match (40% weight)
-    // Combine required_skills, preferred_skills, and legacy skills
+    // Combine required_skills and preferred_skills
     const jobRequiredSkills = job.required_skills || [];
     const jobPreferredSkills = job.preferred_skills || [];
-    const jobLegacySkills = job.skills || [];
     const allJobSkills = [
       ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobLegacySkills
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
     ].filter(Boolean);
     
     if (user.skills && allJobSkills.length > 0) {
@@ -629,7 +625,6 @@ export class RecommendationService {
     missingSkills: string[];
     jobSkills: string[];
     skillFrequency: { [key: string]: number };
-    skillFrequency: { [key: string]: number };
   } {
     // Handle skills that can be strings or objects with name property
     const userSkills = this.normalizeSkills(user.skills || []);
@@ -640,14 +635,12 @@ export class RecommendationService {
     
     // Collect all skills from potential jobs with frequency tracking
     for (const job of potentialJobs) {
-      // Combine required_skills, preferred_skills, and legacy skills
+      // Combine required_skills and preferred_skills
       const jobRequiredSkills = job.required_skills || [];
       const jobPreferredSkills = job.preferred_skills || [];
-      const jobLegacySkills = job.skills || [];
       const allJobSkillsForThisJob = [
         ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-        ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-        ...jobLegacySkills
+        ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
       ].filter(Boolean);
       
       if (allJobSkillsForThisJob.length > 0) {
@@ -1052,14 +1045,12 @@ export class RecommendationService {
     }
     
     // Skills-based reasons
-    // Combine required_skills, preferred_skills, and legacy skills
+    // Combine required_skills and preferred_skills
     const jobRequiredSkills = job.required_skills || [];
     const jobPreferredSkills = job.preferred_skills || [];
-    const jobLegacySkills = job.skills || [];
     const allJobSkills = [
       ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobLegacySkills
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
     ].filter(Boolean);
     
     if (user.skills && allJobSkills.length > 0) {
@@ -1131,14 +1122,12 @@ export class RecommendationService {
     }
     
     // Add specific reasons based on match factors
-    // Combine required_skills, preferred_skills, and legacy skills
+    // Combine required_skills and preferred_skills
     const jobRequiredSkills = job.required_skills || [];
     const jobPreferredSkills = job.preferred_skills || [];
-    const jobLegacySkills = job.skills || [];
     const allJobSkills = [
       ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobLegacySkills
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
     ].filter(Boolean);
     
     if (user.skills && allJobSkills.length > 0) {
@@ -1202,14 +1191,12 @@ export class RecommendationService {
   private static checkKeywordMatch(user: any, job: any): boolean {
     // Extract keywords from job (title, description, skills, category)
     const jobText = `${job.title || ''} ${job.description || ''} ${job.short_description || ''} ${job.category || ''}`.toLowerCase();
-    // Combine required_skills, preferred_skills, and legacy skills
+    // Combine required_skills and preferred_skills
     const jobRequiredSkills = job.required_skills || [];
     const jobPreferredSkills = job.preferred_skills || [];
-    const jobLegacySkills = job.skills || [];
     const allJobSkills = [
       ...jobRequiredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name),
-      ...jobLegacySkills
+      ...jobPreferredSkills.map((s: any) => typeof s === 'string' ? s : s.name)
     ].filter(Boolean);
     const jobSkills = this.normalizeSkills(allJobSkills);
     const jobKeywords = [...jobSkills, ...jobText.split(/\s+/).filter(word => word.length > 3)];
@@ -1318,7 +1305,7 @@ export class RecommendationService {
     
     // Check missing skills
     const userSkills = this.normalizeSkills(user.skills || []);
-    const jobRequiredSkills = this.normalizeSkills(job.required_skills || job.skills || []);
+    const jobRequiredSkills = this.normalizeSkills(job.required_skills || []);
     const missingSkills = jobRequiredSkills.filter((jobSkill: string) => 
       !userSkills.some((userSkill: string) => 
         userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
