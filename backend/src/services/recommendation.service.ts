@@ -240,8 +240,7 @@ export class RecommendationService {
         // Additional boost for completed relevant courses (certificate boost already applied in skills match)
         const certificateBoost = this.calculateCertificateBoost(user, [
           ...(job.required_skills || []).map((s: any) => typeof s === 'string' ? s : s.name),
-          ...(job.preferred_skills || []).map((s: any) => typeof s === 'string' ? s : s.name),
-          ...(job.skills || [])
+          ...(job.preferred_skills || []).map((s: any) => typeof s === 'string' ? s : s.name)
         ].filter(Boolean));
         
         if (certificateBoost > 0) {
